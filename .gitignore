@@ -1,0 +1,23 @@
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+coverage.xml
+dist/
+build/
+*.egg-info/
+.env
+.env.*
+!.env.example
+.DS_Store
+# Local specifications and generated artifacts must not enter Git by accident.
+/Management_CPU_ss_spec.docx
+/management_cpu_vplan.xlsx
+/artifacts/
+*.sqlite*
+.aura/

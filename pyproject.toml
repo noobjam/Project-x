@@ -1,0 +1,68 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "soc-verifier"
+version = "0.1.0"
+description = "Traceable, agent-assisted system-level ASIC verification workflows"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28,<1",
+    "langchain-core>=1,<2",
+    "langgraph>=1,<2",
+    "langgraph-checkpoint-sqlite>=3,<4",
+    "lxml>=6,<7",
+    "openpyxl>=3.1,<4",
+    "pydantic>=2.11,<3",
+    "pydantic-settings>=2.8,<3",
+    "python-docx>=1.2,<2",
+    "typer>=0.16,<1",
+]
+
+[project.optional-dependencies]
+postgres = ["langgraph-checkpoint-postgres>=3,<4", "psycopg[binary,pool]>=3.2,<4"]
+
+[project.scripts]
+soc-verifier = "soc_verifier.cli:app"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15,<2",
+    "pytest>=8,<10",
+    "pytest-cov>=6,<8",
+    "ruff>=0.11,<1",
+    "types-lxml>=2025.3",
+    "types-openpyxl>=3.1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/soc_verifier"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src"]
+extend-exclude = [".uv-cache", ".aura", "artifacts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "PIE", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers --import-mode=importlib"
+markers = ["integration: exercises multiple modules with no paid API calls"]
+
+[tool.coverage.run]
+source = ["soc_verifier"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
