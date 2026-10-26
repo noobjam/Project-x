@@ -5,7 +5,7 @@ Keep source code under `src/`; tests import the installed package, not a modifie
 `PYTHONPATH`. Declare packages imported directly as direct dependencies.
 
 Keep domain contracts independent of transport and orchestration. Put provider
-details in `llm/`, external file formats in ingestion/export, and routing in a
+details in `providers/`, SDK agent definitions and tools in `agents/`, external file formats in ingestion/export, and routing in a
 workflow module. Add domain schema versions when changing persisted contracts;
 do not silently reinterpret saved artifacts. Bump `PROMPT_VERSION` when changing
 role behavior so a resumed run cannot silently mix prompt versions.
@@ -16,7 +16,7 @@ live APIs or require proprietary specifications. Evaluation of engineering quali
 is separate from the software test suite.
 
 Never commit `.env`, credentials, specification documents, generated plans or
-checkpoints. Do not log document text in operational logs. New LLM features should
+checkpoints. Do not log document text in operational logs. New agent features should
 preserve explicit model/endpoint selection and locally validate their outputs.
 
 Update the smallest affected documentation when changing commands, settings or

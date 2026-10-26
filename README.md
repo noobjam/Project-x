@@ -3,16 +3,18 @@
 An extensible Python application for agent-assisted, system-level ASIC verification.
 The first workflow turns a specification into a source-linked draft verification plan.
 
-The current slice includes DOCX ingestion, typed contracts, an OpenRouter adapter,
-a persistent LangGraph analysis/planning/review loop, and Excel export. Testbench
-generation, simulation, semantic retrieval and coverage closure are future work.
+The current slice includes DOCX ingestion, typed contracts, OpenAI Agents SDK
+analyst/planner/reviewer agents, evidence retrieval tools, an OpenRouter gateway,
+and Excel export. Python controls stage order, validation and durable artifacts;
+the SDK runs each agent's model/tool loop. LangGraph is no longer a dependency.
+Testbench generation, simulation, semantic retrieval and coverage closure are future work.
 
 ## Development
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
 
 ```bash
-uv sync --locked --all-extras
+uv sync --locked
 uv run soc-verifier --help
 uv run ruff check .
 uv run ruff format --check .
@@ -40,7 +42,7 @@ layout-aware table normalization remain future work.
 ## Generate a plan
 
 Copy `.env.example` to `.env` and set the API key, explicit OpenRouter model ID and
-provider endpoint slug. Choose an endpoint supporting JSON Schema output and the
+provider endpoint slug. Choose an endpoint supporting function tools, JSON Schema output and the
 configured data-handling requirements. Planning sends extracted content to
 OpenRouter and the selected inference provider and incurs usage charges.
 
@@ -76,14 +78,14 @@ resolution without futile retries. The shared revision maximum is two by default
 Large specifications are partitioned into bounded source chunks; the analyst
 extracts each chunk, Python merges exact duplicate statements without dropping
 distinct requirements, and a global analyst pass adds cross-component requirements.
-The planner works in requirement batches with the global requirement index as
-context. Review covers every source chunk plus a global integration pass.
+The planner works in requirement batches with a compact requirement directory as
+context and retrieves additional requirements through tools. Review covers every source chunk plus a global integration pass.
 Initial analysis remains `analysis.json`; revised analyses have
 numbered filenames, and `result.json` identifies the final artifacts for export.
 Transport, schema and traceability failures stop the run and preserve completed
 work, including individual batch outputs. Resume retries unfinished work;
 interrupted remote calls can have incurred charges. CLI runs reserve a conservative
-maximum cost before each paid request using the pinned endpoint's advertised
+maximum cost before every paid request, including tool follow-ups, using the pinned endpoint's advertised
 context capacity and token prices. Reported charges settle those reservations;
 unknown charges remain fully reserved, including after restart.
 Only an explicitly identified OpenRouter in-flight
@@ -92,7 +94,10 @@ on resume stop the run. This is a client-side safeguard, not an account-level
 OpenRouter credit limit or protection against incorrect provider billing.
 
 Controls in `.env.example` include chunk size, requirements per plan batch,
-worker count, total attempted model calls and dollar budget (default $2/run).
+worker count, agent turn limit (default 4 per task), total attempted model calls
+and dollar budget (default $2/run). SDK retries are disabled; failed calls consume
+the same attempt budget. Tiered endpoint pricing currently fails preflight rather
+than using an incomplete cost estimate.
 One batch is executed at a time by default; increase `BATCH_WORKERS` explicitly
 for bounded concurrency. `resume --workers 1` overrides scheduling for that
 execution without changing the saved manifest, prompts, or budget.
@@ -108,7 +113,7 @@ strings redacted; raw upstream error payloads are excluded.
 Completed model response text is saved separately as `model-output.<attempt>.json`
 for diagnosing rejected candidates. These files contain sensitive source-derived
 content and are never treated as validated analysis, plan, or review artifacts.
-A large run uses `2*C + B + 2` calls before corrections,
+A large run starts `2*C + B + 2` agent tasks before corrections,
 where C is source chunks and B is planning batches. Output-truncated batches
 are bisected into smaller tasks; split decisions and completed children are
 persisted, so resume does not repeat a known oversized parent. These extra calls
@@ -125,12 +130,17 @@ original assigned requirements. A second invalid plan stops; previously validate
 batches remain reusable. This repair also consumes the shared call/cost budgets.
 Single-item overflow, schema errors, refusals
 and transport failures stop rather than retrying indefinitely. Small inputs
-retain the three-call path. Failed calls consume the attempt budget too.
+start three agent tasks. Each task can make up to `AGENT_MAX_TURNS` model calls
+while retrieving evidence. Tool access does not imply a cheaper run; measured
+usage and engineering quality must be compared before changing defaults.
 
-Global analysis/review still need the full source and compact indexes to fit the
-model context and input-character guard. Oversized individual source blocks fail
-explicitly rather than being truncated. Chunk sizes are character bounds, not
-token-count guarantees; model output limits can still require smaller batches.
+Global analysis/review receive section outlines and compact indexes, then retrieve
+original evidence as needed. Local extraction and review still visit every source
+chunk. Global quality now depends on the agent investigating relevant evidence;
+it requires a fresh engineering evaluation. Oversized individual source blocks
+fail explicitly rather than being truncated. Chunk sizes are character bounds,
+not token-count guarantees; model output limits can still require smaller batches.
+Tools return bounded results, and long source blocks support explicit pagination.
 
 The first full-text trial on the supplied SPEC reached the 64,000-token output
 limit during requirement extraction (Gemini 2.5 Flash-Lite). The incomplete
@@ -144,8 +154,8 @@ collection is denied with ZDR required. These controls can leave no eligible
 endpoint. Schema constants are normalized to singleton enums for endpoint
 compatibility, and local validation remains mandatory. Logs contain request
 metadata, not prompt/completion text; response usage is recorded even when local
-schema validation or completion checks fail. Local JSON and checkpoints do contain
-specification data. Excel exports publish atomically,
+schema validation or completion checks fail. Local JSON artifacts do contain specification data. OpenAI trace export is disabled;
+model requests go through OpenRouter using the existing key. Excel exports publish atomically,
 refuse existing destinations, and leave no partial destination after a failed save.
 Source references are validated for existence, not semantic correctness;
 engineering review is still required.
@@ -156,23 +166,56 @@ engineering review is still required.
 src/soc_verifier/
   domain/                  # Provider/framework-independent artifact contracts
   ingestion/               # Deterministic source extraction
-  llm/                     # StructuredLLM protocol and OpenRouter transport
-  workflows/spec_to_plan/  # LangGraph state, nodes, routing and role instructions
-  storage/                 # Immutable artifacts and persistent checkpoints
+  agents/
+    analyst.py             # SDK requirements analyst and its tools
+    planner.py             # SDK verification planner and its tools
+    reviewer.py            # SDK verification reviewer and its tools
+    tools.py               # Search source, retrieve blocks/requirements/plan items
+    runtime.py             # SDK Runner, bounded turns, local evidence context
+    instructions.py        # Versioned agent instructions
+    base.py                # Workflow-to-agent interface and errors
+  providers/               # OpenRouter transport and shared spending ledger
+  workflows/spec_to_plan/  # Batching, stage/revision policy, domain validation
+  storage/                 # Immutable artifacts double as recovery checkpoints
   export/                  # Excel views of canonical artifacts
   settings.py              # Environment configuration, credentials redacted
   cli.py                   # Composition root and commands
 tests/
   unit/                    # Contracts, ingestion, transport, storage, export
-  integration/             # Real graph execution with fake LLM responses
+  integration/             # Real SDK/tool loops with a simulated OpenRouter API
 docs/architecture.md       # Boundaries, decisions and extension points
 .github/workflows/ci.yml   # Locked install, lint, types, tests, build
 ```
 
-SQLite is the default checkpoint backend for local development. Install the
-`postgres` extra and set `SOC_VERIFIER_CHECKPOINT_DSN` to use PostgreSQL checkpoints.
-Domain artifacts remain local JSON in both modes. The application is a single
-process; multiple processes must not execute the same run concurrently.
+Completed batches and revisions are immutable recovery checkpoints. Resume replays
+stage decisions, validates saved artifacts and executes only unfinished tasks.
+An interrupted agent task restarts its tool conversation; earlier remote calls may
+already have been charged and remain in the ledger. There is no exactly-once billing
+guarantee. The application is a single process; multiple processes must not execute
+the same run concurrently. SQLite/PostgreSQL graph checkpoint support and the
+`postgres` extra have been removed.
+
+## Reviewing the Agents SDK migration
+
+Branch: `migration/openai-agents-sdk`. Commit `10f5bad` preserves the tested
+prototype; review the migration with `git diff 10f5bad..HEAD` for the completed migration.
+The branch is intentionally unmerged pending review.
+
+Prompt version 5 and engine `openai-agents-v1` identify new runs. Earlier runs
+remain exportable and readable by `spend`, but cannot resume under this runtime.
+Use the baseline checkout and its locked environment for an unfinished legacy run.
+The four available tools are `search_spec`, `get_source_blocks`,
+`get_requirements` and `get_plan_items`. They read only the current run's evidence.
+The analyst has source tools; the planner additionally retrieves requirements;
+the reviewer additionally retrieves full plan scenarios. `events.log` records
+agent starts, tool names, model-call usage (including reported cache/reasoning
+tokens) and completion. It does not log tool arguments or evidence text.
+
+The OpenAI client SDK supplies API calls and the Agents SDK supplies the tool loop;
+OpenRouter still supplies inference and billing. The model and provider remain
+explicit configuration, shared across roles. Automatic model selection, per-role
+model benchmarks, JEV and simulator tools are deferred. This migration has offline
+SDK integration tests; it has not been validated on a new paid full-specification run.
 
 The existing `.aura/` files are earlier planning notes. The current implementation
 scope and commands are documented here and in [the architecture](docs/architecture.md).

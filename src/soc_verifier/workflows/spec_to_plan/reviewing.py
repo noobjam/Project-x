@@ -4,8 +4,8 @@ import json
 import logging
 from typing import Any
 
+from soc_verifier.agents.base import AgentExecutor
 from soc_verifier.domain.models import PlanReview
-from soc_verifier.llm.base import StructuredLLM
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +16,15 @@ def validate_review(review: PlanReview, known: set[str]) -> None:
 
 
 def generate_review(
-    llm: StructuredLLM,
+    agents: AgentExecutor,
     *,
     instruction: str,
     context: dict[str, Any],
     known_items: set[str],
 ) -> PlanReview:
     for correction in range(2):
-        result = llm.generate(
-            instruction=instruction, context=json.dumps(context), schema=PlanReview
+        result = agents.run(
+            role="reviewer", instruction=instruction, context=json.dumps(context), schema=PlanReview
         )
         unknown = {
             identifier for finding in result.findings for identifier in finding.item_ids

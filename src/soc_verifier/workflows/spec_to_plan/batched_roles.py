@@ -5,6 +5,8 @@ import logging
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from soc_verifier.agents import instructions as prompts
+from soc_verifier.agents.base import AgentExecutor
 from soc_verifier.domain.models import (
     PlanReview,
     Requirement,
@@ -15,14 +17,14 @@ from soc_verifier.domain.models import (
     validate_sources,
     validate_traceability,
 )
-from soc_verifier.llm.base import StructuredLLM
 from soc_verifier.storage.artifacts import ArtifactStore
-from soc_verifier.workflows.spec_to_plan import prompts
 from soc_verifier.workflows.spec_to_plan.batching import (
     AnalysisBatch,
     evidence,
     merge_analyses,
+    requirement_directory,
     requirement_index,
+    specification_outline,
     split_specification,
 )
 from soc_verifier.workflows.spec_to_plan.bounded import bounded_call
@@ -45,7 +47,7 @@ def _map[T](function: Callable[[int], T], count: int, workers: int) -> list[T]:
 
 
 def analyze_batches(
-    llm: StructuredLLM,
+    agents: AgentExecutor,
     artifacts: ArtifactStore,
     spec: Specification,
     *,
@@ -84,7 +86,8 @@ def analyze_batches(
             # One explicit correction for fabricated citations; never silently map
             # an invalid ID or accept an unsupported claim. Both calls are budgeted.
             for correction in range(2):
-                result = llm.generate(
+                result = agents.run(
+                    role="analyst",
                     instruction=prompts.ANALYZE_CHUNK,
                     context=json.dumps(context),
                     schema=AnalysisBatch,
@@ -143,11 +146,13 @@ def analyze_batches(
     if artifacts.exists(name):
         system = AnalysisBatch.model_validate(artifacts.read(name))
     else:
-        system = llm.generate(
+        system = agents.run(
+            role="analyst",
             instruction=prompts.ANALYZE_SYSTEM,
             context=json.dumps(
                 {
-                    "specification": spec.model_dump(mode="json"),
+                    "specification_outline": specification_outline(spec),
+                    "extraction_warnings": spec.extraction_warnings,
                     "requirement_index": requirement_index(merged),
                     "review": review,
                 }
@@ -161,7 +166,7 @@ def analyze_batches(
 
 
 def plan_batches(
-    llm: StructuredLLM,
+    agents: AgentExecutor,
     artifacts: ArtifactStore,
     spec: Specification,
     analysis: SpecAnalysis,
@@ -175,14 +180,14 @@ def plan_batches(
         analysis.requirements[start : start + batch_size]
         for start in range(0, len(analysis.requirements), batch_size)
     ]
-    index = requirement_index(analysis)
+    index = requirement_directory(analysis)
 
     def plan(number: int) -> VerificationPlan:
         name = f"plan.r{revision:03d}.batch{number:04d}.json"
         logger.info("stage=planning revision=%s batch=%s/%s", revision, number + 1, len(groups))
 
         def generate(requirements: list[Requirement]) -> VerificationPlan:
-            local = SpecAnalysis(requirements=requirements, gaps=analysis.gaps)
+            local = SpecAnalysis(requirements=requirements, gaps=[])
             previous = f"plan.r{revision - 1:03d}.batch{number:04d}.json"
             context: dict[str, object] = {
                 "assigned_requirements": local.model_dump(mode="json"),
@@ -197,7 +202,8 @@ def plan_batches(
             }
             known = {item.id for item in requirements}
             for correction in range(2):
-                result = llm.generate(
+                result = agents.run(
+                    role="planner",
                     instruction=prompts.PLAN_BATCH,
                     context=json.dumps(context),
                     schema=VerificationPlan,
@@ -259,7 +265,7 @@ def plan_batches(
 
 
 def review_batches(
-    llm: StructuredLLM,
+    agents: AgentExecutor,
     artifacts: ArtifactStore,
     spec: Specification,
     analysis: SpecAnalysis,
@@ -283,11 +289,11 @@ def review_batches(
             local_ids = {item.id for item in local}
             local_plan = [item for item in plan.items if set(item.requirement_ids) & local_ids]
             result = generate_review(
-                llm,
+                agents,
                 instruction=prompts.REVIEW_CHUNK,
                 context={
                     "evidence": evidence(spec, source_ids),
-                    "system_requirement_index": index,
+                    "system_requirement_index": requirement_directory(analysis),
                     "requirements": [item.model_dump(mode="json") for item in local],
                     "plan": [item.model_dump(mode="json") for item in local_plan],
                 },
@@ -317,10 +323,11 @@ def review_batches(
         system = PlanReview.model_validate(artifacts.read(name))
     else:
         system = generate_review(
-            llm,
+            agents,
             instruction=prompts.REVIEW_SYSTEM,
             context={
-                "specification": spec.model_dump(mode="json"),
+                "specification_outline": specification_outline(spec),
+                "extraction_warnings": spec.extraction_warnings,
                 "requirement_index": index,
                 "plan_index": [
                     {

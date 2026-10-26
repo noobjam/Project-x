@@ -12,20 +12,18 @@ from uuid import UUID, uuid4
 
 import httpx
 import typer
-from langchain_core.runnables import RunnableConfig
 from pydantic import ValidationError
 
+from soc_verifier.agents.base import ModelResponseError
+from soc_verifier.agents.instructions import PROMPT_VERSION
+from soc_verifier.agents.runtime import AgentRuntime
 from soc_verifier.domain.models import PlanReview, SpecAnalysis, Specification, VerificationPlan
 from soc_verifier.export.xlsx import export_plan
 from soc_verifier.ingestion.docx import ingest_docx
-from soc_verifier.llm.base import ModelResponseError
-from soc_verifier.llm.budget import read_spending
-from soc_verifier.llm.openrouter import OpenRouterLLM
+from soc_verifier.providers.budget import read_spending
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
-from soc_verifier.storage.checkpoints import checkpoint_store
-from soc_verifier.workflows.spec_to_plan.graph import PlanState, build_graph
-from soc_verifier.workflows.spec_to_plan.prompts import PROMPT_VERSION
+from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 app = typer.Typer(no_args_is_help=True, help="Traceable system-level verification workflows.")
 
@@ -67,10 +65,10 @@ def ingest(
 def plan(
     specification: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
 ) -> None:
-    """Send an extracted specification to the configured model and create a draft plan."""
+    """Run the analyst, planner and reviewer agents on an extracted specification."""
     with _errors():
         settings = Settings()
-        settings.require_llm()
+        settings.require_agents()
         spec = Specification.model_validate_json(specification.read_text(encoding="utf-8"))
         run_id = str(uuid4())
         artifacts = ArtifactStore(settings.artifact_dir / "runs" / run_id)
@@ -87,7 +85,7 @@ def plan(
             },
         )
         typer.echo(f"Run: {run_id}")
-        _execute(settings, run_id, artifacts, {"specification": spec.model_dump(mode="json")})
+        _execute(settings, artifacts, resuming=False)
 
 
 @app.command()
@@ -98,18 +96,22 @@ def resume(
         int | None, typer.Option("--max-output-tokens", min=256, max=64_000)
     ] = None,
 ) -> None:
-    """Resume an interrupted run using its persisted graph checkpoints."""
+    """Resume an interrupted run using its validated artifact checkpoints."""
     with _errors():
         run_id = str(UUID(run_id))
         settings = Settings()
-        settings.require_llm()
+        settings.require_agents()
         root = settings.artifact_dir / "runs" / run_id
         if not root.is_dir():
             raise ValueError("Unknown run ID")
         artifacts = ArtifactStore(root)
         manifest = artifacts.read("manifest.json")
-        if manifest["prompt_version"] != PROMPT_VERSION or any(
-            manifest[key] != value for key, value in _run_configuration(settings).items()
+        if (
+            manifest.get("engine") != "openai-agents-v1"
+            or manifest["prompt_version"] != PROMPT_VERSION
+            or any(
+                manifest.get(key) != value for key, value in _run_configuration(settings).items()
+            )
         ):
             raise ValueError("Run configuration changed; restore its settings or start a new run")
         # Scheduling does not change prompts, partitions, or artifact identities.
@@ -120,7 +122,7 @@ def resume(
             if max_output_tokens > settings.max_output_tokens:
                 raise ValueError("Resume output-token override may only lower the original limit")
             settings = settings.model_copy(update={"max_output_tokens": max_output_tokens})
-        _execute(settings, run_id, artifacts, None)
+        _execute(settings, artifacts, resuming=True)
 
 
 @app.command()
@@ -191,6 +193,8 @@ def export_command(
 
 def _run_configuration(settings: Settings) -> dict[str, Any]:
     return {
+        "engine": "openai-agents-v1",
+        "agent_max_turns": settings.agent_max_turns,
         "model": settings.model,
         "provider": settings.provider,
         "max_revisions": settings.max_revisions,
@@ -206,14 +210,10 @@ def _run_configuration(settings: Settings) -> dict[str, Any]:
 
 def _execute(
     settings: Settings,
-    run_id: str,
     artifacts: ArtifactStore,
-    initial: PlanState | None,
+    *,
+    resuming: bool,
 ) -> None:
-    config: RunnableConfig = {
-        "configurable": {"thread_id": run_id},
-        "recursion_limit": 3 * settings.max_revisions + 8,
-    }
     handler = logging.FileHandler(artifacts.path("events.log"), encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger = logging.getLogger("soc_verifier")
@@ -225,26 +225,21 @@ def _execute(
             "execution workers=%s max_output_tokens=%s resume=%s",
             settings.batch_workers,
             settings.max_output_tokens,
-            initial is None,
+            resuming,
         )
-        with checkpoint_store(settings) as checkpoints, httpx.Client() as client:
-            graph = build_graph(
-                OpenRouterLLM(settings, client, artifacts=artifacts),
+        if artifacts.exists("result.json"):
+            typer.echo(f"Run already completed: {artifacts.root}")
+            return
+        with httpx.Client() as client:
+            workflow = PlanningWorkflow(
+                AgentRuntime(settings, client, artifacts=artifacts),
                 artifacts,
-                checkpoints,
                 max_revisions=settings.max_revisions,
                 chunk_max_characters=settings.chunk_max_characters,
                 plan_batch_size=settings.plan_batch_size,
                 batch_workers=settings.batch_workers,
             )
-            snapshot = graph.get_state(config)
-            if initial is None and not snapshot.values:
-                # A failure before the first checkpoint can still recover from local input.
-                initial = {"specification": artifacts.read("specification.json")}
-            if initial is None and not snapshot.next:
-                typer.echo(f"Run already completed: {artifacts.root}")
-                return
-            result = graph.invoke(initial, config, durability="sync")
+            result = workflow.run()
             typer.echo(f"Status: {result['status']}; artifacts: {artifacts.root}")
     finally:
         logger.removeHandler(handler)

@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 from pydantic import BaseModel
 
-from soc_verifier.llm.base import OutputLimitError
+from soc_verifier.agents.base import OutputLimitError
 from soc_verifier.storage.artifacts import ArtifactStore
 
 logger = logging.getLogger(__name__)

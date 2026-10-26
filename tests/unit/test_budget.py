@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from soc_verifier.llm.budget import BudgetExceeded, CallBudget, read_spending
+from soc_verifier.providers.budget import BudgetExceeded, CallBudget, read_spending
 from soc_verifier.storage.artifacts import ArtifactStore
 
 

@@ -1,5 +1,6 @@
-"""Explicit OpenRouter routing and locally validated structured generation."""
+"""OpenAI SDK transport with per-request accounting, diagnostics and fail-closed limits."""
 
+import asyncio
 import json
 import logging
 import re
@@ -9,21 +10,20 @@ from time import monotonic
 from typing import Any
 
 import httpx
-from pydantic import BaseModel
 
-from soc_verifier.llm.base import ModelResponseError, OutputLimitError
-from soc_verifier.llm.budget import CallBudget
+from soc_verifier.agents.base import ModelResponseError, OutputLimitError
+from soc_verifier.providers.budget import CallBudget
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 
 logger = logging.getLogger(__name__)
 
 
-class OpenRouterLLM:
+class OpenRouterTransport(httpx.AsyncBaseTransport):
     def __init__(
         self, settings: Settings, client: httpx.Client, *, artifacts: ArtifactStore | None = None
     ) -> None:
-        settings.require_llm()
+        settings.require_agents()
         self.settings = settings
         self.client = client
         self.artifacts = artifacts
@@ -47,6 +47,8 @@ class OpenRouterLLM:
                 if endpoint is None:
                     raise ValueError("Pinned provider endpoint not found; no generation was sent")
                 pricing = endpoint["pricing"]
+                if pricing.get("overrides"):
+                    raise ValueError("Tiered endpoint pricing is not supported by the cost bound")
                 prompt_rate, completion_rate = (
                     Decimal(pricing["prompt"]),
                     Decimal(pricing["completion"]),
@@ -92,42 +94,44 @@ class OpenRouterLLM:
                 )
             return self.budget
 
-    def generate[T: BaseModel](self, *, instruction: str, context: str, schema: type[T]) -> T:
-        if len(instruction) + len(context) > self.settings.max_input_characters:
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        # The caller owns the shared synchronous client. The SDK owns only this
+        # async bridge; closing one agent's SDK client must not close other workers.
+        return await asyncio.to_thread(self._send, request)
+
+    def _send(self, request: httpx.Request) -> httpx.Response:
+        if str(request.url) != "https://openrouter.ai/api/v1/chat/completions":
+            raise ValueError("Unexpected model endpoint")
+        payload = json.loads(request.content)
+        context = json.dumps(payload.get("messages", []))
+        instruction = ""
+        if len(context) > self.settings.max_input_characters:
             raise ValueError("Input exceeds configured character limit; no request was sent")
-        assert self.settings.openrouter_api_key is not None
+        # Enforce routing even if an SDK setting tries to change it.
+        payload["model"] = self.settings.model
+        payload["provider"] = {
+            "only": [self.settings.provider],
+            "allow_fallbacks": False,
+            "require_parameters": True,
+            "data_collection": "deny",
+            "zdr": True,
+        }
+        payload["max_tokens"] = self.settings.max_output_tokens
+        output = payload.get("response_format", {}).get("json_schema")
+        if output:
+            output["schema"] = _strict_schema(output["schema"])
+        for tool in payload.get("tools", []):
+            if tool.get("type") == "function":
+                tool["function"]["parameters"] = _strict_schema(tool["function"]["parameters"])
         budget = self._run_budget()
         attempt = budget.reserve() if budget is not None else None
         started = monotonic()
         response = self.client.post(
-            "https://openrouter.ai/api/v1/chat/completions",
+            str(request.url),
             headers={
-                "Authorization": f"Bearer {self.settings.openrouter_api_key.get_secret_value()}",
-                "X-OpenRouter-Title": "soc-verifier",
+                key: value for key, value in request.headers.items() if key != "content-length"
             },
-            json={
-                "model": self.settings.model,
-                "messages": [
-                    {"role": "system", "content": instruction},
-                    {"role": "user", "content": context},
-                ],
-                "provider": {
-                    "only": [self.settings.provider],
-                    "allow_fallbacks": False,
-                    "require_parameters": True,
-                    "data_collection": "deny",
-                    "zdr": True,
-                },
-                "max_tokens": self.settings.max_output_tokens,
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": schema.__name__,
-                        "strict": True,
-                        "schema": _strict_schema(schema.model_json_schema()),
-                    },
-                },
-            },
+            json=payload,
             timeout=self.settings.request_timeout_seconds,
         )
         if response.is_error:
@@ -164,8 +168,22 @@ class OpenRouterLLM:
             if isinstance(usage, dict)
             else {}
         )
+        if isinstance(usage, dict):
+            for category, keys in {
+                "prompt_tokens_details": {"cached_tokens", "cache_write_tokens"},
+                "completion_tokens_details": {"reasoning_tokens"},
+            }.items():
+                details = usage.get(category, {})
+                if isinstance(details, dict):
+                    safe_usage.update(
+                        {
+                            f"{category}.{key}": value
+                            for key, value in details.items()
+                            if key in keys and isinstance(value, (int, float))
+                        }
+                    )
         logger.info(
-            "llm_call model=%s provider=%s request_id=%s usage=%s elapsed_seconds=%.3f",
+            "agent_model_call model=%s provider=%s request_id=%s usage=%s elapsed_seconds=%.3f",
             payload.get("model"),
             payload.get("provider"),
             payload.get("id"),
@@ -179,7 +197,7 @@ class OpenRouterLLM:
                 f"model-output.{attempt:05d}.json",
                 {
                     "request_id": payload.get("id"),
-                    "schema": schema.__name__,
+                    "schema": output["schema"].get("title", output.get("name")) if output else None,
                     "max_output_tokens": self.settings.max_output_tokens,
                     "choices": payload.get("choices"),
                 },
@@ -194,17 +212,24 @@ class OpenRouterLLM:
             raise OutputLimitError(
                 "Provider reached the output token limit; generation is incomplete"
             )
-        if choices[0].get("finish_reason") != "stop":
+        if choices[0].get("finish_reason") not in {"stop", "tool_calls"}:
             self._record_http_error(response, attempt, instruction, context)
             raise ModelResponseError("Provider returned no complete generation")
         message = choices[0].get("message", {})
         if (
             not isinstance(message, dict)
             or message.get("refusal")
-            or not isinstance(message.get("content"), str)
+            or (not isinstance(message.get("content"), str) and not message.get("tool_calls"))
         ):
             raise ModelResponseError("Provider refused or returned no text content")
-        return schema.model_validate_json(message["content"])
+        # Return a buffered response for the OpenAI SDK's typed parser. No retries
+        # are performed here; every new network attempt must reserve its own cost.
+        return httpx.Response(
+            response.status_code,
+            headers=response.headers,
+            content=response.content,
+            request=request,
+        )
 
     def _record_http_error(
         self, response: httpx.Response, attempt: int | None, instruction: str, context: str
@@ -236,7 +261,19 @@ class OpenRouterLLM:
             if header in response.headers:
                 details[header] = response.headers[header]
         assert self.settings.openrouter_api_key is not None
-        sensitive = (self.settings.openrouter_api_key.get_secret_value(), instruction, context)
+        sensitive = [self.settings.openrouter_api_key.get_secret_value(), instruction, context]
+        # SDK requests contain a message history, including tool results. Preserve
+        # the old redaction guarantee for individual message strings as well.
+        try:
+            messages = json.loads(context)
+        except ValueError:
+            messages = None
+        if isinstance(messages, list):
+            sensitive.extend(
+                item["content"]
+                for item in messages
+                if isinstance(item, dict) and isinstance(item.get("content"), str)
+            )
 
         def redact(value: Any) -> Any:
             if isinstance(value, str):
@@ -251,7 +288,7 @@ class OpenRouterLLM:
         details = redact(details)
         if self.artifacts is not None and attempt is not None:
             self.artifacts.write(f"http-error.{attempt:05d}.json", details)
-        logger.error("llm_http_error %s", json.dumps(details, ensure_ascii=True))
+        logger.error("agent_http_error %s", json.dumps(details, ensure_ascii=True))
         return details
 
 

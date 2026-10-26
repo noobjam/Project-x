@@ -7,10 +7,43 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from soc_verifier.domain.models import PlanReview
-from soc_verifier.llm.budget import BudgetExceeded
-from soc_verifier.llm.openrouter import ModelResponseError, OpenRouterLLM, _strict_schema
+from soc_verifier.providers.budget import BudgetExceeded
+from soc_verifier.providers.openrouter import (
+    ModelResponseError,
+    OpenRouterTransport,
+    _strict_schema,
+)
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
+
+
+class TransportHarness(OpenRouterTransport):
+    """Exercise wire accounting separately from the SDK tool-loop integration tests."""
+
+    def complete(self, *, instruction, context, schema):
+        request = httpx.Request(
+            "POST",
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": "Bearer " + self.settings.openrouter_api_key.get_secret_value()
+            },
+            json={
+                "messages": [
+                    {"role": "system", "content": instruction},
+                    {"role": "user", "content": context},
+                ],
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema.__name__,
+                        "strict": True,
+                        "schema": schema.model_json_schema(),
+                    },
+                },
+            },
+        )
+        response = self._send(request)
+        return schema.model_validate_json(response.json()["choices"][0]["message"]["content"])
 
 
 def settings(**overrides):
@@ -55,7 +88,7 @@ def test_structured_request_routing_and_redacted_logging(caplog):
         httpx.Client(transport=httpx.MockTransport(respond)) as client,
         caplog.at_level(logging.INFO),
     ):
-        result = OpenRouterLLM(settings(), client).generate(
+        result = TransportHarness(settings(), client).complete(
             instruction="review", context="proprietary-source-text", schema=PlanReview
         )
     assert result.findings == []
@@ -80,7 +113,7 @@ def test_incomplete_or_refused_responses_fail(response):
         ) as client,
         pytest.raises(ModelResponseError),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="x", schema=PlanReview
         )
 
@@ -95,7 +128,7 @@ def test_schema_violation_fails_locally():
         ) as client,
         pytest.raises(ValidationError),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="x", schema=PlanReview
         )
 
@@ -112,10 +145,10 @@ def test_rejected_candidate_is_saved_separately_for_diagnosis(tmp_path, monkeypa
     with httpx.Client(
         transport=httpx.MockTransport(lambda _: httpx.Response(200, json=response))
     ) as client:
-        llm = OpenRouterLLM(settings(), client, artifacts=artifacts)
-        monkeypatch.setattr(llm, "_run_budget", lambda: budget)
+        agents = TransportHarness(settings(), client, artifacts=artifacts)
+        monkeypatch.setattr(agents, "_run_budget", lambda: budget)
         with pytest.raises(ValidationError):
-            llm.generate(instruction="review", context="source", schema=PlanReview)
+            agents.complete(instruction="review", context="source", schema=PlanReview)
     saved = artifacts.read("model-output.00001.json")
     assert saved["request_id"] == "paid-candidate"
     assert saved["choices"][0]["message"]["content"] == '{"findings": "invalid"}'
@@ -125,7 +158,7 @@ def test_rejected_candidate_is_saved_separately_for_diagnosis(tmp_path, monkeypa
 
 def test_input_limit_rejects_before_network():
     with httpx.Client() as client, pytest.raises(ValueError, match="character limit"):
-        OpenRouterLLM(settings(max_input_characters=1000), client).generate(
+        TransportHarness(settings(max_input_characters=1000), client).complete(
             instruction="review", context="x" * 1001, schema=PlanReview
         )
 
@@ -141,7 +174,7 @@ def test_http_error_is_not_retried_implicitly():
         httpx.Client(transport=httpx.MockTransport(respond)) as client,
         pytest.raises(httpx.HTTPStatusError),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="x", schema=PlanReview
         )
     assert len(calls) == 1
@@ -165,8 +198,8 @@ def test_http_error_records_reason_without_sensitive_payloads(tmp_path, caplog):
     )
     artifacts = ArtifactStore(tmp_path)
     with httpx.Client() as client, caplog.at_level(logging.ERROR):
-        llm = OpenRouterLLM(settings(), client, artifacts=artifacts)
-        llm._record_http_error(response, 1, "review", "private-source")
+        agents = TransportHarness(settings(), client, artifacts=artifacts)
+        agents._record_http_error(response, 1, "review", "private-source")
     saved = artifacts.read("http-error.00001.json")
     assert saved["message"] == "Insufficient credits [REDACTED] [REDACTED]"
     assert saved["metadata"]["limit_source"] == "openrouter_credits"
@@ -191,10 +224,10 @@ def test_only_confirmed_inflight_rejection_releases_reservation(tmp_path, monkey
     budget = Mock()
     budget.reserve.return_value = 1
     with httpx.Client(transport=httpx.MockTransport(lambda _: response)) as client:
-        llm = OpenRouterLLM(settings(), client, artifacts=ArtifactStore(tmp_path))
-        monkeypatch.setattr(llm, "_run_budget", lambda: budget)
+        agents = TransportHarness(settings(), client, artifacts=ArtifactStore(tmp_path))
+        monkeypatch.setattr(agents, "_run_budget", lambda: budget)
         with pytest.raises(httpx.HTTPStatusError):
-            llm.generate(instruction="review", context="source", schema=PlanReview)
+            agents.complete(instruction="review", context="source", schema=PlanReview)
     if source == "openrouter_in_flight_budget":
         budget.settle.assert_called_once_with(1, 0)
     else:
@@ -222,7 +255,7 @@ def test_invalid_paid_response_still_logs_safe_usage(caplog, finish_reason):
         caplog.at_level(logging.INFO),
         pytest.raises((ValidationError, ModelResponseError)),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="private-source", schema=PlanReview
         )
     assert "paid-invalid" in caplog.text and "0.001" in caplog.text
@@ -244,7 +277,7 @@ def test_malformed_envelope_fails_cleanly(response):
         ) as client,
         pytest.raises(ModelResponseError),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="x", schema=PlanReview
         )
 
@@ -268,7 +301,7 @@ def test_output_limit_has_actionable_error():
         ) as client,
         pytest.raises(ModelResponseError, match="output token limit"),
     ):
-        OpenRouterLLM(settings(), client).generate(
+        TransportHarness(settings(), client).complete(
             instruction="review", context="x", schema=PlanReview
         )
 
@@ -309,15 +342,15 @@ def test_budget_stops_before_sending_paid_request(tmp_path, maximum, expected_po
         )
 
     with httpx.Client(transport=httpx.MockTransport(respond)) as client:
-        llm = OpenRouterLLM(
+        agents = TransportHarness(
             settings(max_output_tokens=256, max_cost_usd=maximum, max_model_calls=1),
             client,
             artifacts=ArtifactStore(tmp_path),
         )
         if expected_posts:
-            llm.generate(instruction="review", context="x", schema=PlanReview)
+            agents.complete(instruction="review", context="x", schema=PlanReview)
         with pytest.raises(BudgetExceeded):
-            llm.generate(instruction="review", context="x", schema=PlanReview)
+            agents.complete(instruction="review", context="x", schema=PlanReview)
     assert len(posts) == expected_posts
 
 
@@ -354,21 +387,54 @@ def test_lower_output_limit_preserves_budget_and_checks_prices(tmp_path, price_c
 
     artifacts = ArtifactStore(tmp_path)
     with httpx.Client(transport=httpx.MockTransport(respond)) as client:
-        original = OpenRouterLLM(settings(max_output_tokens=1000), client, artifacts=artifacts)
-        original.generate(instruction="review", context="x", schema=PlanReview)
+        original = TransportHarness(settings(max_output_tokens=1000), client, artifacts=artifacts)
+        original.complete(instruction="review", context="x", schema=PlanReview)
         pinned = artifacts.read("budget-pricing.json")
         if price_changed:
             prompt_price = "0.002"
-        reduced = OpenRouterLLM(settings(max_output_tokens=256), client, artifacts=artifacts)
+        reduced = TransportHarness(settings(max_output_tokens=256), client, artifacts=artifacts)
         if price_changed:
             with pytest.raises(FileExistsError):
-                reduced.generate(instruction="review", context="x", schema=PlanReview)
+                reduced.complete(instruction="review", context="x", schema=PlanReview)
             assert posts == [1000]
         else:
-            reduced.generate(instruction="review", context="x", schema=PlanReview)
+            reduced.complete(instruction="review", context="x", schema=PlanReview)
             assert posts == [1000, 256]
             assert (
                 artifacts.read("cost-reserved.00002.json")["reserved_usd"]
                 == pinned["reservation_usd"]
             )
         assert artifacts.read("budget-pricing.json") == pinned
+
+
+def test_tiered_pricing_rejected_before_inference(tmp_path):
+    def respond(request):
+        assert request.method == "GET"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "endpoints": [
+                        {
+                            "tag": "test-endpoint",
+                            "context_length": 1000,
+                            "pricing": {
+                                "prompt": "0.001",
+                                "completion": "0.001",
+                                "overrides": [
+                                    {
+                                        "prompt": "0.002",
+                                        "completion": "0.003",
+                                    }
+                                ],
+                            },
+                        }
+                    ]
+                }
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        adapter = TransportHarness(settings(), client, artifacts=ArtifactStore(tmp_path))
+        with pytest.raises(ValueError, match="Tiered endpoint pricing"):
+            adapter.complete(instruction="review", context="source", schema=PlanReview)

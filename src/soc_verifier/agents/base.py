@@ -1,6 +1,6 @@
-"""A narrow interface: workflow nodes never construct provider requests."""
+"""A narrow interface: workflow stages never construct provider requests."""
 
-from typing import Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
@@ -13,7 +13,12 @@ class OutputLimitError(ModelResponseError):
     """Generation was truncated; callers may partition work, never accept partial JSON."""
 
 
-class StructuredLLM(Protocol):
-    def generate[T: BaseModel](self, *, instruction: str, context: str, schema: type[T]) -> T:
+AgentRole = Literal["analyst", "planner", "reviewer"]
+
+
+class AgentExecutor(Protocol):
+    def run[T: BaseModel](
+        self, *, role: AgentRole, instruction: str, context: str, schema: type[T]
+    ) -> T:
         """Return a validated artifact or raise; never return partial output."""
         ...

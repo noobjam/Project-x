@@ -1,30 +1,29 @@
 import json
 
 import pytest
-from langgraph.checkpoint.memory import InMemorySaver
-from langgraph.checkpoint.sqlite import SqliteSaver
 
+from soc_verifier.agents import instructions as prompts
 from soc_verifier.domain.models import (
     PlanReview,
     Requirement,
+    Specification,
     VerificationItem,
     VerificationPlan,
 )
 from soc_verifier.storage.artifacts import ArtifactStore
-from soc_verifier.workflows.spec_to_plan import prompts
 from soc_verifier.workflows.spec_to_plan.batching import AnalysisBatch
-from soc_verifier.workflows.spec_to_plan.graph import build_graph
+from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 pytestmark = pytest.mark.integration
 
 
-class EvidenceLLM:
+class EvidenceAgents:
     def __init__(self, fail_source=None):
         self.fail_source = fail_source
         self.chunk_calls = []
         self.reviewed = []
 
-    def generate(self, *, instruction, context, schema):
+    def run(self, *, role, instruction, context, schema):
         payload = json.loads(context)
         if instruction == prompts.ANALYZE_CHUNK:
             block = payload["evidence"][0]
@@ -107,22 +106,19 @@ def large_spec(specification):
 def test_large_spec_preserves_evidence_and_system_interactions(tmp_path, specification, workers):
     spec = large_spec(specification)
     artifacts = ArtifactStore(tmp_path)
-    llm = EvidenceLLM()
-    graph = build_graph(
-        llm,
+    agents = EvidenceAgents()
+    workflow = PlanningWorkflow(
+        agents,
         artifacts,
-        InMemorySaver(),
         max_revisions=0,
         chunk_max_characters=1000,
         plan_batch_size=1,
         batch_workers=workers,
     )
-    result = graph.invoke(
-        {"specification": spec.model_dump()}, {"configurable": {"thread_id": "large"}}
-    )
+    result = workflow.run(Specification.model_validate(spec.model_dump()))
     assert result["status"] == "draft_ready"
-    assert sorted(llm.chunk_calls) == ["P00001", "P00002", "P00003"]
-    assert sorted(llm.reviewed) == ["P00001", "P00002", "P00003"]
+    assert sorted(agents.chunk_calls) == ["P00001", "P00002", "P00003"]
+    assert sorted(agents.reviewed) == ["P00001", "P00002", "P00003"]
     assert len(result["analysis"]["requirements"]) == 4
     assert len(result["plan"]["items"]) == 4
     assert len({item["id"] for item in result["plan"]["items"]}) == 4
@@ -134,39 +130,30 @@ def test_large_spec_preserves_evidence_and_system_interactions(tmp_path, specifi
 def test_restart_reuses_completed_chunks(tmp_path, specification):
     spec = large_spec(specification)
     artifacts = ArtifactStore(tmp_path / "run")
-    config = {"configurable": {"thread_id": "restart-batches"}}
-    database = str(tmp_path / "checkpoints.sqlite")
-    with SqliteSaver.from_conn_string(database) as checkpoints:
-        graph = build_graph(
-            EvidenceLLM(fail_source="P00002"),
-            artifacts,
-            checkpoints,
-            max_revisions=0,
-            chunk_max_characters=1000,
-            plan_batch_size=1,
-        )
-        with pytest.raises(RuntimeError, match="interrupted chunk"):
-            graph.invoke({"specification": spec.model_dump()}, config, durability="sync")
+    workflow = PlanningWorkflow(
+        EvidenceAgents(fail_source="P00002"),
+        artifacts,
+        max_revisions=0,
+        chunk_max_characters=1000,
+        plan_batch_size=1,
+    )
+    with pytest.raises(RuntimeError, match="interrupted chunk"):
+        workflow.run(Specification.model_validate(spec.model_dump()))
     assert artifacts.exists("analysis.r000.chunk0000.json")
-    remaining = EvidenceLLM()
-    with SqliteSaver.from_conn_string(database) as checkpoints:
-        graph = build_graph(
-            remaining,
-            artifacts,
-            checkpoints,
-            max_revisions=0,
-            chunk_max_characters=1000,
-            plan_batch_size=1,
-        )
-        assert graph.invoke(None, config, durability="sync")["status"] == "draft_ready"
+    remaining = EvidenceAgents()
+    workflow = PlanningWorkflow(
+        remaining, artifacts, max_revisions=0, chunk_max_characters=1000, plan_batch_size=1
+    )
+    assert workflow.run()["status"] == "draft_ready"
     assert remaining.chunk_calls == ["P00002", "P00003"]
 
 
 @pytest.mark.parametrize("repair_succeeds", [True, False])
 def test_chunk_citation_correction_is_bounded(tmp_path, specification, repair_succeeds):
-    class InvalidCitationLLM(EvidenceLLM):
-        def generate(self, *, instruction, context, schema):
-            result = super().generate(instruction=instruction, context=context, schema=schema)
+
+    class InvalidCitationAgents(EvidenceAgents):
+        def run(self, *, role, instruction, context, schema):
+            result = super().run(instruction=instruction, context=context, schema=schema, role=role)
             if instruction == prompts.ANALYZE_CHUNK and self.chunk_calls[-1] == "P00001":
                 payload = json.loads(context)
                 if "validation_feedback" in payload:
@@ -183,19 +170,18 @@ def test_chunk_citation_correction_is_bounded(tmp_path, specification, repair_su
                     )
             return result
 
-    llm = InvalidCitationLLM()
+    agents = InvalidCitationAgents()
     artifacts = ArtifactStore(tmp_path)
-    graph = build_graph(llm, artifacts, InMemorySaver(), max_revisions=0, chunk_max_characters=1000)
+    workflow = PlanningWorkflow(agents, artifacts, max_revisions=0, chunk_max_characters=1000)
     initial = {"specification": large_spec(specification).model_dump()}
-    config = {"configurable": {"thread_id": "citations"}}
     if repair_succeeds:
-        graph.invoke(initial, config)
+        workflow.run(Specification.model_validate(initial["specification"]))
         assert artifacts.exists("result.json")
     else:
         with pytest.raises(ValueError, match="after one correction"):
-            graph.invoke(initial, config)
+            workflow.run(Specification.model_validate(initial["specification"]))
         assert not artifacts.exists("analysis.r000.chunk0000.json")
-    assert llm.chunk_calls.count("P00001") == 2
+    assert agents.chunk_calls.count("P00001") == 2
 
 
 @pytest.mark.parametrize("repair_succeeds", [True, False])
@@ -203,12 +189,13 @@ def test_chunk_citation_correction_is_bounded(tmp_path, specification, repair_su
 def test_plan_batch_traceability_correction_is_bounded(
     tmp_path, specification, repair_succeeds, defect
 ):
-    class BrokenPlanLLM(EvidenceLLM):
+
+    class BrokenPlanAgents(EvidenceAgents):
         first_group = None
         first_group_calls = 0
 
-        def generate(self, *, instruction, context, schema):
-            result = super().generate(instruction=instruction, context=context, schema=schema)
+        def run(self, *, role, instruction, context, schema):
+            result = super().run(instruction=instruction, context=context, schema=schema, role=role)
             if schema is not VerificationPlan:
                 return result
             payload = json.loads(context)
@@ -236,26 +223,20 @@ def test_plan_batch_traceability_correction_is_bounded(
                     result = result.model_copy(update={"items": items})
             return result
 
-    llm = BrokenPlanLLM()
+    agents = BrokenPlanAgents()
     artifacts = ArtifactStore(tmp_path)
-    graph = build_graph(
-        llm,
-        artifacts,
-        InMemorySaver(),
-        max_revisions=0,
-        chunk_max_characters=1000,
-        plan_batch_size=2,
+    workflow = PlanningWorkflow(
+        agents, artifacts, max_revisions=0, chunk_max_characters=1000, plan_batch_size=2
     )
     initial = {"specification": large_spec(specification).model_dump()}
-    config = {"configurable": {"thread_id": "plan-correction"}}
     if repair_succeeds:
-        graph.invoke(initial, config)
+        workflow.run(Specification.model_validate(initial["specification"]))
         assert artifacts.exists("result.json")
         assert artifacts.exists("plan.r000.batch0000.json")
     else:
         with pytest.raises(ValueError, match="after one correction"):
-            graph.invoke(initial, config)
+            workflow.run(Specification.model_validate(initial["specification"]))
         assert not artifacts.exists("plan.r000.batch0000.json")
         assert not artifacts.exists("result.json")
     assert artifacts.exists("analysis.json")
-    assert llm.first_group_calls == 2
+    assert agents.first_group_calls == 2

@@ -88,6 +88,25 @@ def requirement_index(analysis: SpecAnalysis) -> list[dict[str, object]]:
     ]
 
 
+def requirement_directory(analysis: SpecAnalysis) -> list[dict[str, str]]:
+    """Small discovery index; agents retrieve complete requirements only when needed."""
+    return [{"id": item.id, "feature": item.feature} for item in analysis.requirements]
+
+
+def specification_outline(spec: Specification) -> list[dict[str, object]]:
+    """Locate sections without resending source text and XML metadata globally."""
+    sections: dict[str, dict[str, object]] = {}
+    for block in spec.blocks:
+        if block.section not in sections:
+            sections[block.section] = {
+                "section": block.section,
+                "first_source_id": block.id,
+                "last_source_id": block.id,
+            }
+        sections[block.section]["last_source_id"] = block.id
+    return list(sections.values())
+
+
 def evidence(spec: Specification, source_ids: set[str]) -> list[dict[str, str]]:
     """Include referenced blocks and real table headers, never invented context."""
     table_ids = {identifier.rsplit("-R", 1)[0] for identifier in source_ids if "-R" in identifier}

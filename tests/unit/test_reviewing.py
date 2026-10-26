@@ -21,13 +21,15 @@ def finding(ids):
 
 
 def test_review_correction_keeps_evidence_and_requests_complete_findings():
-    llm = Mock()
-    llm.generate.side_effect = [finding(["REQ-001"]), finding([])]
+    agents = Mock()
+    agents.run.side_effect = [finding(["REQ-001"]), finding([])]
     context = {"specification": "original source", "plan": [{"id": "PLAN-001"}]}
-    result = generate_review(llm, instruction="review", context=context, known_items={"PLAN-001"})
+    result = generate_review(
+        agents, instruction="review", context=context, known_items={"PLAN-001"}
+    )
     assert result.findings[0].description == "Register map is missing."
     assert result.findings[0].item_ids == []
-    second = json.loads(llm.generate.call_args_list[1].kwargs["context"])
+    second = json.loads(agents.run.call_args_list[1].kwargs["context"])
     assert second["specification"] == context["specification"]
     assert second["plan"] == context["plan"]
     assert second["validation_feedback"]["unknown_item_ids"] == ["REQ-001"]
@@ -36,16 +38,16 @@ def test_review_correction_keeps_evidence_and_requests_complete_findings():
 
 
 def test_second_invalid_review_stops_after_two_budgeted_calls():
-    llm = Mock()
-    llm.generate.side_effect = [finding(["REQ-001"]), finding(["invented"])]
+    agents = Mock()
+    agents.run.side_effect = [finding(["REQ-001"]), finding(["invented"])]
     with pytest.raises(ValueError, match="after one correction"):
-        generate_review(llm, instruction="review", context={}, known_items={"PLAN-001"})
-    assert llm.generate.call_count == 2
+        generate_review(agents, instruction="review", context={}, known_items={"PLAN-001"})
+    assert agents.run.call_count == 2
 
 
 def test_transport_failure_during_review_is_not_retried():
-    llm = Mock()
-    llm.generate.side_effect = RuntimeError("transport failed")
+    agents = Mock()
+    agents.run.side_effect = RuntimeError("transport failed")
     with pytest.raises(RuntimeError, match="transport failed"):
-        generate_review(llm, instruction="review", context={}, known_items=set())
-    assert llm.generate.call_count == 1
+        generate_review(agents, instruction="review", context={}, known_items=set())
+    assert agents.run.call_count == 1

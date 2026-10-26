@@ -1,6 +1,6 @@
 import pytest
 
-from soc_verifier.llm.base import ModelResponseError, OutputLimitError
+from soc_verifier.agents.base import ModelResponseError, OutputLimitError
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.batching import AnalysisBatch
 from soc_verifier.workflows.spec_to_plan.bounded import bounded_call
