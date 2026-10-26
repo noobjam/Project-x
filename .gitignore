@@ -21,3 +21,5 @@ build/
 /artifacts/
 *.sqlite*
 .aura/
+# Local agent instructions are not published.
+[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]

@@ -4,8 +4,8 @@ Last updated: 2026-10-26.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
-[the council review](agent-council-review.md). Read [AGENTS.md](../AGENTS.md) for the
-required session and milestone update workflow.
+[the council review](agent-council-review.md). Local sessions also use an ignored
+AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
@@ -21,6 +21,8 @@ required session and milestone update workflow.
   then source-faithful pilot fixtures and annotation/scoring states (SV-01B/C).
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
+- **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
+  The roadmap, council review and this progress tracker remain shared documents.
 
 ## Repository snapshot
 
@@ -33,7 +35,9 @@ Checked on 2026-10-26:
   GitHub main from 35e0259 to 2bb4293; git ls-remote verified the matching SHA and
   the working tree was clean. This entry records that publication checkpoint;
   subsequent status-only commits may advance the tip.
-- Roadmap, council review and session-continuity files are committed and published.
+- Roadmap, council review and progress are committed and published. The user has
+  subsequently requested that AGENTS.md be removed from tracking and kept local;
+  the current correction removes it from the branch without rewriting earlier commits.
   No implementation branch or external ticket links have been created for the
   revised backlog.
 
@@ -45,7 +49,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | --- | --- | --- |
 | SDK migration | done | Merged at 7c2f05d and published to GitHub in the push through 2bb4293. Last recorded validation: 112 tests passed, Ruff, mypy and build passed. These checks were reported in the migration session, not rerun for publication. |
 | Research council and plan revision | done | Three tracks reviewed dataset relevance, architecture and delivery/cost. Final review found no blocking planning issue; see the council review. This is not semantic validation of agent outputs. |
-| Session continuity documentation | done | Root instructions and progress tracker created. All 40 local links/anchors, 11 ticket entries and whitespace checks passed. Published with the roadmap/council review at 2bb4293. |
+| Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
 | Preparation | planned | SV-01A/B/C and SV-03A. No application code or pilot fixtures implemented yet. |
 | Baseline foundation | planned | SV-02 and minimal SV-03B. Must establish task attribution, input binding and legacy reads. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
@@ -72,6 +76,9 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- User preference: never publish AGENTS.md. Preserve its local copy and ignore
+  case variants of the filename. This correction removes the current tracked file;
+  the earlier commits still contain their historical copies.
 - The user challenged the missing GitHub commits; publication to the confirmed
   repository is complete. This does not start application implementation or paid
   evaluation. On a later
@@ -130,7 +137,7 @@ complete merely because its plan exists.
   and artifacts/research-council-2026-10-26.html. These are ignored, machine-local
   artifacts and may be absent in another checkout; do not copy their private content
   into tracked documents.
-- Current documentation validation: inline Python checks passed for 40 local
+- Original session-continuity validation: inline Python checks passed for 40 local
   links/anchors, all 11 ticket status entries and whitespace; git diff --check
   also passed. The inline check covered the untracked documents explicitly.
   No code tests or paid inference were run for this documentation-only change.
@@ -169,6 +176,19 @@ complete merely because its plan exists.
   SHA directly and confirmed a clean synchronized working tree.
 - Added an explicit remote-verification rule to AGENTS.md and updated this handoff.
 - Next application ticket remains SV-01A alongside SV-03A. No paid runs were made.
+
+### 2026-10-26 Keep agent instructions local
+
+- At the user's request, removed AGENTS.md from tracking while retaining the local
+  file and added a case-insensitive filename pattern to .gitignore.
+- Removed the shared progress document's link to the untracked file. The roadmap,
+  council review and progress remain shared; application code is unchanged.
+- Historical commits are unchanged. The correction removes the file from the
+  current branch, not from Git history.
+- Validation: local file exists, Git index excludes it, filename case variants are
+  ignored, shared document links resolve without linking to it, and staged diff
+  whitespace checks passed. No code tests or inference were needed.
+- Next application ticket remains SV-01A alongside SV-03A; no paid runs are needed.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
