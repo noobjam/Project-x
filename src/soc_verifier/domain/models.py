@@ -80,6 +80,7 @@ class VerificationPlan(Contract):
 
 class ReviewFinding(Contract):
     severity: Literal["error", "warning"]
+    target: Literal["analysis", "plan", "specification"] = "plan"
     item_ids: list[str]
     description: NonEmpty
 
@@ -90,7 +91,10 @@ class PlanReview(Contract):
 
     @property
     def needs_revision(self) -> bool:
-        return any(finding.severity == "error" for finding in self.findings)
+        return any(
+            finding.severity == "error" and finding.target != "specification"
+            for finding in self.findings
+        )
 
 
 def _unique(ids: list[str], label: str) -> None:

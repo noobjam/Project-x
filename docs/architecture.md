@@ -1,79 +1,142 @@
 # Architecture
 
-## Scope
+## Runtime and boundaries
 
-One installable Python package, one process, one implemented workflow. The domain
-is system-level verification; the first capability is specification-to-plan.
-Workflow stages currently make bounded structured LLM calls. Dynamic tool search,
-autonomous EDA operation and test generation are not implemented.
-
-## Dependency direction
-
-The `domain` package depends on Pydantic, not LangGraph or provider SDKs. Ingestion
-and export consume domain contracts. Workflow nodes consume `StructuredLLM` and
-the artifact store. `cli.py` supplies the concrete OpenRouter transport and
-checkpoint backend. Credentials and provider request fields stay outside prompts
-and graph state. Ordinary node functions make this boundary testable.
+SoC Verifier uses the OpenAI Agents SDK for agent execution and the OpenAI Python
+client through OpenRouter for inference. LangGraph/LangChain and their database
+checkpointers are removed. Domain contracts remain independent of either SDK.
 
 ```text
-CLI -> ingestion -> Specification
-CLI -> workflow -> StructuredLLM <- OpenRouterLLM
-              -> domain validation
-              -> artifact store
-              -> LangGraph checkpointer
-CLI -> export -> JSON artifacts -> Excel
+CLI -> PlanningWorkflow -> AgentRuntime -> OpenAI Agents SDK Runner
+                            -> analyst / planner / reviewer
+                            -> read-only evidence tools
+                            -> OpenAI client -> budgeted OpenRouter transport
+    -> domain validation -> immutable artifacts
+    -> export -> canonical JSON -> Excel
 ```
 
-The application owns source IDs, reference validation, artifact revisions, run
-configuration and stopping conditions. The model interprets engineering evidence
-and proposes artifacts; it cannot assign human approval or verification signoff.
+`agents/analyst.py`, `planner.py` and `reviewer.py` construct actual SDK `Agent`
+objects with instructions, tools and typed outputs. `agents/runtime.py` executes
+`Runner.run`; the model chooses whether to call tools, consumes their results and
+continues until a final artifact or the turn limit. Python selects the specialist
+and task, validates source/requirement references, controls revision routing and
+publishes artifacts. There are no model-directed handoffs or manager agent.
 
-## State and durability
+`providers/` owns OpenRouter routing, credentials, diagnostics and spending.
+The gateway uses a budgeted async transport backed by the shared HTTP client.
+Every SDK request, including each tool follow-up, reserves cost before inference
+and settles from reported usage before output validation. SDK retries and OpenAI
+trace export are disabled. The gateway pins the configured model/endpoint,
+disables fallback and retains the current deny-data-collection/ZDR policy.
+The client SDK does not imply OpenAI-hosted inference or an OpenAI API key.
+Automatic model selection and per-role model settings are not implemented.
 
-Each source block has a document hash and an XML locator. References are stable
-within a document revision; alignment across edited document versions is not yet
-implemented. Requirements and scenarios have string IDs; revisions live in
-separate immutable JSON files. Source and requirement links are checked in Python.
+## Agents and tools
 
-The graph is `analyze -> plan -> review -> finish`, with a bounded `review -> plan`
-edge for error findings. Completed node outputs are saved before checkpointing.
-Replayed nodes reuse validated saved artifacts. Each run pins its model, endpoint,
-prompt version and generation limits; changing them requires a new run.
+| Agent | Responsibility | Tools |
+| --- | --- | --- |
+| Requirements analyst | Extract grounded requirements and investigate system interactions | `search_spec`, `get_source_blocks` |
+| Verification planner | Develop scenarios for assigned requirements | Source tools, `get_requirements` |
+| Verification reviewer | Investigate omissions, unsupported details and weak scenarios | Source/requirement tools, `get_plan_items` |
 
-SQLite persists local checkpoints. PostgreSQL support is an optional extra and
-requires an external database. Both contain specification content, so they require
-the same access controls as the source files. LangGraph checkpoints are operational
-state; domain JSON artifacts remain the source of truth. No distributed run lock
-or exactly-once remote model billing guarantee is claimed.
+Tools read the current run's specification and validated artifacts. Context is
+injected locally by the SDK and is not automatically serialized into prompts.
+Search is deterministic word matching, not semantic retrieval. Search results
+contain bounded previews; source reads support character pagination with explicit
+continuation offsets. Retrieval rejects unknown IDs, has an ID-count limit and
+bounds output size. Tools cannot read arbitrary paths, run shell commands, call
+external services or grant approval. Source and tool text remain untrusted evidence.
 
-## Adding subsequent capabilities
+The model can request tools autonomously within its assigned task. It cannot choose
+the next workflow stage, raise its budgets or turn a draft into engineering signoff.
+A tool loop may increase cost; bounded input and measured usage matter more than
+calling something an agent. `AGENT_MAX_TURNS` defaults to four per task, including
+the final-output turn. Total attempted model calls and dollar limits are shared
+across all workers, tasks and corrections.
 
-Test generation will consume accepted plan revisions, source-linked requirements
-and an explicit RTL/testbench environment contract. Add a new workflow module and
-typed artifacts for that capability. Simulation will use a separate tool adapter
-and worker boundary so licenses, timeouts and process isolation are explicit.
-Executions and coverage evidence will link back to scenario and requirement IDs.
+## Workflow and durability
 
-Do not create empty future modules, a plugin registry or a second orchestration
-framework in anticipation. Add a boundary when a real capability needs it. A CLI
-or future API must use the same contracts and workflow functions.
+```text
+Source chunks -> analyst tasks -> exact merge -> system analyst
+             -> planner tasks -> local reviewers -> system reviewer
+             -> targeted revision or final draft
+```
 
-## Evaluation
+Every source block belongs to a primary extraction/review chunk; relevant table
+headers are included. Exact deduplication preserves distinct and conflicting
+requirements and derives stable IDs from statement, feature and basis. Global
+analysis adds requirements and cannot delete local ones. Planning batches must
+cover every assigned requirement; item IDs are namespaced before review.
 
-Software tests use synthetic source snippets and fake LLM outputs. They establish
-contract enforcement, revision limits, persistence and routing, not ASIC planning
-quality. Use the supplied human VPlan as a reviewed development reference, outside
-the generation context. Independent held-out systems are needed before making
-generalization claims. Track missed requirements, unsupported claims, source
-accuracy, useful interaction scenarios, reviewer effort and cost.
+Local planning/review receives local evidence plus a small requirement directory.
+Global passes receive section outlines, requirement indexes and (for review) a
+compact plan index. Agents retrieve original evidence/full scenarios when needed.
+The complete source is no longer repeated in both global prompts. This changes
+engineering behavior and requires fresh quality evaluation; retrieval is not a
+proof of completeness or semantic correctness.
+
+Review findings target `analysis`, `plan` or `specification`. Repairable errors
+route to analysis/planning with a shared revision maximum. Source ambiguities stay
+visible for an engineer rather than triggering repeated attempts to invent answers.
+Warnings, gaps, extraction warnings and open questions yield `needs_review`.
+A clean automated result is `draft_ready`; `human_approved` remains false.
+
+Immutable JSON artifacts are the recovery checkpoints. On restart, Python replays
+the deterministic stage/revision decisions and validates/reuses completed outputs.
+Batches publish independently, so completed batches survive interrupted stages.
+An unfinished agent task restarts its conversation; completed tool/model turns
+inside it are diagnostics, not resumable SDK sessions. Their charges remain in the
+ledger. Multiple processes must not execute one run concurrently; no distributed
+lock or exactly-once inference/billing guarantee is provided.
+
+Output-truncated local tasks are bisected; persistent split markers prevent
+repeating a known oversized parent. Unknown chunk citations, planner coverage
+errors and invalid review item references receive at most one explicit correction
+per execution. Schema, transport, refusal, single-item overflow and exhausted
+agent-turn limits stop without accepting partial output. Canonical artifacts are
+published only after domain validation. Rejected responses remain diagnostic files.
+
+For C source chunks and B planning batches, a large run starts `2*C + B + 2` agent
+tasks before corrections/revisions. Each task may make several model requests.
+Small inputs start three tasks. All follow-up requests use the same cost/call ledger.
+
+## Spending and migration compatibility
+
+Reservations use advertised endpoint context capacity and output ceiling at pinned
+token prices. Unknown charges remain reserved across restarts. Only a confirmed
+OpenRouter in-flight admission rejection settles at zero. Pricing changes or
+provider billing above its advertised bound stop the run. Tiered endpoint prices
+are currently rejected because the reservation calculation cannot bound them.
+These controls do not replace an account-level credit/key cap.
+
+Runs pin engine, prompt version, model, provider and generation limits. Explicit
+resume overrides may lower output tokens or change worker scheduling; they preserve
+the original manifest and conservative reservation. Prompt version 5 and engine
+`openai-agents-v1` prevent accidental resumption of legacy graph runs. Legacy
+completed plans remain exportable; `spend` still reads their ledgers. SQLite and
+PostgreSQL checkpoint files are left intact but not read by this runtime.
+
+Operational logs contain agent/tool names and numeric usage, including cache and
+reasoning details when reported. They exclude document/tool text. Local model-output
+artifacts contain sensitive source-derived content and are never treated as valid
+plans. Credentials/specifications/generated outputs remain ignored by Git.
+
+## Validation and next capabilities
+
+Offline tests exercise the real OpenAI SDK and Agents SDK tool loop against a
+simulated OpenRouter API, plus domain contracts, source retrieval, revisions,
+restart behavior, usage accounting, failed responses and budget/turn limits.
+They establish software behavior, not model quality, live provider compatibility
+or savings. No paid model run is part of this migration's validation.
+
+Before selecting models, compare source accuracy, missed requirements, unsupported
+claims, interaction scenarios, reviewer effort and cost on engineer-labelled cases.
+The human reference VPlan is evaluation material and is not supplied to agents.
+JEV, RTL/test generation, simulator tools and coverage closure remain future work.
 
 ## Upstream references
 
-- [uv project structure and lockfile](https://docs.astral.sh/uv/concepts/projects/layout/)
-- [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
-- [OpenRouter structured output](https://openrouter.ai/docs/guides/features/structured-outputs)
+- [OpenAI Agents SDK](https://developers.openai.com/api/docs/guides/agents-sdk)
+- [OpenRouter with the OpenAI SDK](https://openrouter.ai/docs/quickstart#using-the-openai-sdk)
+- [OpenRouter structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs)
 - [OpenRouter provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
-
-Structured output behavior is endpoint-dependent; schema validation and engineering
-validation remain application responsibilities. The current character limit is a
-transport guard, not a model-specific token estimator.

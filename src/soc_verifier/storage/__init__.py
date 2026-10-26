@@ -1,1 +1,1 @@
-"""Durable artifacts and workflow checkpoint infrastructure."""
+"""Immutable artifacts and durable workflow recovery."""

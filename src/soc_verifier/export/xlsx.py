@@ -1,6 +1,8 @@
 """Excel review views; exported text is never interpreted as a formula."""
 
+import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -106,7 +108,13 @@ def export_plan(
         _row(findings, ["specification", "warning", "", gap])
     for finding in review.findings:
         _row(
-            findings, ["review", finding.severity, "\n".join(finding.item_ids), finding.description]
+            findings,
+            [
+                f"review/{finding.target}",
+                finding.severity,
+                "\n".join(finding.item_ids),
+                finding.description,
+            ],
         )
 
     for worksheet in workbook.worksheets:
@@ -120,10 +128,20 @@ def export_plan(
             for cell in column:
                 cell.alignment = Alignment(vertical="top", wrap_text=True)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Export is explicit and refuses an existing target, including a source workbook.
-    with path.open("xb") as file:
-        workbook.save(file)
-    workbook.close()
+    # Build beside the destination, then publish atomically without replacing it.
+    # An interrupted save must not leave a partial workbook at the requested path.
+    temporary: Path | None = None
+    try:
+        with NamedTemporaryFile(dir=path.parent, suffix=".xlsx", delete=False) as file:
+            temporary = Path(file.name)
+            workbook.save(file)
+            file.flush()
+            os.fsync(file.fileno())
+        os.link(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+        workbook.close()
 
 
 def _row(sheet: Worksheet, values: list[str]) -> None:

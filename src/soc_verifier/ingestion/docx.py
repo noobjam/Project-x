@@ -1,5 +1,6 @@
 """Extract ordered paragraphs/table rows with locators into the original OOXML."""
 
+from collections.abc import Iterator
 from hashlib import sha256
 from pathlib import Path
 from zipfile import ZipFile
@@ -16,8 +17,9 @@ def ingest_docx(path: Path) -> Specification:
     blocks: list[SourceBlock] = []
     section = "Document"
     warnings: list[str] = []
-    for index, element in enumerate(document.element.body, start=1):
-        locator = f"word/document.xml/body/*[{index}]"
+    for element, locator, identifier in _body_blocks(
+        document.element.body, "word/document.xml/body", "", warnings
+    ):
         if element.tag == qn("w:p"):
             text = _text(element)
             style = element.find("./" + qn("w:pPr") + "/" + qn("w:pStyle"))
@@ -28,7 +30,7 @@ def ingest_docx(path: Path) -> Specification:
             if text:
                 blocks.append(
                     SourceBlock(
-                        id=f"P{index:05d}",
+                        id=f"P{identifier}",
                         kind="paragraph",
                         section=section,
                         locator=locator,
@@ -36,12 +38,16 @@ def ingest_docx(path: Path) -> Specification:
                     )
                 )
         elif element.tag == qn("w:tbl"):
+            if element.findall(".//" + qn("w:sdt")):
+                warnings.append(
+                    f"Table content controls require manual extraction review: {locator}"
+                )
             for row_index, row in enumerate(element.findall(qn("w:tr")), start=1):
                 cells = [_text(cell) for cell in row.findall(qn("w:tc"))]
                 if any(cells):
                     blocks.append(
                         SourceBlock(
-                            id=f"T{index:05d}-R{row_index:04d}",
+                            id=f"T{identifier}-R{row_index:04d}",
                             kind="table_row",
                             section=section,
                             locator=f"{locator}/tr[{row_index}]",
@@ -74,11 +80,60 @@ def ingest_docx(path: Path) -> Specification:
     )
 
 
+def _body_blocks(
+    parent: _Element, locator: str, prefix: str, warnings: list[str]
+) -> Iterator[tuple[_Element, str, str]]:
+    """Unwrap body-level content controls without losing original XML locations."""
+    ignored = {
+        qn(f"w:{tag}")
+        for tag in (
+            "sectPr",
+            "bookmarkStart",
+            "bookmarkEnd",
+            "proofErr",
+            "permStart",
+            "permEnd",
+            "commentRangeStart",
+            "commentRangeEnd",
+            "del",
+            "moveFrom",
+            "customXmlPr",
+        )
+    }
+    for index, element in enumerate(parent, start=1):
+        location = f"{locator}/*[{index}]"
+        identifier = f"{prefix}{index:05d}"
+        if element.tag in {qn("w:p"), qn("w:tbl")}:
+            yield element, location, identifier
+        elif element.tag == qn("w:sdt"):
+            content = element.find(qn("w:sdtContent"))
+            if content is not None:
+                yield from _body_blocks(
+                    content, f"{location}/sdtContent", f"{identifier}-C", warnings
+                )
+        elif element.tag in {qn("w:customXml"), qn("w:ins"), qn("w:moveTo")}:
+            yield from _body_blocks(element, location, f"{identifier}-W", warnings)
+        elif element.tag not in ignored:
+            tag = str(element.tag).rsplit("}", 1)[-1]
+            warnings.append(f"Unsupported body element {tag} was not extracted: {location}")
+
+
 def _text(element: _Element) -> str:
     # Read text nodes rather than itertext(), which can duplicate python-docx run text.
     paragraphs = element.findall(".//" + qn("w:p"))
     if not paragraphs:
         paragraphs = [element]
+    separators = {
+        qn("w:tab"): "\t",
+        qn("w:br"): "\n",
+        qn("w:cr"): "\n",
+        qn("w:noBreakHyphen"): "\u2011",
+        qn("w:softHyphen"): "\u00ad",
+    }
     return "\n".join(
-        "".join(node.text or "" for node in paragraph.iter(qn("w:t"))) for paragraph in paragraphs
+        "".join(
+            node.text or "" if node.tag == qn("w:t") else separators.get(str(node.tag), "")
+            for node in paragraph.iter()
+        )
+        for paragraph in paragraphs
     ).strip()
