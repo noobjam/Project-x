@@ -18,11 +18,19 @@ from soc_verifier.domain.models import (
 from soc_verifier.llm.base import StructuredLLM
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan import prompts
+from soc_verifier.workflows.spec_to_plan.batched_roles import (
+    analyze_batches,
+    plan_batches,
+    review_batches,
+)
+from soc_verifier.workflows.spec_to_plan.batching import split_specification
+from soc_verifier.workflows.spec_to_plan.reviewing import generate_review, validate_review
 
 
 class PlanState(TypedDict, total=False):
     specification: dict[str, Any]
     analysis: dict[str, Any]
+    analysis_revision: int
     plan: dict[str, Any]
     review: dict[str, Any]
     revision: int
@@ -35,27 +43,66 @@ def build_graph(
     checkpointer: BaseCheckpointSaver[Any],
     *,
     max_revisions: int,
+    chunk_max_characters: int = 24_000,
+    plan_batch_size: int = 8,
+    batch_workers: int = 1,
 ) -> CompiledStateGraph[PlanState, None, PlanState, PlanState]:
     if not 0 <= max_revisions <= 5:
         raise ValueError("max_revisions must be between 0 and 5")
+    if chunk_max_characters < 1000 or plan_batch_size < 1 or batch_workers < 1:
+        raise ValueError("Invalid batching configuration")
 
     def analyze(state: PlanState) -> dict[str, Any]:
         spec = Specification.model_validate(state["specification"])
-        if artifacts.exists("analysis.json"):
-            analysis = SpecAnalysis.model_validate(artifacts.read("analysis.json"))
+        revision = state.get("analysis_revision", -1) + 1
+        name = _analysis_artifact(revision)
+        if artifacts.exists(name):
+            analysis = SpecAnalysis.model_validate(artifacts.read(name))
+        elif len(split_specification(spec, chunk_max_characters)) > 1:
+            analysis = analyze_batches(
+                llm,
+                artifacts,
+                spec,
+                revision=revision,
+                chunk_characters=chunk_max_characters,
+                workers=batch_workers,
+                review=state.get("review"),
+            )
         else:
+            context = (
+                spec.model_dump_json()
+                if revision == 0
+                else json.dumps(
+                    {
+                        "specification": state["specification"],
+                        "previous_analysis": state["analysis"],
+                        "review": state["review"],
+                    }
+                )
+            )
             analysis = llm.generate(
-                instruction=prompts.ANALYZE, context=spec.model_dump_json(), schema=SpecAnalysis
+                instruction=prompts.ANALYZE, context=context, schema=SpecAnalysis
             )
         validate_sources(analysis, spec)
-        artifacts.write("analysis.json", analysis)
-        return {"analysis": analysis.model_dump(mode="json")}
+        artifacts.write(name, analysis)
+        return {"analysis": analysis.model_dump(mode="json"), "analysis_revision": revision}
 
     def plan(state: PlanState) -> dict[str, Any]:
         revision = state.get("revision", -1) + 1
         name = f"plan.r{revision:03d}.json"
         if artifacts.exists(name):
             result = VerificationPlan.model_validate(artifacts.read(name))
+        elif _batched(state):
+            result = plan_batches(
+                llm,
+                artifacts,
+                Specification.model_validate(state["specification"]),
+                SpecAnalysis.model_validate(state["analysis"]),
+                revision=revision,
+                batch_size=plan_batch_size,
+                workers=batch_workers,
+                review=state.get("review"),
+            )
         else:
             context = {
                 "specification": state["specification"],
@@ -72,32 +119,53 @@ def build_graph(
 
     def review(state: PlanState) -> dict[str, Any]:
         name = f"review.r{state['revision']:03d}.json"
+        known = {item.id for item in VerificationPlan.model_validate(state["plan"]).items}
         if artifacts.exists(name):
             result = PlanReview.model_validate(artifacts.read(name))
-        else:
-            result = llm.generate(
-                instruction=prompts.REVIEW,
-                context=json.dumps(
-                    {
-                        "specification": state["specification"],
-                        "analysis": state["analysis"],
-                        "plan": state["plan"],
-                    }
-                ),
-                schema=PlanReview,
+        elif _batched(state):
+            result = review_batches(
+                llm,
+                artifacts,
+                Specification.model_validate(state["specification"]),
+                SpecAnalysis.model_validate(state["analysis"]),
+                VerificationPlan.model_validate(state["plan"]),
+                revision=state["revision"],
+                chunk_characters=chunk_max_characters,
+                workers=batch_workers,
             )
-        known = {item.id for item in VerificationPlan.model_validate(state["plan"]).items}
-        for finding in result.findings:
-            if set(finding.item_ids) - known:
-                raise ValueError("Review references unknown verification item IDs")
+        else:
+            result = generate_review(
+                llm,
+                instruction=prompts.REVIEW,
+                context={
+                    "specification": state["specification"],
+                    "analysis": state["analysis"],
+                    "plan": state["plan"],
+                },
+                known_items=known,
+            )
+        validate_review(result, known)
         artifacts.write(name, result)
         return {"review": result.model_dump(mode="json")}
 
-    def route(state: PlanState) -> Literal["plan", "finish"]:
+    def route(state: PlanState) -> Literal["analyze", "plan", "finish"]:
         review_result = PlanReview.model_validate(state["review"])
         if review_result.needs_revision and state["revision"] < max_revisions:
+            if any(
+                item.severity == "error" and item.target == "analysis"
+                for item in review_result.findings
+            ):
+                return "analyze"
             return "plan"
         return "finish"
+
+    def _batched(state: PlanState) -> bool:
+        spec = Specification.model_validate(state["specification"])
+        analysis = SpecAnalysis.model_validate(state["analysis"])
+        return (
+            len(split_specification(spec, chunk_max_characters)) > 1
+            or len(analysis.requirements) > plan_batch_size
+        )
 
     def finish(state: PlanState) -> dict[str, Any]:
         review_result = PlanReview.model_validate(state["review"])
@@ -118,6 +186,7 @@ def build_graph(
                 "revision": state["revision"],
                 "human_approved": False,
                 "revision_limit_reached": review_result.needs_revision,
+                "analysis_artifact": _analysis_artifact(state["analysis_revision"]),
                 "plan_artifact": f"plan.r{state['revision']:03d}.json",
                 "review_artifact": f"review.r{state['revision']:03d}.json",
             },
@@ -135,3 +204,7 @@ def build_graph(
     graph.add_conditional_edges("review", route)
     graph.add_edge("finish", END)
     return graph.compile(checkpointer=checkpointer)
+
+
+def _analysis_artifact(revision: int) -> str:
+    return "analysis.json" if revision == 0 else f"analysis.r{revision:03d}.json"

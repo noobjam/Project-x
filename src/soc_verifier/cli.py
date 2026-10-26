@@ -4,7 +4,9 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
+from time import sleep
 from typing import Annotated, Any
 from uuid import UUID, uuid4
 
@@ -16,7 +18,9 @@ from pydantic import ValidationError
 from soc_verifier.domain.models import PlanReview, SpecAnalysis, Specification, VerificationPlan
 from soc_verifier.export.xlsx import export_plan
 from soc_verifier.ingestion.docx import ingest_docx
-from soc_verifier.llm.openrouter import ModelResponseError, OpenRouterLLM
+from soc_verifier.llm.base import ModelResponseError
+from soc_verifier.llm.budget import read_spending
+from soc_verifier.llm.openrouter import OpenRouterLLM
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.storage.checkpoints import checkpoint_store
@@ -87,7 +91,13 @@ def plan(
 
 
 @app.command()
-def resume(run_id: Annotated[str, typer.Argument()]) -> None:
+def resume(
+    run_id: Annotated[str, typer.Argument()],
+    workers: Annotated[int | None, typer.Option("--workers", min=1, max=8)] = None,
+    max_output_tokens: Annotated[
+        int | None, typer.Option("--max-output-tokens", min=256, max=64_000)
+    ] = None,
+) -> None:
     """Resume an interrupted run using its persisted graph checkpoints."""
     with _errors():
         run_id = str(UUID(run_id))
@@ -102,7 +112,55 @@ def resume(run_id: Annotated[str, typer.Argument()]) -> None:
             manifest[key] != value for key, value in _run_configuration(settings).items()
         ):
             raise ValueError("Run configuration changed; restore its settings or start a new run")
+        # Scheduling does not change prompts, partitions, or artifact identities.
+        # Keep the original manifest intact and log the effective worker count.
+        if workers is not None:
+            settings = settings.model_copy(update={"batch_workers": workers})
+        if max_output_tokens is not None:
+            if max_output_tokens > settings.max_output_tokens:
+                raise ValueError("Resume output-token override may only lower the original limit")
+            settings = settings.model_copy(update={"max_output_tokens": max_output_tokens})
         _execute(settings, run_id, artifacts, None)
+
+
+@app.command()
+def spend(
+    run_id: Annotated[str, typer.Argument()],
+    watch: Annotated[
+        bool, typer.Option("--watch", help="Refresh every five seconds; Ctrl-C stops.")
+    ] = False,
+) -> None:
+    """Show run spending locally, without API calls or credentials."""
+    with _errors():
+        root = Settings().artifact_dir / "runs" / str(UUID(run_id))
+        if not root.is_dir():
+            raise ValueError("Unknown run ID")
+        artifacts = ArtifactStore(root)
+        manifest = artifacts.read("manifest.json")
+        if "max_cost_usd" not in manifest:
+            raise ValueError("This legacy run has no cost ledger; check its usage in events.log")
+        limit = Decimal(str(manifest["max_cost_usd"]))
+        typer.echo(f"Run: {root.name}; budget ${limit:.2f}; model {manifest['model']}")
+        typer.echo("Reserved includes in-flight or unknown charges; it is not reported spend.")
+        while True:
+            snapshot = read_spending(artifacts)
+            remaining = max(Decimal(0), limit - snapshot.committed)
+            now = datetime.now(UTC).strftime("%H:%M:%S UTC")
+            typer.echo(
+                f"{now} | Reported ${snapshot.reported:.6f} | "
+                f"Reserved ${snapshot.reserved:.6f} ({snapshot.unsettled_calls} unsettled) | "
+                f"Budget available ${remaining:.6f} | "
+                f"Attempts {snapshot.attempts}/{manifest['max_model_calls']}"
+            )
+            if artifacts.exists("budget-stopped.json"):
+                typer.echo("Run stopped after a provider pricing violation.")
+                return
+            if artifacts.exists("result.json"):
+                typer.echo(f"Run completed: {artifacts.read('result.json')['status']}")
+                return
+            if not watch:
+                return
+            sleep(5)
 
 
 @app.command("export")
@@ -122,7 +180,9 @@ def export_command(
         export_plan(
             output,
             specification=Specification.model_validate(artifacts.read("specification.json")),
-            analysis=SpecAnalysis.model_validate(artifacts.read("analysis.json")),
+            analysis=SpecAnalysis.model_validate(
+                artifacts.read(result.get("analysis_artifact", "analysis.json"))
+            ),
             plan=VerificationPlan.model_validate(artifacts.read(result["plan_artifact"])),
             review=PlanReview.model_validate(artifacts.read(result["review_artifact"])),
         )
@@ -136,6 +196,11 @@ def _run_configuration(settings: Settings) -> dict[str, Any]:
         "max_revisions": settings.max_revisions,
         "max_output_tokens": settings.max_output_tokens,
         "max_input_characters": settings.max_input_characters,
+        "chunk_max_characters": settings.chunk_max_characters,
+        "plan_batch_size": settings.plan_batch_size,
+        "batch_workers": settings.batch_workers,
+        "max_model_calls": settings.max_model_calls,
+        "max_cost_usd": settings.max_cost_usd,
     }
 
 
@@ -147,7 +212,7 @@ def _execute(
 ) -> None:
     config: RunnableConfig = {
         "configurable": {"thread_id": run_id},
-        "recursion_limit": 2 * settings.max_revisions + 8,
+        "recursion_limit": 3 * settings.max_revisions + 8,
     }
     handler = logging.FileHandler(artifacts.path("events.log"), encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
@@ -156,12 +221,21 @@ def _execute(
     logger.setLevel(logging.INFO)
     logger.addHandler(handler)
     try:
+        logger.info(
+            "execution workers=%s max_output_tokens=%s resume=%s",
+            settings.batch_workers,
+            settings.max_output_tokens,
+            initial is None,
+        )
         with checkpoint_store(settings) as checkpoints, httpx.Client() as client:
             graph = build_graph(
-                OpenRouterLLM(settings, client),
+                OpenRouterLLM(settings, client, artifacts=artifacts),
                 artifacts,
                 checkpoints,
                 max_revisions=settings.max_revisions,
+                chunk_max_characters=settings.chunk_max_characters,
+                plan_batch_size=settings.plan_batch_size,
+                batch_workers=settings.batch_workers,
             )
             snapshot = graph.get_state(config)
             if initial is None and not snapshot.values:

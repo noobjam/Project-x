@@ -46,6 +46,40 @@ def test_success_is_a_draft_not_approval(
     assert llm.calls == 3
 
 
+@pytest.mark.parametrize("corrected", [True, False])
+def test_review_reference_correction_preserves_only_valid_artifacts(
+    tmp_path, specification, analysis, verification_plan, corrected
+):
+    invalid = PlanReview(
+        findings=[
+            ReviewFinding(
+                severity="warning",
+                target="specification",
+                item_ids=["REQ-RST-001"],
+                description="Missing timing information",
+            )
+        ]
+    )
+    valid = PlanReview(findings=[invalid.findings[0].model_copy(update={"item_ids": []})])
+    llm = FakeLLM(analysis, verification_plan, invalid, valid if corrected else invalid)
+    artifacts = ArtifactStore(tmp_path)
+    graph = build_graph(llm, artifacts, InMemorySaver(), max_revisions=0)
+    initial = {"specification": specification.model_dump()}
+    config = {"configurable": {"thread_id": "review-correction"}}
+    if corrected:
+        result = graph.invoke(initial, config)
+        assert result["status"] == "needs_review"
+        assert artifacts.read("review.r000.json") == valid.model_dump(mode="json")
+    else:
+        with pytest.raises(ValueError, match="after one correction"):
+            graph.invoke(initial, config)
+        assert not artifacts.exists("review.r000.json")
+        assert not artifacts.exists("result.json")
+    assert artifacts.exists("analysis.json")
+    assert artifacts.exists("plan.r000.json")
+    assert llm.calls == 4
+
+
 def test_reviewer_can_request_a_revision(
     tmp_path, specification, analysis, verification_plan, clean_review
 ):
@@ -146,3 +180,98 @@ def test_replayed_nodes_reuse_saved_artifacts(
     second = build_graph(no_calls, artifacts, InMemorySaver(), max_revisions=0)
     assert second.invoke(initial, config)["status"] == "draft_ready"
     assert no_calls.calls == 0
+
+
+def test_missing_requirement_routes_back_to_analysis(
+    tmp_path, specification, analysis, verification_plan, clean_review
+):
+    missing = PlanReview(
+        findings=[
+            ReviewFinding(
+                severity="error",
+                target="analysis",
+                item_ids=[],
+                description="A second reset requirement was omitted from analysis.",
+            )
+        ]
+    )
+    repaired = analysis.model_copy(
+        update={
+            "requirements": [
+                *analysis.requirements,
+                analysis.requirements[0].model_copy(update={"id": "REQ-RST-002"}),
+            ]
+        }
+    )
+    repaired_plan = verification_plan.model_copy(
+        update={
+            "items": [
+                verification_plan.items[0].model_copy(
+                    update={"requirement_ids": ["REQ-RST-001", "REQ-RST-002"]}
+                )
+            ]
+        }
+    )
+    llm = FakeLLM(analysis, verification_plan, missing, repaired, repaired_plan, clean_review)
+    artifacts = ArtifactStore(tmp_path)
+    graph = build_graph(llm, artifacts, InMemorySaver(), max_revisions=1)
+    result = graph.invoke(
+        {"specification": specification.model_dump()}, {"configurable": {"thread_id": "repair"}}
+    )
+    assert result["status"] == "draft_ready"
+    assert llm.calls == 6
+    assert len(artifacts.read("analysis.json")["requirements"]) == 1
+    final = artifacts.read("result.json")
+    assert len(artifacts.read(final["analysis_artifact"])["requirements"]) == 2
+    assert final["revision"] == 1
+    assert final["revision_limit_reached"] is False
+
+
+def test_specification_gaps_do_not_trigger_unfixable_revisions(
+    tmp_path, specification, analysis, verification_plan
+):
+    gap = PlanReview(
+        findings=[
+            ReviewFinding(
+                severity="error",
+                target="specification",
+                item_ids=[],
+                description="The source does not define reset timing; ask the specification owner.",
+            )
+        ]
+    )
+    llm = FakeLLM(analysis, verification_plan, gap)
+    artifacts = ArtifactStore(tmp_path)
+    graph = build_graph(llm, artifacts, InMemorySaver(), max_revisions=2)
+    result = graph.invoke(
+        {"specification": specification.model_dump()}, {"configurable": {"thread_id": "source-gap"}}
+    )
+    assert result["status"] == "needs_review"
+    assert llm.calls == 3
+    assert artifacts.read("result.json")["revision_limit_reached"] is False
+
+
+def test_analysis_revision_budget_and_restart(tmp_path, specification, analysis, verification_plan):
+    missing = PlanReview(
+        findings=[
+            ReviewFinding(
+                severity="error", target="analysis", item_ids=[], description="Missing requirement"
+            )
+        ]
+    )
+    artifacts = ArtifactStore(tmp_path / "run")
+    database = str(tmp_path / "checkpoints.sqlite")
+    config = {"configurable": {"thread_id": "analysis-restart"}}
+    first = FakeLLM(analysis, verification_plan, missing, RuntimeError("provider unavailable"))
+    with SqliteSaver.from_conn_string(database) as checkpoints:
+        graph = build_graph(first, artifacts, checkpoints, max_revisions=1)
+        with pytest.raises(RuntimeError, match="provider unavailable"):
+            graph.invoke({"specification": specification.model_dump()}, config, durability="sync")
+    second = FakeLLM(analysis, verification_plan, missing)
+    with SqliteSaver.from_conn_string(database) as checkpoints:
+        graph = build_graph(second, artifacts, checkpoints, max_revisions=1)
+        result = graph.invoke(None, config, durability="sync")
+    assert result["status"] == "needs_review"
+    assert result["analysis_revision"] == 1
+    assert second.calls == 3
+    assert artifacts.read("result.json")["revision_limit_reached"] is True
