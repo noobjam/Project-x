@@ -51,6 +51,9 @@ branch. At a milestone boundary or handoff:
 1. Update the dated current-state summary and affected ticket statuses.
 2. Record what changed, relevant files/artifacts and commit/PR links if they exist.
    Distinguish local, committed, pushed and merged work.
+   When publication is authorized, push the intended branch and verify its remote
+   SHA directly. A local commit or merge is not publication; report any unpublished
+   work explicitly instead of calling the repository synchronized.
 3. Record validation actually performed, its outcome and outstanding checks.
    Separate offline software checks, paid evaluation and engineering acceptance.
 4. Record blockers and pending decisions with their affected scope. Preserve

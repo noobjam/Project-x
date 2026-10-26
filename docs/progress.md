@@ -26,13 +26,16 @@ required session and milestone update workflow.
 
 Checked on 2026-10-26:
 
-- Local branch: main; HEAD: 7c2f05d, the SDK migration merge.
+- Local branch: main. Publication checkpoint: 2bb4293, which includes the SDK
+  migration and all four roadmap/continuity documents.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
-- GitHub main: 35e0259; local main is three commits ahead. Remote was checked
-  directly during this documentation session. The migration is not pushed.
-- Roadmap, council review and session-continuity documents are local, uncommitted
-  files. No implementation branch or external ticket links have been created for
-  the revised backlog.
+- Push destination: https://github.com/noobjam/Project-x.git. The push advanced
+  GitHub main from 35e0259 to 2bb4293; git ls-remote verified the matching SHA and
+  the working tree was clean. This entry records that publication checkpoint;
+  subsequent status-only commits may advance the tip.
+- Roadmap, council review and session-continuity files are committed and published.
+  No implementation branch or external ticket links have been created for the
+  revised backlog.
 
 Recheck Git state on resume; this snapshot is not a permanent assertion.
 
@@ -40,9 +43,9 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 
 | Milestone | Status | Evidence and remaining work |
 | --- | --- | --- |
-| SDK migration | done locally | Merged at 7c2f05d. Last recorded validation: 112 tests passed, Ruff, mypy and build passed. These checks were reported in the migration session, not rerun for documentation. GitHub publication remains outstanding. |
+| SDK migration | done | Merged at 7c2f05d and published to GitHub in the push through 2bb4293. Last recorded validation: 112 tests passed, Ruff, mypy and build passed. These checks were reported in the migration session, not rerun for publication. |
 | Research council and plan revision | done | Three tracks reviewed dataset relevance, architecture and delivery/cost. Final review found no blocking planning issue; see the council review. This is not semantic validation of agent outputs. |
-| Session continuity documentation | done | Root instructions and progress tracker created. All 40 local links/anchors, 11 ticket entries and whitespace checks passed. Files remain local and uncommitted. |
+| Session continuity documentation | done | Root instructions and progress tracker created. All 40 local links/anchors, 11 ticket entries and whitespace checks passed. Published with the roadmap/council review at 2bb4293. |
 | Preparation | planned | SV-01A/B/C and SV-03A. No application code or pilot fixtures implemented yet. |
 | Baseline foundation | planned | SV-02 and minimal SV-03B. Must establish task attribution, input binding and legacy reads. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
@@ -69,8 +72,9 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
-- The latest user request authorizes session-continuity documentation. It does not
-  request application implementation or paid runs in this session. On a later
+- The user challenged the missing GitHub commits; publication to the confirmed
+  repository is complete. This does not start application implementation or paid
+  evaluation. On a later
   instruction to continue implementation, start the next eligible offline action;
   do not require the user to restate the plan or repeat settled decisions.
 - The council-reviewed roadmap is the current working proposal. Record any user
@@ -94,9 +98,9 @@ complete merely because its plan exists.
 ## Next moves
 
 1. **When implementation is requested, start SV-01A and SV-03A.** Recheck the local
-   migration base and uncommitted documents; preserve them. Use a focused feature
-   branch such as feat/agent-evaluation. Before remote PR work, reconcile the
-   local/remote base without losing the migration.
+   published main and any later working-tree changes; preserve them. Use a focused
+   feature branch such as feat/agent-evaluation. Verify local/remote state before
+   remote PR work without losing the migration.
 2. **Freeze provenance before behavior changes.** Record local source/reference
    hashes, known artifact provenance and baseline code/prompt/schema/settings.
    Keep private material and answers under ignored local artifacts. Prepare source
@@ -130,6 +134,10 @@ complete merely because its plan exists.
   links/anchors, all 11 ticket status entries and whitespace; git diff --check
   also passed. The inline check covered the untracked documents explicitly.
   No code tests or paid inference were run for this documentation-only change.
+- Publication: all three previously unpublished commits and four documentation
+  files were checked for private paths and credential patterns before the push.
+  git ls-remote confirmed GitHub main at 2bb4293 and git status showed a clean,
+  synchronized working tree at that checkpoint. No force push was used.
 
 ## Milestone history
 
@@ -147,9 +155,20 @@ complete merely because its plan exists.
 - Added root instructions and this progress tracker; moved live status out of
   roadmap prose and linked the historical council review back to this file.
 - Validation: 40 local links/anchors, all 11 ticket entries and whitespace checks
-  passed. No runtime changes, code tests or paid runs. Files are uncommitted locally.
+  passed. No runtime changes, code tests or paid runs. Files were initially local;
+  their publication is recorded below.
 - Next action when implementation is requested: SV-01A/SV-03A preparation on a
   focused feature branch, followed by the smallest offline pilot.
+
+### 2026-10-26 GitHub publication
+
+- Confirmed fetch and push destination: noobjam/Project-x. GitHub had remained at
+  the October 11 commit because the migration was merged locally without a push.
+- Committed the four roadmap/continuity documents as 2bb4293 and pushed main,
+  including the three existing migration/prototype commits. Verified the remote
+  SHA directly and confirmed a clean synchronized working tree.
+- Added an explicit remote-verification rule to AGENTS.md and updated this handoff.
+- Next application ticket remains SV-01A alongside SV-03A. No paid runs were made.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
