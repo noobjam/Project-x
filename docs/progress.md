@@ -25,6 +25,18 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   Ruff, mypy and source/wheel build. The merge session verified those results.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
+- **Knowledge curation handoff:** prepared locally on main, pending engineering
+  curation. The ignored pack contains 40 draft entries: 12 planning questions,
+  seven testbench groups (21 subchecks), 12 source-backed patterns and nine worked
+  examples. Sources span OpenHW, Accellera, PULP and OpenTitan, plus private
+  examples; a source inventory records versions, hashes and original files.
+  Comparable-system source usage is documented separately. No entries have been
+  approved or integrated into the runtime; canonical evaluation files are intact.
+- **GitHub curation review:** in_progress on docs/knowledge-curation-review.
+  User authorized publication for engineering review. GitHub-readable Markdown
+  containing the 36 public-source entries is prepared; the four private examples,
+  original CPU files, annotations and local-only instructions remain excluded.
+  Publication and remote verification are pending.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
   The roadmap, council review and this progress tracker remain shared documents.
 
@@ -117,9 +129,23 @@ complete merely because its plan exists.
   full-document runs. Proposed per-run allocations must fit conservative reservations
   and sum to the accepted ceiling. Earlier prototype testing is already completed;
   it does not establish approval for this new pilot tranche.
-- No design/DV label reviewer has been assigned. Provisional annotations are
-  allowed; semantic acceptance requires reviewed labels. This does not block
-  the authorized offline preparation or deterministic fixes.
+- The user has a verification engineer available (2026-10-27). Prepare the local
+  curation handoff; record reviewer identity and decisions when returned. No
+  engineering judgments have been received. Semantic acceptance still requires
+  reviewed labels; offline preparation can continue independently.
+- The user clarified that this handoff is for knowledge-base content curation,
+  with substantive material from multiple credible sources and a comparison of
+  sources used by similar agents. Testbench subchecklists are planning knowledge,
+  not authorization to build a testbench or a readiness claim. Keep original
+  passages separate from proposed adaptations. Existing examples promoted to
+  runtime knowledge would no longer be independent evaluation cases; select
+  separate held-out material before measuring benefit. Runtime integration and
+  paid evaluation have not been started by this handoff.
+- On 2026-10-27 the user asked to push the curation material to GitHub for
+  engineering review. Publish the public-source Markdown edition on
+  docs/knowledge-curation-review and open a draft review PR. The repository is
+  public; keep private examples and the full local pack ignored. This authorizes
+  publication of the review documents, not a merge or runtime integration.
 - Private reference material already inspected is development/acceptance-regression
   evidence, not blind gold. Missing visual evidence remains a visible limitation.
 - Revisions are currently disabled in the recorded run configuration. Optional
@@ -128,6 +154,15 @@ complete merely because its plan exists.
   and broader agent teams remain deferred according to the roadmap.
 
 ## Next moves
+
+0. **Knowledge curation:** give the engineer the local pack under
+   artifacts/evaluations/engineer-review-2026-10-27-v1/. Ask them to keep, correct,
+   remove or add entries and state applicability. Import returned decisions only
+   after confirming reviewer identity, source versions and unresolved conflicts;
+   preserve the frozen pilot. Define a separate evaluation split before any
+   approved examples enter runtime knowledge. This does not replace SV-04.
+   The [public review edition](knowledge/README.md) supports comments directly
+   on GitHub using its [review template](knowledge/REVIEW_TEMPLATE.md).
 
 1. **Next implementation: SV-04.** On the next implementation instruction, create
    a focused branch from current main. First add offline counterexamples for matches
@@ -375,6 +410,41 @@ complete merely because its plan exists.
 - Next implementation: SV-04 matching excerpts, stable pagination and bounded
   table/neighbor context on a new branch. Paid SV-10A funding and engineering label
   review remain separate pending decisions.
+
+### 2026-10-27: Knowledge curation pack prepared locally
+
+- User requested material their verification engineer can curate, then clarified
+  the objective as a rich knowledge-base starting set rather than broader
+  acceptance or testbench implementation. Broadened source selection beyond
+  OpenTitan to OpenHW CORE-V-VERIF, Accellera UVM and PULP, with an authoritative
+  RISC-V cross-check and evidence on five comparable systems' data usage.
+- Created an ignored HTML review page and ZIP with original documents, source
+  excerpts, provenance, 40 proposed knowledge entries, 21 testbench subchecks,
+  reviewer fields and portable save/load. The five existing cases and 37
+  provisional/disputed interpretations remain supporting development material.
+- Pack path: artifacts/evaluations/engineer-review-2026-10-27-v1/.
+  No private excerpts or reference answers were added to tracked documentation.
+  No source/runtime changes, paid calls, approvals, commits or pushes were made.
+- Validation: frozen pilot verified (22 pinned files); local Chrome exercised
+  navigation, filters, correction validation, save/download/import, autosave and
+  version mismatch rejection. No page network requests or JavaScript exceptions.
+  Desktop/mobile layout inspected and a layout issue corrected. All 59 bundled
+  file fingerprints, local source links and ZIP integrity checked. Engineering
+  curation and measured knowledge benefit remain pending; next action is the
+  engineer's review.
+
+### 2026-10-27: Public knowledge review documents prepared
+
+- User requested GitHub publication for engineering review. Prepared the public
+  edition on docs/knowledge-curation-review: 36 candidate entries, 21 testbench
+  subchecks, public evidence, source provenance, comparable-system data usage,
+  review instructions and license attribution. Added the entry point to README.
+- The four private examples, original CPU documents, source annotations, full
+  local ZIP/HTML pack and local-only instructions remain excluded from Git.
+- Validation: 36 unique entry IDs, five allowlisted public examples, 21 subchecks,
+  44 local documentation links, an explicit publication file allowlist, private
+  source/identifier screening and credential-pattern checks passed. No runtime
+  changes, paid calls or new engineering approvals. Publication is pending.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
