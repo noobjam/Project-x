@@ -26,6 +26,7 @@ def test_cli_plan_resume_and_export(
     )
     monkeypatch.setattr("soc_verifier.cli.Settings", lambda: settings)
     agents = Mock()
+    agents.configuration = settings.agent_configuration()
     agents.run.side_effect = [analysis, verification_plan, clean_review]
     monkeypatch.setattr("soc_verifier.cli.AgentRuntime", lambda settings, client, **kwargs: agents)
     source = ArtifactStore(tmp_path).write("specification.json", specification)
@@ -73,15 +74,18 @@ def test_resume_workers_override_preserves_manifest(tmp_path, monkeypatch):
     artifacts = ArtifactStore(tmp_path / "runs" / run_id)
     manifest = {"prompt_version": PROMPT_VERSION, **_run_configuration(settings)}
     artifacts.write("manifest.json", manifest)
-    result = runner.invoke(app, ["resume", run_id, "--workers", "1", "--max-output-tokens", "6000"])
+    result = runner.invoke(app, ["resume", run_id, "--workers", "1"])
     assert result.exit_code == 0, result.output
     assert execute.call_args.args[0].batch_workers == 1
-    assert execute.call_args.args[0].max_output_tokens == 6000
+    assert execute.call_args.args[0].max_output_tokens == settings.max_output_tokens
     assert execute.call_args.args[0].max_cost_usd == settings.max_cost_usd
     assert artifacts.read("manifest.json") == manifest
     rejected = runner.invoke(app, ["resume", run_id, "--max-output-tokens", "16000"])
     assert rejected.exit_code == 1
-    assert "may only lower" in rejected.output
+    assert "Output-token limit changed" in rejected.output
+    assert execute.call_count == 1
+    lowered = runner.invoke(app, ["resume", run_id, "--max-output-tokens", "6000"])
+    assert lowered.exit_code == 1 and "Output-token limit changed" in lowered.output
     assert execute.call_count == 1
 
 
@@ -166,6 +170,18 @@ def test_export_uses_final_analysis_revision(
     result = runner.invoke(app, ["export", run_id, "-o", str(destination)])
     assert result.exit_code == 0, result.output
     workbook = load_workbook(destination)
+    assert workbook["Run metadata"]["B2"].value == "unavailable (legacy run)"
     assert workbook["Requirements"].max_row == 3
     assert workbook["Requirements"]["A3"].value == "REQ-RST-002"
     workbook.close()
+
+
+def test_unknown_result_version_cannot_export(tmp_path, monkeypatch):
+    settings = Settings(_env_file=None, artifact_dir=tmp_path)
+    monkeypatch.setattr("soc_verifier.cli.Settings", lambda: settings)
+    run_id = str(uuid4())
+    artifacts = ArtifactStore(tmp_path / "runs" / run_id)
+    artifacts.write("result.json", {"schema_version": "999"})
+    result = runner.invoke(app, ["export", run_id, "-o", str(tmp_path / "out.xlsx")])
+    assert result.exit_code == 1 and "Unknown run result schema version" in result.output
+    assert not (tmp_path / "out.xlsx").exists()

@@ -9,19 +9,20 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Phase:** evaluation preparation is technically complete and merged through
-  [PR #2](https://github.com/noobjam/Project-x/pull/2) at 927f5fb. Local main has
-  been fast-forwarded to the merge. Five packets and their provisional/disputed
-  labels remain frozen locally; engineering acceptance remains pending.
+- **Phase:** SV-02/minimal SV-03B implementation is technically complete on
+  feat/task-accounting in [PR #3](https://github.com/noobjam/Project-x/pull/3). It adds exact task/input bindings,
+  per-call spending attribution, compatible readers and OpenRouter reasoning replay.
+  Evaluation preparation remains merged through PR #2; engineering acceptance is pending.
 - **Current working plan:** a smaller first release focused on source retrieval,
   structured findings, agent task/cost reporting and reviewable output, evaluated
   against the real Management CPU DOCX.
 - **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
   bounded evidence tools, OpenRouter transport, Python orchestration, immutable
   artifacts and Excel export. LangGraph/LangChain were removed.
-- **Next milestone:** SV-02/minimal SV-03B task, input and spending attribution.
-  This implementation has not started. Preparation provides fixed source/label
-  inventories and scoring of explicit judgments; agent behavior is unchanged.
+- **Active milestone:** review PR #3. Implementation 373ed26 is published; all
+  push/PR CI checks passed on Python 3.12 and 3.13. Local validation passed:
+  202 offline tests, Ruff, mypy and source/wheel build.
+  The next implementation after merge is SV-04 retrieval and bounded source context.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
@@ -31,13 +32,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-27:
 
-- Local branch: main; PR #2 merge checkpoint: 927f5fb. The local-only
-  AGENTS.md remains ignored and must not be staged or published.
+- Local branch: feat/task-accounting, based on main at 46e0b06. Implementation
+  commit 373ed26 is published and directly verified on origin. This documentation
+  handoff advances the feature branch. AGENTS.md remains local-only and ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
-- Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #2
-  merged at 927f5fb and local main was fast-forwarded to that commit. This merge
-  status update may advance main. The original baseline pins 6c819bf and the
-  five-packet pilot pins 3e5d6da; both commits remain in the merge history.
+- Push destination: https://github.com/noobjam/Project-x.git. Main contains PR #2
+  at 927f5fb plus its handoff. Frozen baseline 6c819bf and pilot 3e5d6da are unchanged.
 - Roadmap, council review and progress are published. AGENTS.md was removed from
   tracking at 82df541; its local copy remains ignored. Earlier history is unchanged.
 
@@ -51,7 +51,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Research council and plan revision | done | Three tracks reviewed dataset relevance, architecture and delivery/cost. Final review found no blocking planning issue; see the council review. This is not semantic validation of agent outputs. |
 | Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
-| Baseline foundation | planned | SV-02 and minimal SV-03B. Must establish task attribution, input binding and legacy reads. |
+| Baseline foundation | in_review | SV-02/minimal SV-03B implemented with exact snapshots, separate invocation/call records, task spending, strict resume, legacy reads and reasoning replay. Local checks pass; PR review/merge pending. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -63,8 +63,8 @@ complete merely because its plan exists.
 | Ticket | Status | Current position and next step |
 | --- | --- | --- |
 | [SV-01](agent-roadmap.md#sv-01-freeze-the-real-workload-pilot-and-evaluation-contract) | done | A: merged in PR #1. B/C: merged in PR #2 with five verified packets, 37 provisional/disputed labels, scoring controls and a frozen inventory. Technical preparation is complete; engineering-quality acceptance is pending. |
-| [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | planned | Implement task envelope and spending attribution after SV-03A conventions. |
-| [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | in_progress | A: done and merged in PR #1; source/span/task conventions and synthetic examples pass. B runtime contracts/readers remain planned. |
+| [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | in_review | Task/input bindings, atomic completion receipts, per-call attribution and local spending report implemented on feat/task-accounting; review/merge pending. |
+| [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | in_review | A merged in PR #1. Minimal B task/run versions, exact input references, stale-resume rejection and compatible legacy readers implemented; review/merge pending. Typed findings stay in SV-07. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
 | [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | deferred | Start only if measured extraction/cross-section failures justify it. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | deferred | Evaluate existing scenario fields first; patterns/schema expansion require evidence. |
@@ -75,6 +75,12 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-27 the user approved SV-02/minimal SV-03B and the OpenRouter
+  compatibility fix after the best-practices assessment. Implement offline on
+  feat/task-accounting and publish a reviewable PR; no paid inference or merge.
+  Preserve reasoning metadata across tool follow-ups. Resume must reject changed
+  output ceilings as changed behavior; worker scheduling remains adjustable.
 
 - On 2026-10-27 the user requested merging PR #2 if checks were clear, and asked
   for the next move. Final review found no blocking issue; all CI checks passed
@@ -117,23 +123,34 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **Next implementation: SV-02/minimal SV-03B.** On the next implementation
-   instruction, start a focused branch from current main. First trace analyst,
-   planner and reviewer calls through the runtime and ledger. Give each logical
-   task a stable ID and explicit input/version fingerprint, with separate attempts.
-2. **Expose task spending and safe resume.** Attribute every call, tool follow-up,
-   failure and reservation to its task, including concurrent workers. Report
-   confirmed charges separately from unsettled reservations. Reject stale
-   checkpoints when inputs or versions differ; retain legacy export/spend readers.
-   Preserve baseline request content/settings and validate offline. Do not expand
-   agent roles or add general repair. Keep both frozen evaluation inventories intact.
-3. **Before paid evaluation, resolve only the applicable missing inputs.** Confirm
-   the pilot allocation and record authorization. Identify the engineering reviewer
-   before making semantic-acceptance claims. A proposed budget does not authorize
-   spending; a missing label reviewer does not block explicitly authorized
-   exploratory runs whose conclusions remain provisional.
+1. **Review SV-02/minimal SV-03B in PR #3.** Implementation 373ed26 is on GitHub
+   and all four push/PR CI checks passed. Review/merge when authorized. Inspect task bindings, split
+   recovery, ledger reconciliation and the reasoning compatibility adapter together.
+2. **After merge, implement SV-04 on a new branch.** Fix matching search excerpts,
+   pagination and bounded table/neighbor evidence against the existing task snapshots.
+   Preserve both frozen evaluation inventories; do not expand roles or general repair.
+3. **Before paid SV-10A evaluation, resolve its allocation and authorization.** The
+   proposed $5 tranche is still unapproved. Check the selected endpoint's tools,
+   structured output and reasoning round trips where applicable before comparisons.
+   Record reasoning replay as a separate behavior condition. Identify an engineering
+   reviewer before semantic-acceptance claims; offline work can continue independently.
 
 ## Validation and result references
+
+- SV-02/minimal SV-03B: 202 offline tests passed. The preceding 201-test coverage
+  run measured 90% aggregate coverage; the final test adds rejection of ambiguous
+  reasoning history before another paid request. Ruff check/format, strict mypy and
+  source/wheel builds passed. Twenty-four existing local documentation links/anchors
+  resolve; built packages include new runtime modules and exclude private artifacts,
+  documents, credentials and AGENTS.md. GitHub push/PR CI passed on both Python
+  versions at implementation 373ed26, and its remote SHA was directly verified.
+- New regressions cover concurrent task/call attribution and reasoning isolation,
+  billed versus unsettled charges across restart, exact artifact revision selection,
+  source/prompt/schema/processing/config changes, split-child identities, atomic
+  completion recovery, unknown versions and credential-free legacy reporting/export.
+  Prompts and domain schemas are unchanged. Reasoning replay is a separately versioned
+  behavior change, not proof of live endpoint compatibility, quality or savings.
+  No paid inference was performed; private evaluation inventories were not modified.
 
 - SV-01B/C current checks: 175 offline tests passed (90% aggregate coverage),
   Ruff check/format, strict mypy and source/wheel builds passed. Twenty-four local
@@ -310,6 +327,26 @@ complete merely because its plan exists.
   Confirmed both frozen commits remain in history and AGENTS.md stays local-only.
   No paid calls or repeat local code tests. Next implementation: SV-02/minimal SV-03B task identity,
   exact input binding, per-attempt spending and compatible resume/export behavior.
+
+### 2026-10-27 SV-02/minimal SV-03B task accounting and compatibility
+
+- User approved the implementation following the best-practices assessment. Added
+  task/input fingerprints and explicit evidence revisions, atomic completion records,
+  bound split checkpoints, invocation/call identities and a local tasks cost report.
+- Preserved OpenRouter reasoning metadata across tool follow-ups with per-invocation
+  isolation. Ambiguous histories fail before another paid request; ordinary requests
+  retain their settings. Recorded this as the openrouter-v1 compatibility condition.
+- New runs use engine openai-agents-v2 and version 2.0 run manifests/results; domain
+  schemas stay 1.0 and prompt version stays 5. Old runs still export/read spending,
+  with task fields unavailable. Changed output ceilings now require a new run.
+- Validation: 202 offline tests, Ruff, mypy, package build, distribution exclusions
+  and local links passed. No paid calls or engineering-quality claims.
+- Published implementation 373ed26, verified the remote SHA and opened
+  [PR #3](https://github.com/noobjam/Project-x/pull/3). All four push/PR checks passed
+  on Python 3.12 and 3.13. Main remains at 46e0b06; AGENTS.md remains ignored.
+- SV-02 and minimal SV-03B are in_review. Merge remains a separate review decision.
+  Next implementation after merge:
+  SV-04 retrieval. Paid pilot allocation and label review remain unresolved.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;

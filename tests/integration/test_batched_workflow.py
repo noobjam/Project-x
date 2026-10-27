@@ -18,12 +18,16 @@ pytestmark = pytest.mark.integration
 
 
 class EvidenceAgents:
+    @property
+    def configuration(self):
+        return {}
+
     def __init__(self, fail_source=None):
         self.fail_source = fail_source
         self.chunk_calls = []
         self.reviewed = []
 
-    def run(self, *, role, instruction, context, schema):
+    def run(self, *, role, instruction, context, schema, task=None):
         payload = json.loads(context)
         if instruction == prompts.ANALYZE_CHUNK:
             block = payload["evidence"][0]
@@ -152,7 +156,7 @@ def test_restart_reuses_completed_chunks(tmp_path, specification):
 def test_chunk_citation_correction_is_bounded(tmp_path, specification, repair_succeeds):
 
     class InvalidCitationAgents(EvidenceAgents):
-        def run(self, *, role, instruction, context, schema):
+        def run(self, *, role, instruction, context, schema, task=None):
             result = super().run(instruction=instruction, context=context, schema=schema, role=role)
             if instruction == prompts.ANALYZE_CHUNK and self.chunk_calls[-1] == "P00001":
                 payload = json.loads(context)
@@ -194,7 +198,7 @@ def test_plan_batch_traceability_correction_is_bounded(
         first_group = None
         first_group_calls = 0
 
-        def run(self, *, role, instruction, context, schema):
+        def run(self, *, role, instruction, context, schema, task=None):
             result = super().run(instruction=instruction, context=context, schema=schema, role=role)
             if schema is not VerificationPlan:
                 return result

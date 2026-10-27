@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from threading import Lock
+from typing import Any
 
 from soc_verifier.storage.artifacts import ArtifactStore
 
@@ -29,6 +30,8 @@ def read_spending(artifacts: ArtifactStore) -> Spending:
     reported = reserved = Decimal(0)
     for path in sorted(artifacts.root.glob("cost-reserved.*.json")):
         record = artifacts.read(path.name)
+        if record.get("format") not in {None, "task-reservation-v1"}:
+            raise ValueError("Unknown cost reservation format")
         number = int(record["attempt"])
         settled = f"cost-settled.{number:05d}.json"
         if artifacts.exists(settled):
@@ -62,7 +65,7 @@ class CallBudget:
         self.count = spending.attempts
         self.committed = spending.committed
 
-    def reserve(self) -> int:
+    def reserve(self, attribution: dict[str, Any] | None = None) -> int:
         with self.lock:
             if self.count >= self.max_calls:
                 raise BudgetExceeded("Run model-call limit reached; no request was sent")
@@ -74,6 +77,7 @@ class CallBudget:
             self.artifacts.write(
                 f"cost-reserved.{attempt:05d}.json",
                 {
+                    **({"format": "task-reservation-v1", **attribution} if attribution else {}),
                     "attempt": attempt,
                     "reserved_usd": str(self.reservation),
                 },

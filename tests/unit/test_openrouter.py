@@ -438,3 +438,23 @@ def test_tiered_pricing_rejected_before_inference(tmp_path):
         adapter = TransportHarness(settings(), client, artifacts=ArtifactStore(tmp_path))
         with pytest.raises(ValueError, match="Tiered endpoint pricing"):
             adapter.complete(instruction="review", context="source", schema=PlanReview)
+
+
+def test_http_diagnostics_redact_replayed_reasoning(tmp_path, caplog):
+    context = json.dumps(
+        [
+            {
+                "role": "assistant",
+                "content": None,
+                "reasoning": "private reasoning",
+                "reasoning_details": [{"type": "reasoning.encrypted", "data": "opaque-data"}],
+            }
+        ]
+    )
+    response = httpx.Response(
+        400, json={"error": {"message": "Rejected opaque-data private reasoning"}}
+    )
+    with httpx.Client() as client, caplog.at_level(logging.ERROR):
+        transport = TransportHarness(settings(), client, artifacts=ArtifactStore(tmp_path))
+        transport._record_http_error(response, 1, "instruction", context)
+    assert "opaque-data" not in caplog.text and "private reasoning" not in caplog.text

@@ -68,3 +68,24 @@ def test_spend_unknown_run_does_not_create_directories(tmp_path, monkeypatch):
     assert result.exit_code == 1
     assert "Unknown run ID" in result.output
     assert not settings.artifact_dir.exists()
+
+
+def test_tasks_report_legacy_costs_without_credentials_or_writes(tmp_path, monkeypatch):
+    import json
+
+    settings = Settings(_env_file=None, artifact_dir=tmp_path, openrouter_api_key=None)
+    monkeypatch.setattr("soc_verifier.cli.Settings", lambda: settings)
+    run_id = str(uuid4())
+    artifacts = ArtifactStore(tmp_path / "runs" / run_id)
+    artifacts.write("cost-reserved.00001.json", {"attempt": 1, "reserved_usd": "0.4"})
+    artifacts.write("cost-settled.00001.json", {"attempt": 1, "cost_usd": "0.1"})
+    artifacts.write("cost-reserved.00002.json", {"attempt": 2, "reserved_usd": "0.4"})
+    before = {p.name: p.read_bytes() for p in artifacts.root.iterdir()}
+    result = runner.invoke(app, ["tasks", run_id, "--json"])
+    assert result.exit_code == 0, result.output
+    report = json.loads(result.output)
+    assert report["attribution"] == "unavailable"
+    assert report["tasks"][0]["task_id"] is None
+    assert report["reported_usd"] == "0.1"
+    assert report["reserved_usd"] == "0.4"
+    assert {p.name: p.read_bytes() for p in artifacts.root.iterdir()} == before

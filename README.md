@@ -54,7 +54,7 @@ OpenRouter and the selected inference provider and incurs usage charges.
 uv run soc-verifier plan artifacts/specification.json
 uv run soc-verifier resume <run-id>
 uv run soc-verifier resume <run-id> --workers 1  # Resume sequentially
-uv run soc-verifier resume <run-id> --workers 1 --max-output-tokens 6000
+uv run soc-verifier tasks <run-id> --json
 uv run soc-verifier export <run-id> --output artifacts/verification_plan.xlsx
 ```
 
@@ -69,6 +69,11 @@ monitor keeps watching until stopped. Older runs without a ledger require their
 `events.log` instead. Account-wide spending and per-key filters are available in
 [OpenRouter Activity](https://openrouter.ai/activity); an API key's spending cap is
 separate from the account's credit balance and this application's per-run cap.
+
+`uv run soc-verifier tasks <run-id>` reports each task's role/stage, calls,
+failed invocations, billed charges and unsettled reservations. Add `--json` for
+machine-readable output. Both reporting commands are read-only and need no API key.
+Legacy ledgers retain their totals with task attribution explicitly unavailable.
 
 Every run gets its own directory under `artifacts/runs/`. JSON artifacts are
 immutable and authoritative; Excel is a review view. Exports refuse existing
@@ -98,19 +103,18 @@ on resume stop the run. This is a client-side safeguard, not an account-level
 OpenRouter credit limit or protection against incorrect provider billing.
 
 Controls in `.env.example` include chunk size, requirements per plan batch,
-worker count, agent turn limit (default 4 per task), total attempted model calls
+worker count, agent turn limit (default 4 per invocation), total attempted model calls
 and dollar budget (default $2/run). SDK retries are disabled; failed calls consume
 the same attempt budget. Tiered endpoint pricing currently fails preflight rather
 than using an incomplete cost estimate.
 One batch is executed at a time by default; increase `BATCH_WORKERS` explicitly
 for bounded concurrency. `resume --workers 1` overrides scheduling for that
 execution without changing the saved manifest, prompts, or budget.
-Use a lower `--max-output-tokens` ceiling on resume when a request's token allowance
-exceeds available provider credit.
-That override may only decrease the original limit, is logged for the execution,
-and retains the original conservative cost reservation. Existing artifacts are
-reused; no evidence is truncated. Lower output ceilings can cause more adaptive
-splits and calls. HTTP failures
+Changing output-token limits requires a new run: even a lower ceiling can change
+splitting, calls and results. The retained `--max-output-tokens` option accepts only
+the original value. Resume rejects changes to source bytes, task assignments,
+prompts, schemas, tools, installed runtime code/dependencies and behavior settings.
+Worker scheduling remains adjustable. HTTP failures
 record the provider's error message and allowlisted reason metadata in
 `http-error.<attempt>.json` and `events.log`, with credentials and full input
 strings redacted; raw upstream error payloads are excluded.
@@ -175,7 +179,9 @@ src/soc_verifier/
     planner.py             # SDK verification planner and its tools
     reviewer.py            # SDK verification reviewer and its tools
     tools.py               # Search source, retrieve blocks/requirements/plan items
-    runtime.py             # SDK Runner, bounded turns, local evidence context
+    runtime.py             # SDK Runner, bounded turns, explicit evidence snapshots
+    tasks.py               # Versioned task inputs and content-bound checkpoints
+    attempts.py            # Invocation-local call attribution and reasoning replay
     instructions.py        # Versioned agent instructions
     base.py                # Workflow-to-agent interface and errors
   providers/               # OpenRouter transport and shared spending ledger
@@ -192,7 +198,10 @@ docs/architecture.md       # Boundaries, decisions and extension points
 ```
 
 Completed batches and revisions are immutable recovery checkpoints. Resume replays
-stage decisions, validates saved artifacts and executes only unfinished tasks.
+stage decisions, validates exact input fingerprints and executes only unfinished tasks.
+Each completion receipt atomically binds the result to its inputs; missing canonical
+JSON projections can be recovered from the receipt without another model call.
+Split markers bind the exact assigned IDs and content, including child partitions.
 An interrupted agent task restarts its tool conversation; earlier remote calls may
 already have been charged and remain in the ledger. There is no exactly-once billing
 guarantee. The application is a single process; multiple processes must not execute
@@ -205,15 +214,23 @@ The `migration/openai-agents-sdk` branch has been merged into `main`.
 Commit `10f5bad` preserves the tested prototype; inspect the migration with
 `git diff 10f5bad..5d15c10`. The merge includes the preserved prototype changes.
 
-Prompt version 5 and engine `openai-agents-v1` identify new runs. Earlier runs
+Prompt version 5 and engine `openai-agents-v2` identify task-aware runs. Earlier runs
 remain exportable and readable by `spend`, but cannot resume under this runtime.
 Use the baseline checkout and its locked environment for an unfinished legacy run.
+Run manifests/results are version 2.0; application source/analysis/plan/review
+schemas remain 1.0. Legacy exports mark new task metadata unavailable.
 The four available tools are `search_spec`, `get_source_blocks`,
-`get_requirements` and `get_plan_items`. They read only the current run's evidence.
+`get_requirements` and `get_plan_items`. They read only the task's explicitly bound evidence revisions.
 The analyst has source tools; the planner additionally retrieves requirements;
 the reviewer additionally retrieves full plan scenarios. `events.log` records
 agent starts, tool names, model-call usage (including reported cache/reasoning
 tokens) and completion. It does not log tool arguments or evidence text.
+
+OpenRouter reasoning blocks are preserved unchanged across tool follow-ups within
+an invocation, including ordered encrypted/signed metadata. Histories that cannot
+be matched safely are rejected before another paid request. This adapter behavior
+is a separately versioned comparison condition; it is not proof of compatibility
+with every live model/provider. Model routing and caching optimization remain deferred.
 
 The OpenAI client SDK supplies API calls and the Agents SDK supplies the tool loop;
 OpenRouter still supplies inference and billing. The model and provider remain

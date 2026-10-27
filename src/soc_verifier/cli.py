@@ -1,5 +1,6 @@
 """Composition root: CLI wiring is the only place that selects concrete adapters."""
 
+import json
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -17,12 +18,15 @@ from pydantic import ValidationError
 from soc_verifier.agents.base import ModelResponseError
 from soc_verifier.agents.instructions import PROMPT_VERSION
 from soc_verifier.agents.runtime import AgentRuntime
+from soc_verifier.agents.tasks import ENGINE_VERSION, runtime_versions
 from soc_verifier.domain.models import PlanReview, SpecAnalysis, Specification, VerificationPlan
 from soc_verifier.export.xlsx import export_plan
 from soc_verifier.ingestion.docx import ingest_docx
 from soc_verifier.providers.budget import read_spending
+from soc_verifier.providers.reporting import read_task_report
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
+from soc_verifier.storage.readers import read_result
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 app = typer.Typer(no_args_is_help=True, help="Traceable system-level verification workflows.")
@@ -76,7 +80,7 @@ def plan(
         artifacts.write(
             "manifest.json",
             {
-                "schema_version": "1.0",
+                "schema_version": "2.0",
                 "run_id": run_id,
                 "created_at": datetime.now(UTC).isoformat(),
                 "specification_sha256": spec.sha256,
@@ -107,7 +111,7 @@ def resume(
         artifacts = ArtifactStore(root)
         manifest = artifacts.read("manifest.json")
         if (
-            manifest.get("engine") != "openai-agents-v1"
+            manifest.get("engine") != ENGINE_VERSION
             or manifest["prompt_version"] != PROMPT_VERSION
             or any(
                 manifest.get(key) != value for key, value in _run_configuration(settings).items()
@@ -118,10 +122,8 @@ def resume(
         # Keep the original manifest intact and log the effective worker count.
         if workers is not None:
             settings = settings.model_copy(update={"batch_workers": workers})
-        if max_output_tokens is not None:
-            if max_output_tokens > settings.max_output_tokens:
-                raise ValueError("Resume output-token override may only lower the original limit")
-            settings = settings.model_copy(update={"max_output_tokens": max_output_tokens})
+        if max_output_tokens is not None and max_output_tokens != settings.max_output_tokens:
+            raise ValueError("Output-token limit changed; start a new run")
         _execute(settings, artifacts, resuming=True)
 
 
@@ -165,6 +167,34 @@ def spend(
             sleep(5)
 
 
+@app.command()
+def tasks(
+    run_id: Annotated[str, typer.Argument()],
+    as_json: Annotated[
+        bool, typer.Option("--json", help="Machine-readable accounting report.")
+    ] = False,
+) -> None:
+    """Show each task's calls, failures, confirmed spending and uncertain reservations locally."""
+    with _errors():
+        root = Settings().artifact_dir / "runs" / str(UUID(run_id))
+        if not root.is_dir():
+            raise ValueError("Unknown run ID")
+        report = read_task_report(ArtifactStore(root))
+        if as_json:
+            typer.echo(json.dumps(report, indent=2))
+            return
+        typer.echo(f"Task attribution: {report['attribution']}")
+        for row in report["tasks"]:
+            typer.echo(
+                f"{row['task_id'] or 'unavailable'} | {row['role']}/{row['stage']} | "
+                f"{row['status']} | Calls {row['model_calls']} | "
+                f"Failed invocations {row['failed_invocations']} | "
+                f"Reported ${row['reported_usd']} | Reserved ${row['reserved_usd']} "
+                f"({row['unsettled_calls']} unsettled)"
+            )
+        typer.echo(f"Total reported ${report['reported_usd']}; reserved ${report['reserved_usd']}")
+
+
 @app.command("export")
 def export_command(
     run_id: Annotated[str, typer.Argument()],
@@ -178,7 +208,7 @@ def export_command(
         if not root.is_dir():
             raise ValueError("Unknown run ID")
         artifacts = ArtifactStore(root)
-        result = artifacts.read("result.json")
+        result = read_result(artifacts)
         export_plan(
             output,
             specification=Specification.model_validate(artifacts.read("specification.json")),
@@ -187,24 +217,19 @@ def export_command(
             ),
             plan=VerificationPlan.model_validate(artifacts.read(result["plan_artifact"])),
             review=PlanReview.model_validate(artifacts.read(result["review_artifact"])),
+            task_metadata="available"
+            if result.get("schema_version") == "2.0"
+            else "unavailable (legacy run)",
         )
         typer.echo(f"Exported draft verification plan to {output}")
 
 
 def _run_configuration(settings: Settings) -> dict[str, Any]:
     return {
-        "engine": "openai-agents-v1",
-        "agent_max_turns": settings.agent_max_turns,
-        "model": settings.model,
-        "provider": settings.provider,
-        "max_revisions": settings.max_revisions,
-        "max_output_tokens": settings.max_output_tokens,
-        "max_input_characters": settings.max_input_characters,
-        "chunk_max_characters": settings.chunk_max_characters,
-        "plan_batch_size": settings.plan_batch_size,
+        "engine": ENGINE_VERSION,
+        "versions": runtime_versions(),
+        **settings.agent_configuration(),
         "batch_workers": settings.batch_workers,
-        "max_model_calls": settings.max_model_calls,
-        "max_cost_usd": settings.max_cost_usd,
     }
 
 
@@ -227,9 +252,7 @@ def _execute(
             settings.max_output_tokens,
             resuming,
         )
-        if artifacts.exists("result.json"):
-            typer.echo(f"Run already completed: {artifacts.root}")
-            return
+        completed = artifacts.exists("result.json")
         with httpx.Client() as client:
             workflow = PlanningWorkflow(
                 AgentRuntime(settings, client, artifacts=artifacts),
@@ -240,7 +263,10 @@ def _execute(
                 batch_workers=settings.batch_workers,
             )
             result = workflow.run()
-            typer.echo(f"Status: {result['status']}; artifacts: {artifacts.root}")
+            if completed:
+                typer.echo(f"Run already completed: {artifacts.root}")
+            else:
+                typer.echo(f"Status: {result['status']}; artifacts: {artifacts.root}")
     finally:
         logger.removeHandler(handler)
         logger.setLevel(previous_level)
