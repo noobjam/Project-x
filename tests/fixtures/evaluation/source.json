@@ -1,0 +1,15 @@
+{
+  "blocks": [
+    {
+      "id": "P00001",
+      "kind": "paragraph",
+      "locator": "word/document.xml/body/*[1]",
+      "section": "Synthetic",
+      "text": "Straße\tRESET\r\nRESET🙂"
+    }
+  ],
+  "document_name": "synthetic-example.docx",
+  "extraction_warnings": [],
+  "schema_version": "1.0",
+  "sha256": "33374ffe92ae94081838efdc2bad4719045ed2f1f128e2c6b87997267af2f4fa"
+}
