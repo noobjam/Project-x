@@ -10,7 +10,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 ## Current state
 
 - **Phase:** SV-02/minimal SV-03B implementation is technically complete on
-  feat/task-accounting and is entering review. It adds exact task/input bindings,
+  feat/task-accounting in [PR #3](https://github.com/noobjam/Project-x/pull/3). It adds exact task/input bindings,
   per-call spending attribution, compatible readers and OpenRouter reasoning replay.
   Evaluation preparation remains merged through PR #2; engineering acceptance is pending.
 - **Current working plan:** a smaller first release focused on source retrieval,
@@ -19,8 +19,9 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
   bounded evidence tools, OpenRouter transport, Python orchestration, immutable
   artifacts and Excel export. LangGraph/LangChain were removed.
-- **Active milestone:** review and publish the task-accounting slice. Local
-  validation passed: 202 offline tests, Ruff, mypy and source/wheel build.
+- **Active milestone:** review PR #3. Implementation 373ed26 is published; all
+  push/PR CI checks passed on Python 3.12 and 3.13. Local validation passed:
+  202 offline tests, Ruff, mypy and source/wheel build.
   The next implementation after merge is SV-04 retrieval and bounded source context.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
@@ -32,7 +33,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 Checked on 2026-10-27:
 
 - Local branch: feat/task-accounting, based on main at 46e0b06. Implementation
-  publication is pending at this checkpoint. AGENTS.md remains local-only and ignored.
+  commit 373ed26 is published and directly verified on origin. This documentation
+  handoff advances the feature branch. AGENTS.md remains local-only and ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. Main contains PR #2
   at 927f5fb plus its handoff. Frozen baseline 6c819bf and pilot 3e5d6da are unchanged.
@@ -121,8 +123,8 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **Review SV-02/minimal SV-03B.** Publish feat/task-accounting, verify its remote
-   commit and CI, then review/merge when authorized. Inspect task bindings, split
+1. **Review SV-02/minimal SV-03B in PR #3.** Implementation 373ed26 is on GitHub
+   and all four push/PR CI checks passed. Review/merge when authorized. Inspect task bindings, split
    recovery, ledger reconciliation and the reasoning compatibility adapter together.
 2. **After merge, implement SV-04 on a new branch.** Fix matching search excerpts,
    pagination and bounded table/neighbor evidence against the existing task snapshots.
@@ -140,7 +142,8 @@ complete merely because its plan exists.
   reasoning history before another paid request. Ruff check/format, strict mypy and
   source/wheel builds passed. Twenty-four existing local documentation links/anchors
   resolve; built packages include new runtime modules and exclude private artifacts,
-  documents, credentials and AGENTS.md. Remote publication/CI are pending here.
+  documents, credentials and AGENTS.md. GitHub push/PR CI passed on both Python
+  versions at implementation 373ed26, and its remote SHA was directly verified.
 - New regressions cover concurrent task/call attribution and reasoning isolation,
   billed versus unsettled charges across restart, exact artifact revision selection,
   source/prompt/schema/processing/config changes, split-child identities, atomic
@@ -338,8 +341,11 @@ complete merely because its plan exists.
   with task fields unavailable. Changed output ceilings now require a new run.
 - Validation: 202 offline tests, Ruff, mypy, package build, distribution exclusions
   and local links passed. No paid calls or engineering-quality claims.
-- SV-02 and minimal SV-03B are in_review locally. Publication and CI confirmation
-  follow; merge remains a separate review decision. Next implementation after merge:
+- Published implementation 373ed26, verified the remote SHA and opened
+  [PR #3](https://github.com/noobjam/Project-x/pull/3). All four push/PR checks passed
+  on Python 3.12 and 3.13. Main remains at 46e0b06; AGENTS.md remains ignored.
+- SV-02 and minimal SV-03B are in_review. Merge remains a separate review decision.
+  Next implementation after merge:
   SV-04 retrieval. Paid pilot allocation and label review remain unresolved.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
