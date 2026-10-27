@@ -1,6 +1,7 @@
 """Environment-based configuration with redacted credentials."""
 
 from pathlib import Path
+from typing import Any
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -23,6 +24,14 @@ class Settings(BaseSettings):
     batch_workers: int = Field(default=1, ge=1, le=8)
     max_model_calls: int = Field(default=200, ge=1, le=2000)
     max_cost_usd: float = Field(default=2.0, gt=0, le=1000)
+
+    def agent_configuration(self) -> dict[str, Any]:
+        return {
+            **self.model_dump(exclude={"openrouter_api_key", "artifact_dir", "batch_workers"}),
+            "data_collection": "deny",
+            "zdr": True,
+            "allow_fallbacks": False,
+        }
 
     def require_agents(self) -> None:
         if not self.openrouter_api_key or not self.openrouter_api_key.get_secret_value().strip():

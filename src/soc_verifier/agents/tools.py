@@ -7,6 +7,7 @@ from typing import Any
 
 from agents import RunContextWrapper, function_tool
 
+from soc_verifier.agents.attempts import current_invocation
 from soc_verifier.domain.models import SpecAnalysis, Specification, VerificationPlan
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,14 @@ def _result(name: str, records: list[dict[str, Any]]) -> str:
         if len(json.dumps(candidate)) > MAX_RESULT_CHARACTERS:
             break
         output.append(record)
+    invocation = current_invocation.get()
     logger.info(
-        "agent_tool name=%s returned=%s remaining=%s", name, len(output), len(records) - len(output)
+        "agent_tool name=%s returned=%s remaining=%s task=%s invocation=%s",
+        name,
+        len(output),
+        len(records) - len(output),
+        invocation.task.task_id if invocation else None,
+        invocation.invocation_id if invocation else None,
     )
     if records and not output:
         raise ValueError("Evidence item exceeds the tool response limit; narrow the requested data")

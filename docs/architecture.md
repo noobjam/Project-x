@@ -50,7 +50,7 @@ external services or grant approval. Source and tool text remain untrusted evide
 The model can request tools autonomously within its assigned task. It cannot choose
 the next workflow stage, raise its budgets or turn a draft into engineering signoff.
 A tool loop may increase cost; bounded input and measured usage matter more than
-calling something an agent. `AGENT_MAX_TURNS` defaults to four per task, including
+calling something an agent. `AGENT_MAX_TURNS` defaults to four per invocation, including
 the final-output turn. Total attempted model calls and dollar limits are shared
 across all workers, tasks and corrections.
 
@@ -84,6 +84,13 @@ A clean automated result is `draft_ready`; `human_approved` remains false.
 Immutable JSON artifacts are the recovery checkpoints. On restart, Python replays
 the deterministic stage/revision decisions and validates/reuses completed outputs.
 Batches publish independently, so completed batches survive interrupted stages.
+Each role, batch, split child and system pass has an opaque task ID. Its fingerprint
+binds ordered assignments, exact artifact names/byte hashes, input content, schema,
+prompt/tool/source-processing versions, installed source/dependency versions and
+behavior settings. Tools receive explicit source/analysis/plan references rather
+than searching for the latest revision. Completion receipts bind and publish the
+result atomically; canonical output files can be restored without inference.
+Split markers bind the parent fingerprint and exact inputs, not merely item counts.
 An unfinished agent task restarts its conversation; completed tool/model turns
 inside it are diagnostics, not resumable SDK sessions. Their charges remain in the
 ledger. Multiple processes must not execute one run concurrently; no distributed
@@ -109,15 +116,32 @@ provider billing above its advertised bound stop the run. Tiered endpoint prices
 are currently rejected because the reservation calculation cannot bound them.
 These controls do not replace an account-level credit/key cap.
 
-Runs pin engine, prompt version, model, provider and generation limits. Explicit
-resume overrides may lower output tokens or change worker scheduling; they preserve
-the original manifest and conservative reservation. Prompt version 5 and engine
-`openai-agents-v1` prevent accidental resumption of legacy graph runs. Legacy
-completed plans remain exportable; `spend` still reads their ledgers. SQLite and
-PostgreSQL checkpoint files are left intact but not read by this runtime.
+Runs pin engine, prompt version, model, provider and generation limits. Only worker
+scheduling can change on resume; changed output ceilings require a new run. Prompt
+version 5 and engine `openai-agents-v2` identify task-aware runs. Version 2.0 run
+manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
+remain exportable with new metadata marked unavailable; `spend` and `tasks` read
+old ledgers without rewriting or inferring missing attribution. Unknown task,
+completion, execution and result versions fail explicitly. SQLite and PostgreSQL
+checkpoint files remain intact but are not read by this runtime.
+
+Every SDK invocation has an ID under its task. Every model request, including tool
+follow-ups, has a call ID; reservations carry both identities and the effective
+request hash. Failures retain safe error types, and interrupted invocations remain
+visible. Thread-local asynchronous context propagation keeps concurrent attribution
+separate. `soc-verifier tasks RUN_ID [--json]` reconciles task charges and unsettled
+reservations separately against the existing ledger.
+
+The OpenRouter transport restores `reasoning_details` and plaintext reasoning onto
+the corresponding assistant tool-call messages before follow-up requests. It retains
+opaque values and block order, isolates histories per invocation, and rejects
+ambiguous histories before inference. Plain calls without reasoning metadata keep
+their existing request behavior. Reasoning replay is recorded as `openrouter-v1`
+and must be declared separately in model comparisons. Offline SDK tests validate
+serialization; live endpoint feasibility remains an SV-10A gate before model selection.
 
 Operational logs contain agent/tool names and numeric usage, including cache and
-reasoning details when reported. They exclude document/tool text. Local model-output
+reasoning token counts when reported. They exclude document/tool text. Local model-output
 artifacts contain sensitive source-derived content and are never treated as valid
 plans. Credentials/specifications/generated outputs remain ignored by Git.
 
@@ -140,3 +164,5 @@ JEV, RTL/test generation, simulator tools and coverage closure remain future wor
 - [OpenRouter with the OpenAI SDK](https://openrouter.ai/docs/quickstart#using-the-openai-sdk)
 - [OpenRouter structured outputs](https://openrouter.ai/docs/guides/features/structured-outputs)
 - [OpenRouter provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
+
+- [OpenRouter reasoning preservation](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens)

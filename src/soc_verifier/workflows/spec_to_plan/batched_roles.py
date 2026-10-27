@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from soc_verifier.agents import instructions as prompts
 from soc_verifier.agents.base import AgentExecutor
+from soc_verifier.agents.tasks import Task
 from soc_verifier.domain.models import (
     PlanReview,
     Requirement,
@@ -55,6 +56,7 @@ def analyze_batches(
     chunk_characters: int,
     workers: int,
     review: dict[str, object] | None,
+    task: Task,
 ) -> SpecAnalysis:
     chunks = split_specification(spec, chunk_characters)
     artifacts.write(
@@ -71,7 +73,7 @@ def analyze_batches(
         name = f"analysis.r{revision:03d}.chunk{index:04d}.json"
         logger.info("stage=analysis revision=%s batch=%s/%s", revision, index + 1, len(chunks))
 
-        def generate(blocks: list[SourceBlock]) -> AnalysisBatch:
+        def generate(blocks: list[SourceBlock], attempt_task: Task) -> AnalysisBatch:
             supplied = evidence(spec, {block.id for block in blocks})
             previous = f"analysis.r{revision - 1:03d}.chunk{index:04d}.json"
             context: dict[str, object] = {
@@ -91,6 +93,7 @@ def analyze_batches(
                     instruction=prompts.ANALYZE_CHUNK,
                     context=json.dumps(context),
                     schema=AnalysisBatch,
+                    task=attempt_task.envelope,
                 )
                 unknown = {
                     source for item in result.requirements for source in item.source_ids
@@ -128,6 +131,20 @@ def analyze_batches(
                 requirements=[*left.requirements, *right.requirements],
                 gaps=list(dict.fromkeys([*left.gaps, *right.gaps])),
             ),
+            task=task.child(
+                name,
+                stage="analysis.chunk",
+                assigned_ids=[b.id for b in chunks[index]],
+                data=chunks[index],
+                instruction=prompts.ANALYZE_CHUNK,
+                schema=AnalysisBatch,
+                extra_inputs=[previous]
+                if revision
+                and artifacts.exists(
+                    previous := f"analysis.r{revision - 1:03d}.chunk{index:04d}.json"
+                )
+                else [],
+            ),
         )
         supplied = evidence(spec, {block.id for block in chunks[index]})
         known = {item["id"] for item in supplied}
@@ -143,8 +160,17 @@ def analyze_batches(
     logger.info(
         "stage=system_analysis revision=%s requirements=%s", revision, len(merged.requirements)
     )
-    if artifacts.exists(name):
-        system = AnalysisBatch.model_validate(artifacts.read(name))
+    system_task = task.child(
+        name,
+        stage="analysis.system",
+        assigned_ids=[r.id for r in merged.requirements],
+        data=merged,
+        instruction=prompts.ANALYZE_SYSTEM,
+        schema=AnalysisBatch,
+    )
+    cached = system_task.load(AnalysisBatch)
+    if cached is not None:
+        system = cached
     else:
         system = agents.run(
             role="analyst",
@@ -158,10 +184,11 @@ def analyze_batches(
                 }
             ),
             schema=AnalysisBatch,
+            task=system_task.envelope,
         )
     for requirement in system.requirements:
         validate_sources(SpecAnalysis(requirements=[requirement], gaps=[]), spec)
-    artifacts.write(name, system)
+    system_task.save(system)
     return merge_analyses([*batches, system])
 
 
@@ -175,6 +202,7 @@ def plan_batches(
     batch_size: int,
     workers: int,
     review: dict[str, object] | None,
+    task: Task,
 ) -> VerificationPlan:
     groups = [
         analysis.requirements[start : start + batch_size]
@@ -186,7 +214,7 @@ def plan_batches(
         name = f"plan.r{revision:03d}.batch{number:04d}.json"
         logger.info("stage=planning revision=%s batch=%s/%s", revision, number + 1, len(groups))
 
-        def generate(requirements: list[Requirement]) -> VerificationPlan:
+        def generate(requirements: list[Requirement], attempt_task: Task) -> VerificationPlan:
             local = SpecAnalysis(requirements=requirements, gaps=[])
             previous = f"plan.r{revision - 1:03d}.batch{number:04d}.json"
             context: dict[str, object] = {
@@ -207,6 +235,7 @@ def plan_batches(
                     instruction=prompts.PLAN_BATCH,
                     context=json.dumps(context),
                     schema=VerificationPlan,
+                    task=attempt_task.envelope,
                 )
                 try:
                     validate_traceability(result, local)
@@ -248,6 +277,18 @@ def plan_batches(
                     for item in part.items
                 ],
             ),
+            task=task.child(
+                name,
+                stage="plan.batch",
+                assigned_ids=[r.id for r in groups[number]],
+                data=groups[number],
+                instruction=prompts.PLAN_BATCH,
+                schema=VerificationPlan,
+                extra_inputs=[previous]
+                if revision
+                and artifacts.exists(previous := f"plan.r{revision - 1:03d}.batch{number:04d}.json")
+                else [],
+            ),
         )
         validate_traceability(result, SpecAnalysis(requirements=groups[number], gaps=analysis.gaps))
         artifacts.write(name, result)
@@ -274,6 +315,7 @@ def review_batches(
     revision: int,
     chunk_characters: int,
     workers: int,
+    task: Task,
 ) -> PlanReview:
     chunks = split_specification(spec, chunk_characters)
     index = requirement_index(analysis)
@@ -283,7 +325,7 @@ def review_batches(
         name = f"review.r{revision:03d}.chunk{number:04d}.json"
         logger.info("stage=review revision=%s batch=%s/%s", revision, number + 1, len(chunks))
 
-        def generate(blocks: list[SourceBlock]) -> PlanReview:
+        def generate(blocks: list[SourceBlock], attempt_task: Task) -> PlanReview:
             source_ids = {block.id for block in blocks}
             local = [item for item in analysis.requirements if set(item.source_ids) & source_ids]
             local_ids = {item.id for item in local}
@@ -298,6 +340,7 @@ def review_batches(
                     "plan": [item.model_dump(mode="json") for item in local_plan],
                 },
                 known_items={item.id for item in local_plan},
+                task=attempt_task.envelope,
             )
             validate_review(result, known_items)
             return result
@@ -311,6 +354,14 @@ def review_batches(
             lambda left, right: PlanReview(
                 findings=[*left.findings, *right.findings],
             ),
+            task=task.child(
+                name,
+                stage="review.chunk",
+                assigned_ids=[b.id for b in chunks[number]],
+                data=chunks[number],
+                instruction=prompts.REVIEW_CHUNK,
+                schema=PlanReview,
+            ),
         )
         validate_review(result, known_items)
         artifacts.write(name, result)
@@ -319,8 +370,17 @@ def review_batches(
     reviews = _map(review, len(chunks), workers)
     name = f"review.r{revision:03d}.system.json"
     logger.info("stage=system_review revision=%s", revision)
-    if artifacts.exists(name):
-        system = PlanReview.model_validate(artifacts.read(name))
+    system_task = task.child(
+        name,
+        stage="review.system",
+        assigned_ids=sorted(known_items),
+        data={"analysis": analysis, "plan": plan},
+        instruction=prompts.REVIEW_SYSTEM,
+        schema=PlanReview,
+    )
+    cached = system_task.load(PlanReview)
+    if cached is not None:
+        system = cached
     else:
         system = generate_review(
             agents,
@@ -340,9 +400,10 @@ def review_batches(
                 ],
             },
             known_items=known_items,
+            task=system_task.envelope,
         )
     validate_review(system, known_items)
-    artifacts.write(name, system)
+    system_task.save(system)
     unique = {
         finding.model_dump_json(): finding
         for result in [*reviews, system]

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import re
+from copy import deepcopy
 from decimal import Decimal
 from threading import Lock
 from time import monotonic
@@ -11,7 +12,9 @@ from typing import Any
 
 import httpx
 
+from soc_verifier.agents.attempts import current_invocation
 from soc_verifier.agents.base import ModelResponseError, OutputLimitError
+from soc_verifier.agents.tasks import fingerprint
 from soc_verifier.providers.budget import CallBudget
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
@@ -100,9 +103,66 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
         return await asyncio.to_thread(self._send, request)
 
     def _send(self, request: httpx.Request) -> httpx.Response:
+        invocation = current_invocation.get()
+        if invocation is None:
+            if self.artifacts is not None and self.artifacts.exists("execution.json"):
+                raise ValueError("Model request has no task attribution")
+            return self._send_request(request)
+        invocation.calls += 1
+        call_id = f"{invocation.invocation_id}.{invocation.calls:03d}"
+        assert self.artifacts is not None
+        self.artifacts.write(
+            f"call.{call_id}.json",
+            {
+                "format": "agent-call-v1",
+                **invocation.attribution(),
+                "call_id": call_id,
+                "turn": invocation.calls,
+                "sdk_request_sha256": fingerprint(json.loads(request.content)),
+            },
+        )
+        try:
+            response = self._send_request(request)
+        except Exception as error:
+            self.artifacts.write(
+                f"call.{call_id}.result.json",
+                {
+                    "format": "agent-call-result-v1",
+                    "call_id": call_id,
+                    "status": "failed",
+                    "error_type": type(error).__name__,
+                },
+            )
+            raise
+        self.artifacts.write(
+            f"call.{call_id}.result.json",
+            {
+                "format": "agent-call-result-v1",
+                "call_id": call_id,
+                "status": "returned",
+            },
+        )
+        return response
+
+    def _send_request(self, request: httpx.Request) -> httpx.Response:
         if str(request.url) != "https://openrouter.ai/api/v1/chat/completions":
             raise ValueError("Unexpected model endpoint")
         payload = json.loads(request.content)
+        invocation = current_invocation.get()
+        if invocation is not None and any(
+            entry["reasoning_fields"] for entry in invocation.reasoning_history
+        ):
+            history = [
+                m
+                for m in payload.get("messages", [])
+                if m.get("role") == "assistant" and m.get("tool_calls")
+            ]
+            if len(history) != len(invocation.reasoning_history):
+                raise ModelResponseError("Tool history cannot preserve provider reasoning")
+            for message, original in zip(history, invocation.reasoning_history, strict=True):
+                if _tool_identity(message) != original["tool_identity"]:
+                    raise ModelResponseError("Tool history changed during reasoning replay")
+                message.update(deepcopy(original["reasoning_fields"]))
         context = json.dumps(payload.get("messages", []))
         instruction = ""
         if len(context) > self.settings.max_input_characters:
@@ -124,7 +184,15 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             if tool.get("type") == "function":
                 tool["function"]["parameters"] = _strict_schema(tool["function"]["parameters"])
         budget = self._run_budget()
-        attempt = budget.reserve() if budget is not None else None
+        attribution = None
+        if invocation is not None:
+            attribution = {
+                **invocation.attribution(),
+                "turn": invocation.calls,
+                "call_id": f"{invocation.invocation_id}.{invocation.calls:03d}",
+                "request_sha256": fingerprint(payload),
+            }
+        attempt = budget.reserve(attribution) if budget is not None else None
         started = monotonic()
         response = self.client.post(
             str(request.url),
@@ -183,12 +251,14 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                         }
                     )
         logger.info(
-            "agent_model_call model=%s provider=%s request_id=%s usage=%s elapsed_seconds=%.3f",
+            "agent_model_call model=%s provider=%s request_id=%s usage=%s "
+            "elapsed_seconds=%.3f task=%s",
             payload.get("model"),
             payload.get("provider"),
             payload.get("id"),
             safe_usage,
             monotonic() - started,
+            invocation.task.task_id if invocation is not None else None,
         )
         if self.artifacts is not None and attempt is not None:
             # Keep rejected candidates and finish metadata as well as valid ones.
@@ -196,6 +266,7 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             self.artifacts.write(
                 f"model-output.{attempt:05d}.json",
                 {
+                    **(attribution or {}),
                     "request_id": payload.get("id"),
                     "schema": output["schema"].get("title", output.get("name")) if output else None,
                     "max_output_tokens": self.settings.max_output_tokens,
@@ -222,6 +293,23 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             or (not isinstance(message.get("content"), str) and not message.get("tool_calls"))
         ):
             raise ModelResponseError("Provider refused or returned no text content")
+        if invocation is not None and message.get("tool_calls"):
+            fields = {}
+            for key, expected_type in (
+                ("reasoning_details", list),
+                ("reasoning", str),
+                ("reasoning_content", str),
+            ):
+                if message.get(key) is not None:
+                    if not isinstance(message[key], expected_type):
+                        raise ModelResponseError("Provider returned invalid reasoning metadata")
+                    fields[key] = deepcopy(message[key])
+            invocation.reasoning_history.append(
+                {
+                    "tool_identity": _tool_identity(message),
+                    "reasoning_fields": fields,
+                }
+            )
         # Return a buffered response for the OpenAI SDK's typed parser. No retries
         # are performed here; every new network attempt must reserve its own cost.
         return httpx.Response(
@@ -275,6 +363,21 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                 if isinstance(item, dict) and isinstance(item.get("content"), str)
             )
 
+            def collect_text(value: Any) -> None:
+                if isinstance(value, str):
+                    sensitive.append(value)
+                elif isinstance(value, dict):
+                    for child in value.values():
+                        collect_text(child)
+                elif isinstance(value, list):
+                    for child in value:
+                        collect_text(child)
+
+            for item in messages:
+                if isinstance(item, dict):
+                    for key in ("reasoning", "reasoning_content", "reasoning_details"):
+                        collect_text(item.get(key))
+
         def redact(value: Any) -> Any:
             if isinstance(value, str):
                 for text in sensitive:
@@ -290,6 +393,22 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             self.artifacts.write(f"http-error.{attempt:05d}.json", details)
         logger.error("agent_http_error %s", json.dumps(details, ensure_ascii=True))
         return details
+
+
+def _tool_identity(message: dict[str, Any]) -> str:
+    try:
+        return fingerprint(
+            [
+                {
+                    "id": call["id"],
+                    "name": call["function"]["name"],
+                    "arguments": call["function"]["arguments"],
+                }
+                for call in message["tool_calls"]
+            ]
+        )
+    except (KeyError, TypeError):
+        raise ModelResponseError("Provider returned invalid tool-call metadata") from None
 
 
 def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:

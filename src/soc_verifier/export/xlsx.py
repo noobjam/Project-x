@@ -26,6 +26,7 @@ def export_plan(
     analysis: SpecAnalysis,
     plan: VerificationPlan,
     review: PlanReview,
+    task_metadata: str | None = None,
 ) -> None:
     validate_sources(analysis, specification)
     validate_traceability(plan, analysis)
@@ -116,6 +117,11 @@ def export_plan(
                 finding.description,
             ],
         )
+
+    if task_metadata is not None:
+        metadata = workbook.create_sheet("Run metadata")
+        _row(metadata, ["Field", "Availability"])
+        _row(metadata, ["Task input and spending attribution", task_metadata])
 
     for worksheet in workbook.worksheets:
         worksheet.freeze_panes = "C2"

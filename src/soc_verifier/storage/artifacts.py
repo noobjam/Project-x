@@ -27,8 +27,7 @@ class ArtifactStore:
         return data
 
     def write(self, name: str, value: BaseModel | dict[str, Any]) -> Path:
-        data = value.model_dump(mode="json") if isinstance(value, BaseModel) else value
-        content = json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
+        content = artifact_content(value)
         target = self.path(name)
         with NamedTemporaryFile(mode="w", encoding="utf-8", dir=self.root, delete=False) as file:
             temporary = Path(file.name)
@@ -44,3 +43,8 @@ class ArtifactStore:
             finally:
                 temporary.unlink(missing_ok=True)
         return target
+
+
+def artifact_content(value: BaseModel | dict[str, Any]) -> str:
+    data = value.model_dump(mode="json") if isinstance(value, BaseModel) else value
+    return json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True, allow_nan=False) + "\n"

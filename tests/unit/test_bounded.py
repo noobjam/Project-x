@@ -15,7 +15,7 @@ def combine(left, right):
 def test_output_overflow_is_split_without_losing_items(tmp_path):
     calls = []
 
-    def generate(items):
+    def generate(items, task):
         calls.append(items)
         if len(items) > 1:
             raise OutputLimitError("limit")
@@ -31,7 +31,7 @@ def test_output_overflow_is_split_without_losing_items(tmp_path):
 def test_split_and_completed_children_survive_restart(tmp_path):
     artifacts = ArtifactStore(tmp_path)
 
-    def first(items):
+    def first(items, task):
         if len(items) > 1:
             raise OutputLimitError("limit")
         if items == ["two"]:
@@ -42,7 +42,7 @@ def test_split_and_completed_children_survive_restart(tmp_path):
         bounded_call(artifacts, "batch", ["one", "two"], AnalysisBatch, first, combine)
     calls = []
 
-    def resumed(items):
+    def resumed(items, task):
         calls.append(items)
         return AnalysisBatch(requirements=[], gaps=items)
 
@@ -54,7 +54,7 @@ def test_split_and_completed_children_survive_restart(tmp_path):
 def test_non_overflow_errors_are_not_retried(tmp_path):
     artifacts = ArtifactStore(tmp_path)
 
-    def refused(items):
+    def refused(items, task):
         raise ModelResponseError("refused")
 
     with pytest.raises(ModelResponseError, match="refused"):
@@ -65,9 +65,41 @@ def test_non_overflow_errors_are_not_retried(tmp_path):
 def test_single_item_overflow_stops_instead_of_looping(tmp_path):
     artifacts = ArtifactStore(tmp_path)
 
-    def overflow(items):
+    def overflow(items, task):
         raise OutputLimitError("limit")
 
     with pytest.raises(OutputLimitError):
         bounded_call(artifacts, "batch", [1], AnalysisBatch, overflow, combine)
     assert not artifacts.exists("batch.split.json")
+
+
+def test_interrupted_split_rejects_changed_content_with_same_item_count(tmp_path):
+    artifacts = ArtifactStore(tmp_path)
+
+    def generate(items, task):
+        if len(items) > 1:
+            raise OutputLimitError("limit")
+        if items == ["two"]:
+            raise RuntimeError("interrupted")
+        return AnalysisBatch(requirements=[], gaps=items)
+
+    with pytest.raises(RuntimeError):
+        bounded_call(artifacts, "batch", ["one", "two"], AnalysisBatch, generate, combine)
+    with pytest.raises(ValueError, match="inputs or versions changed"):
+        bounded_call(artifacts, "batch", ["one", "changed"], AnalysisBatch, generate, combine)
+
+
+def test_split_children_have_distinct_bound_task_ids(tmp_path):
+    artifacts = ArtifactStore(tmp_path)
+    tasks = []
+
+    def generate(items, task):
+        tasks.append(task.envelope)
+        if len(items) > 1:
+            raise OutputLimitError("limit")
+        return AnalysisBatch(requirements=[], gaps=items)
+
+    bounded_call(artifacts, "batch", ["one", "two"], AnalysisBatch, generate, combine)
+    assert len({t.task_id for t in tasks}) == 3
+    assert tasks[1].inputs.parent_fingerprint == tasks[0].input_fingerprint
+    assert tasks[2].input_fingerprint != tasks[1].input_fingerprint

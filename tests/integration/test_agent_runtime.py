@@ -269,3 +269,232 @@ def test_sdk_failure_does_not_retry_or_publish(tmp_path, specification, failure)
     assert len(api.requests) == 1
     assert not artifacts.exists("analysis.json")
     assert read_spending(artifacts).unsettled_calls == (1 if failure in {"http", "network"} else 0)
+
+
+def test_reasoning_blocks_survive_multiple_tool_turns_without_cross_worker_leaks(
+    tmp_path, specification, analysis, caplog
+):
+    from threading import Barrier
+
+    from soc_verifier.providers.reporting import read_task_report
+
+    barrier = Barrier(2)
+
+    def details(label, turn):
+        return [
+            {"type": "reasoning.summary", "summary": f"synthetic-{label}-{turn}", "index": 0},
+            {
+                "type": "reasoning.encrypted",
+                "data": f"opaque-{label}-{turn}",
+                "id": "r",
+                "format": "anthropic-claude-v1",
+                "index": 1,
+            },
+        ]
+
+    def respond(payload):
+        label = next(m["content"] for m in payload["messages"] if m["role"] == "user")
+        history = [m for m in payload["messages"] if m["role"] == "assistant"]
+        for turn, message in enumerate(history):
+            assert message["reasoning_details"] == details(label, turn)
+            assert message["reasoning"] == f"private-reasoning-{label}-{turn}"
+        if len(history) == 2:
+            return completion({"content": analysis.model_dump_json()})
+        if not history:
+            barrier.wait(timeout=5)
+        return completion(
+            {
+                "content": None,
+                "reasoning_details": details(label, len(history)),
+                "reasoning": f"private-reasoning-{label}-{len(history)}",
+                # Both workers deliberately use the same IDs. Within a turn two tools
+                # share one signed reasoning sequence, which must remain intact.
+                "tool_calls": [
+                    {
+                        "id": f"call-{len(history)}-{i}",
+                        "type": "function",
+                        "function": {
+                            "name": "get_source_blocks",
+                            "arguments": '{"ids":["P00001"]}',
+                        },
+                    }
+                    for i in range(2)
+                ],
+            },
+            "tool_calls",
+        )
+
+    api = API(respond)
+    agents, client, artifacts = runtime(tmp_path, specification, api)
+    with client, ThreadPoolExecutor(max_workers=2) as workers, caplog.at_level(logging.INFO):
+        futures = [
+            workers.submit(
+                agents.run,
+                role="analyst",
+                instruction=instructions.ANALYZE,
+                context=label,
+                schema=SpecAnalysis,
+            )
+            for label in ("left", "right")
+        ]
+        assert all(f.result() == analysis for f in futures)
+    report = read_task_report(artifacts)
+    assert len(report["tasks"]) == 2
+    assert {r["model_calls"] for r in report["tasks"]} == {3}
+    assert {r["invocations"] for r in report["tasks"]} == {1}
+    assert {r["reported_usd"] for r in report["tasks"]} == {"0.0003"}
+    assert report["reported_usd"] == "0.0006" and report["reserved_usd"] == "0"
+    assert "opaque-" not in caplog.text and "private-reasoning-" not in caplog.text
+    for path in artifacts.root.glob("cost-reserved.*.json"):
+        record = artifacts.read(path.name)
+        assert record["format"] == "task-reservation-v1"
+        call = artifacts.read(f"call.{record['call_id']}.json")
+        assert call["task_id"] == record["task_id"]
+        assert call["invocation_id"] == record["invocation_id"]
+
+
+def test_failed_invocation_resumes_same_task_with_separate_reservations(
+    tmp_path, specification, analysis, verification_plan, clean_review
+):
+    from soc_verifier.providers.reporting import read_task_report
+
+    calls = 0
+
+    def respond(payload):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise httpx.ReadTimeout("synthetic interruption")
+        outputs = {
+            "SpecAnalysis": analysis,
+            "VerificationPlan": verification_plan,
+            "PlanReview": clean_review,
+        }
+        title = payload["response_format"]["json_schema"]["schema"]["title"]
+        return completion({"content": outputs[title].model_dump_json()})
+
+    api = API(respond)
+    agents, client, artifacts = runtime(tmp_path, specification, api)
+    with client:
+        workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
+        with pytest.raises(httpx.ReadTimeout):
+            workflow.run()
+        failed_task = artifacts.read("analysis.task.json")["task_id"]
+        workflow.run()
+    report = read_task_report(artifacts)
+    row = next(r for r in report["tasks"] if r["task_id"] == failed_task)
+    assert row["invocations"] == 2 and row["failed_invocations"] == 1
+    assert row["model_calls"] == 2 and row["unsettled_calls"] == 1
+    assert row["reported_usd"] == "0.0001" and row["status"] == "completed"
+    assert report["reported_usd"] == "0.0003"
+    assert report["reserved_usd"] == artifacts.read("cost-reserved.00001.json")["reserved_usd"]
+
+
+def test_explicit_snapshot_ignores_later_analysis_and_plan_revisions(
+    tmp_path, specification, analysis, verification_plan, clean_review
+):
+    from soc_verifier.agents.tasks import (
+        ArtifactReference,
+        Task,
+        TaskInputs,
+        fingerprint,
+        runtime_versions,
+    )
+    from soc_verifier.domain.models import PlanReview
+
+    expected = analysis.requirements[0].statement
+
+    def respond(payload):
+        tool_messages = [m for m in payload["messages"] if m["role"] == "tool"]
+        if not tool_messages:
+            return completion(
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "snapshot-call",
+                            "type": "function",
+                            "function": {
+                                "name": "get_requirements",
+                                "arguments": json.dumps({"ids": [analysis.requirements[0].id]}),
+                            },
+                        }
+                    ],
+                },
+                "tool_calls",
+            )
+        assert json.loads(tool_messages[0]["content"])["items"][0]["statement"] == expected
+        return completion({"content": clean_review.model_dump_json()})
+
+    agents, client, artifacts = runtime(tmp_path, specification, API(respond))
+    artifacts.write("analysis.json", analysis)
+    artifacts.write("plan.r000.json", verification_plan)
+    task = Task.bind(
+        artifacts,
+        "snapshot-review.json",
+        TaskInputs(
+            role="reviewer",
+            stage="review",
+            assigned_ids=[],
+            evidence={
+                key: ArtifactReference.capture(artifacts, name)
+                for key, name in {
+                    "source": "specification.json",
+                    "analysis": "analysis.json",
+                    "plan": "plan.r000.json",
+                }.items()
+            },
+            input_sha256=fingerprint("review"),
+            instruction_sha256=fingerprint(instructions.REVIEW),
+            schema_sha256=fingerprint(PlanReview.model_json_schema()),
+            versions=runtime_versions(),
+            configuration={"configuration": agents.configuration},
+        ),
+    )
+    newer = analysis.model_copy(
+        update={
+            "requirements": [
+                analysis.requirements[0].model_copy(
+                    update={"statement": "Changed statement that must not enter the earlier task."}
+                )
+            ]
+        }
+    )
+    artifacts.write("analysis.r001.json", newer)
+    with client:
+        result = agents.run(
+            role="reviewer",
+            instruction=instructions.REVIEW,
+            context="review",
+            schema=PlanReview,
+            task=task.envelope,
+        )
+    assert result == clean_review
+
+
+def test_ambiguous_reasoning_history_stops_before_another_paid_request(tmp_path, specification):
+    from soc_verifier.providers.reporting import read_task_report
+
+    def respond(_):
+        response = source_lookup().json()
+        response["choices"][0]["message"]["reasoning_details"] = [
+            {"type": "reasoning.encrypted", "data": "synthetic-opaque"}
+        ]
+        return httpx.Response(200, json=response)
+
+    api = API(respond)
+    agents, client, artifacts = runtime(tmp_path, specification, api)
+    with client, pytest.raises(ModelResponseError, match="preserve provider reasoning"):
+        agents.run(
+            role="analyst",
+            instruction=instructions.ANALYZE,
+            context="Inspect reset",
+            schema=SpecAnalysis,
+        )
+    # The simulated provider reuses a tool ID across turns. The SDK collapses
+    # that history; forwarding either signed block would guess its association.
+    assert len(api.requests) == 2
+    report = read_task_report(artifacts)
+    assert report["tasks"][0]["failed_invocations"] == 1
+    assert report["tasks"][0]["model_calls"] == 2
+    assert report["reported_usd"] == "0.0002"

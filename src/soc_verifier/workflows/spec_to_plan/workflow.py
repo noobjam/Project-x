@@ -6,6 +6,13 @@ from typing import Any, Literal, TypedDict
 
 from soc_verifier.agents import instructions as prompts
 from soc_verifier.agents.base import AgentExecutor
+from soc_verifier.agents.tasks import (
+    ArtifactReference,
+    Task,
+    TaskInputs,
+    fingerprint,
+    runtime_versions,
+)
 from soc_verifier.domain.models import (
     PlanReview,
     SpecAnalysis,
@@ -30,6 +37,7 @@ class PlanState(TypedDict, total=False):
     analysis_revision: int
     plan: dict[str, Any]
     review: dict[str, Any]
+    review_revision: int
     revision: int
     status: Literal["draft_ready", "needs_review"]
 
@@ -47,6 +55,22 @@ class PlanningWorkflow:
         if specification is None:
             specification = Specification.model_validate(self.artifacts.read("specification.json"))
         self.artifacts.write("specification.json", specification)
+        execution = {
+            "format": "task-execution-v1",
+            "versions": runtime_versions(),
+            "configuration": self.agents.configuration,
+            "source": ArtifactReference.capture(self.artifacts, "specification.json").model_dump(),
+            "document_sha256": specification.sha256,
+            "max_revisions": self.max_revisions,
+            "chunk_max_characters": self.chunk_max_characters,
+            "plan_batch_size": self.plan_batch_size,
+        }
+        if self.artifacts.exists("execution.json"):
+            if self.artifacts.read("execution.json") != execution:
+                raise ValueError("Run inputs or versions changed; start a new run")
+        elif self.artifacts.exists("analysis.json"):
+            raise ValueError("Legacy run has no task bindings; export or start a new run")
+        self.artifacts.write("execution.json", execution)
         return _run_workflow(
             self.agents,
             self.artifacts,
@@ -73,12 +97,51 @@ def _run_workflow(
     if chunk_max_characters < 1000 or plan_batch_size < 1 or batch_workers < 1:
         raise ValueError("Invalid batching configuration")
 
+    execution = artifacts.read("execution.json")
+
+    def bind(
+        name: str,
+        state: PlanState,
+        role: Literal["analyst", "planner", "reviewer"],
+        instruction: str,
+        schema: type[SpecAnalysis] | type[VerificationPlan] | type[PlanReview],
+        assigned_ids: list[str],
+    ) -> Task:
+        names = {"source": "specification.json"}
+        if "analysis" in state:
+            names["analysis"] = _analysis_artifact(state["analysis_revision"])
+        if "plan" in state:
+            names["plan"] = f"plan.r{state['revision']:03d}.json"
+        if "review" in state:
+            names["review"] = f"review.r{state['review_revision']:03d}.json"
+        return Task.bind(
+            artifacts,
+            name,
+            TaskInputs(
+                role=role,
+                stage=name.removesuffix(".json"),
+                assigned_ids=assigned_ids,
+                evidence={
+                    key: ArtifactReference.capture(artifacts, path) for key, path in names.items()
+                },
+                input_sha256=fingerprint(state),
+                instruction_sha256=fingerprint(instruction),
+                schema_sha256=fingerprint(schema.model_json_schema()),
+                versions=execution["versions"],
+                configuration=execution,
+            ),
+        )
+
     def analyze(state: PlanState) -> PlanState:
         spec = Specification.model_validate(state["specification"])
         revision = state.get("analysis_revision", -1) + 1
         name = _analysis_artifact(revision)
-        if artifacts.exists(name):
-            analysis = SpecAnalysis.model_validate(artifacts.read(name))
+        task = bind(
+            name, state, "analyst", prompts.ANALYZE, SpecAnalysis, [b.id for b in spec.blocks]
+        )
+        cached = task.load(SpecAnalysis)
+        if cached is not None:
+            analysis = cached
         elif len(split_specification(spec, chunk_max_characters)) > 1:
             analysis = analyze_batches(
                 agents,
@@ -88,6 +151,7 @@ def _run_workflow(
                 chunk_characters=chunk_max_characters,
                 workers=batch_workers,
                 review=state.get("review"),
+                task=task,
             )
         else:
             context = (
@@ -102,17 +166,30 @@ def _run_workflow(
                 )
             )
             analysis = agents.run(
-                role="analyst", instruction=prompts.ANALYZE, context=context, schema=SpecAnalysis
+                role="analyst",
+                instruction=prompts.ANALYZE,
+                context=context,
+                schema=SpecAnalysis,
+                task=task.envelope,
             )
         validate_sources(analysis, spec)
-        artifacts.write(name, analysis)
+        task.save(analysis)
         return {"analysis": analysis.model_dump(mode="json"), "analysis_revision": revision}
 
     def plan(state: PlanState) -> PlanState:
         revision = state.get("revision", -1) + 1
         name = f"plan.r{revision:03d}.json"
-        if artifacts.exists(name):
-            result = VerificationPlan.model_validate(artifacts.read(name))
+        task = bind(
+            name,
+            state,
+            "planner",
+            prompts.PLAN,
+            VerificationPlan,
+            [r.id for r in SpecAnalysis.model_validate(state["analysis"]).requirements],
+        )
+        cached = task.load(VerificationPlan)
+        if cached is not None:
+            result = cached
         elif _batched(state):
             result = plan_batches(
                 agents,
@@ -123,6 +200,7 @@ def _run_workflow(
                 batch_size=plan_batch_size,
                 workers=batch_workers,
                 review=state.get("review"),
+                task=task,
             )
         else:
             context = {
@@ -136,16 +214,19 @@ def _run_workflow(
                 instruction=prompts.PLAN,
                 context=json.dumps(context),
                 schema=VerificationPlan,
+                task=task.envelope,
             )
         validate_traceability(result, SpecAnalysis.model_validate(state["analysis"]))
-        artifacts.write(name, result)
+        task.save(result)
         return {"plan": result.model_dump(mode="json"), "revision": revision}
 
     def review(state: PlanState) -> PlanState:
         name = f"review.r{state['revision']:03d}.json"
         known = {item.id for item in VerificationPlan.model_validate(state["plan"]).items}
-        if artifacts.exists(name):
-            result = PlanReview.model_validate(artifacts.read(name))
+        task = bind(name, state, "reviewer", prompts.REVIEW, PlanReview, sorted(known))
+        cached = task.load(PlanReview)
+        if cached is not None:
+            result = cached
         elif _batched(state):
             result = review_batches(
                 agents,
@@ -156,6 +237,7 @@ def _run_workflow(
                 revision=state["revision"],
                 chunk_characters=chunk_max_characters,
                 workers=batch_workers,
+                task=task,
             )
         else:
             result = generate_review(
@@ -167,10 +249,11 @@ def _run_workflow(
                     "plan": state["plan"],
                 },
                 known_items=known,
+                task=task.envelope,
             )
         validate_review(result, known)
-        artifacts.write(name, result)
-        return {"review": result.model_dump(mode="json")}
+        task.save(result)
+        return {"review": result.model_dump(mode="json"), "review_revision": state["revision"]}
 
     def route(state: PlanState) -> Literal["analyze", "plan", "finish"]:
         review_result = PlanReview.model_validate(state["review"])
@@ -207,7 +290,7 @@ def _run_workflow(
         artifacts.write(
             "result.json",
             {
-                "schema_version": "1.0",
+                "schema_version": "2.0",
                 "status": status,
                 "revision": state["revision"],
                 "human_approved": False,

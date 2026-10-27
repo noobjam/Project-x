@@ -8,11 +8,15 @@ pytestmark = pytest.mark.integration
 
 
 class FakeAgents:
+    @property
+    def configuration(self):
+        return {}
+
     def __init__(self, *responses):
         self.responses = iter(responses)
         self.calls = 0
 
-    def run(self, *, role, instruction, context, schema):
+    def run(self, *, role, instruction, context, schema, task=None):
         self.calls += 1
         response = next(self.responses)
         if isinstance(response, Exception):
@@ -250,3 +254,25 @@ def test_analysis_revision_budget_and_restart(tmp_path, specification, analysis,
     assert result["analysis_revision"] == 1
     assert second.calls == 3
     assert artifacts.read("result.json")["revision_limit_reached"] is True
+
+
+@pytest.mark.parametrize("change", ["prompt", "processing", "code", "partition"])
+def test_resume_rejects_changed_execution_before_any_agent_calls(
+    tmp_path, specification, analysis, verification_plan, clean_review, monkeypatch, change
+):
+    import soc_verifier.workflows.spec_to_plan.workflow as module
+
+    artifacts = ArtifactStore(tmp_path)
+    PlanningWorkflow(
+        FakeAgents(analysis, verification_plan, clean_review), artifacts, max_revisions=0
+    ).run(specification)
+    versions = module.runtime_versions()
+    if change != "partition":
+        key = {"prompt": "prompt", "processing": "source_processing", "code": "code_sha256"}[change]
+        monkeypatch.setattr(module, "runtime_versions", lambda: {**versions, key: "different"})
+    agents = FakeAgents()
+    with pytest.raises(ValueError, match="Run inputs or versions changed"):
+        PlanningWorkflow(
+            agents, artifacts, max_revisions=0, plan_batch_size=4 if change == "partition" else 8
+        ).run()
+    assert agents.calls == 0

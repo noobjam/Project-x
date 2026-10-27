@@ -140,6 +140,9 @@ Acceptance:
 - Instrumentation preserves baseline request content/settings. Any behavior change
   is recorded as a separate comparison condition.
 - Logs exclude source/tool text; sensitive artifacts remain local.
+- User-approved compatibility companion: preserve OpenRouter reasoning metadata
+  across tool follow-ups, test concurrent isolation offline, and record this as a
+  separate behavior condition. Live model/provider feasibility remains SV-10A.
 
 Edit points: agents/runtime.py, workflow task calls, bounded.py, providers/,
 storage/ and cli.py.
@@ -351,8 +354,8 @@ Priority: P2 for routing. Early compatibility check is part of SV-10A.
 Dependencies: usable evaluation evidence; routing requires an accepted architecture.
 First release: shared model remains default.
 
-Use a bounded baseline task to verify current tools, structured output, limits and
-endpoint behavior. If it cannot complete or gives unusable results, investigate
+Use a bounded baseline task to verify current tools, structured output, limits,
+reasoning-metadata round trips where applicable, and endpoint behavior. If it cannot complete or gives unusable results, investigate
 configuration/provider errors first. Any alternative-model screen is a separately
 declared, budgeted condition; do not silently expand experiments.
 

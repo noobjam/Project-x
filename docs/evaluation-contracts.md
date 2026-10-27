@@ -1,7 +1,7 @@
 # Evidence and task conventions
 
-SV-03A design contract. These conventions and synthetic examples guide later
-SV-02/03B work; they do not change the current runtime schemas, IDs or resume rules.
+SV-03A conventions, implemented for runtime tasks by SV-02/minimal SV-03B.
+Evaluation annotations and application artifacts retain separate contracts.
 
 ## Source identity and coordinates
 
@@ -44,26 +44,41 @@ no insignificant whitespace and no NaN/Infinity; hash those bytes with SHA-256.
 Task IDs, timestamps, secrets, machine paths and attempt counters are not themselves
 part of the behavior fingerprint. They must not replace its input content.
 
-Later reuse must match the complete fingerprint, including split child inputs.
-Matching a filename, batch number or item count is insufficient. The runtime must
-receive explicit snapshot references instead of choosing whichever artifact is
-latest. The example is a design fixture, not a new checkpoint format.
+Reuse matches the complete fingerprint, including split child inputs. Matching a
+filename, batch number or item count is insufficient. Task tools receive explicit
+snapshot references. The synthetic example remains a convention fixture, not a
+production checkpoint.
 
-## Compatibility and review boundaries
+## Runtime records and compatibility
 
-The offline evaluation manifest has its own format identifier. It is never passed
-to an agent or used as an application run manifest. Existing domain schemas remain
-1.0 and PROMPT_VERSION remains unchanged in this milestone.
+- `execution.json` (`task-execution-v1`) pins source bytes, original document hash,
+  installed source/dependency versions, prompt/tool/source-processing versions and
+  behavior configuration. Source code is hashed independently of documentation-only
+  Git commits. Worker scheduling is excluded; output ceilings are included.
+- `*.task.json` (`agent-task-v1`) stores the opaque task ID, ordered assignments,
+  input/schema/instruction hashes, exact evidence references and parent fingerprint.
+- `*.completed.json` (`task-completion-v1`) atomically stores the result plus its
+  input binding and output hash. Canonical output JSON is a recoverable projection.
+- `*.split.json` (`task-split-v1`) binds each partition to its task and input hash.
+- Invocation/call records distinguish logical work, correction/restart invocations,
+  individual model turns and failures. Reservations add task/invocation/call IDs;
+  legacy reservation/settlement amounts remain readable without inference.
 
-SV-01B/C implements these coordinates in evaluation-only packets and annotations,
-with explicit packet/label/output hashes for scoring. This does not introduce the
-SV-02 task envelope or change application checkpoint reuse. Public projections retain
-original-file document hashes separately from their package and projected JSON hashes.
+Run manifests/results use version 2.0 and engine `openai-agents-v2`; domain source,
+analysis, plan and review schemas remain 1.0 and PROMPT_VERSION remains 5. Unknown
+versions and stale fingerprints fail explicitly. Legacy runs can export and report
+spending with task metadata unavailable, but cannot resume under the new engine.
+No immutable legacy artifacts are migrated or rewritten.
 
-When later changes require new domain schemas, retain explicit V1 readers and
-dispatch by artifact type/version. Adapt only in memory for export, reject unknown
-versions and incompatible resume combinations, and keep spend ledger readers
-independent. That implementation belongs to SV-03B, not this design slice.
+The source-processing label `docx-v1` identifies the existing DOCX representation;
+its exact input bytes and runtime source hash are also pinned. This does not claim
+new offsets, visual interpretation or stable block IDs across edited documents.
+Evaluation-only source spans continue to validate exact Unicode text and hashes.
+
+The reasoning replay adapter is a separately recorded behavior condition
+(`openrouter-v1`). It preserves provider metadata across tool calls. Instrumentation
+leaves ordinary message content/settings unchanged; offline checks cannot prove
+engineering quality or compatibility with every live provider.
 
 The first future repair can replace selected existing plan items only, retaining
 IDs and requirement references against a frozen source, analysis and partition.

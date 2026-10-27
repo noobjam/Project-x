@@ -4,6 +4,8 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
+from soc_verifier.agents.tasks import TaskEnvelope
+
 
 class ModelResponseError(RuntimeError):
     """The provider did not return a complete usable artifact."""
@@ -17,8 +19,17 @@ AgentRole = Literal["analyst", "planner", "reviewer"]
 
 
 class AgentExecutor(Protocol):
+    @property
+    def configuration(self) -> dict[str, object]: ...
+
     def run[T: BaseModel](
-        self, *, role: AgentRole, instruction: str, context: str, schema: type[T]
+        self,
+        *,
+        role: AgentRole,
+        instruction: str,
+        context: str,
+        schema: type[T],
+        task: TaskEnvelope | None = None,
     ) -> T:
         """Return a validated artifact or raise; never return partial output."""
         ...

@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from soc_verifier.agents.base import AgentExecutor
+from soc_verifier.agents.tasks import TaskEnvelope
 from soc_verifier.domain.models import PlanReview
 
 logger = logging.getLogger(__name__)
@@ -21,10 +22,15 @@ def generate_review(
     instruction: str,
     context: dict[str, Any],
     known_items: set[str],
+    task: TaskEnvelope | None = None,
 ) -> PlanReview:
     for correction in range(2):
         result = agents.run(
-            role="reviewer", instruction=instruction, context=json.dumps(context), schema=PlanReview
+            role="reviewer",
+            instruction=instruction,
+            context=json.dumps(context),
+            schema=PlanReview,
+            task=task,
         )
         unknown = {
             identifier for finding in result.findings for identifier in finding.item_ids
