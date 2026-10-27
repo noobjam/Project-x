@@ -32,11 +32,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   examples; a source inventory records versions, hashes and original files.
   Comparable-system source usage is documented separately. No entries have been
   approved or integrated into the runtime; canonical evaluation files are intact.
-- **GitHub curation review:** in_progress on docs/knowledge-curation-review.
-  User authorized publication for engineering review. GitHub-readable Markdown
-  containing the 36 public-source entries is prepared; the four private examples,
-  original CPU files, annotations and local-only instructions remain excluded.
-  Publication and remote verification are pending.
+- **GitHub curation review:** in_review on docs/knowledge-curation-review, published
+  in [draft PR #4](https://github.com/noobjam/Project-x/pull/4). The
+  [GitHub review guide](https://github.com/noobjam/Project-x/blob/docs/knowledge-curation-review/docs/knowledge/README.md)
+  opens the 36 public-source entries. Publication commit b65a617 was verified
+  directly against the remote branch. The four private examples, original CPU
+  files, annotations and local-only instructions remain excluded. Review is
+  pending; this branch is not merged into main.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
   The roadmap, council review and this progress tracker remain shared documents.
 
@@ -44,8 +46,9 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-27:
 
-- Local branch: main, fast-forwarded to PR #3 merge 82db1c2. This documentation
-  handoff may advance main. AGENTS.md remains local-only and ignored.
+- Local branch: docs/knowledge-curation-review, published in draft PR #4 at
+  b65a617 before this handoff update. main remains at 52d3241 (the PR #3 handoff).
+  AGENTS.md remains local-only and ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -155,8 +158,11 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Knowledge curation:** give the engineer the local pack under
-   artifacts/evaluations/engineer-review-2026-10-27-v1/. Ask them to keep, correct,
+0. **Knowledge curation:** give the engineer the
+   [public review guide](https://github.com/noobjam/Project-x/blob/docs/knowledge-curation-review/docs/knowledge/README.md)
+   and [draft PR #4](https://github.com/noobjam/Project-x/pull/4). The full local
+   pack remains under artifacts/evaluations/engineer-review-2026-10-27-v1/.
+   Ask them to keep, correct,
    remove or add entries and state applicability. Import returned decisions only
    after confirming reviewer identity, source versions and unresolved conflicts;
    preserve the frozen pilot. Define a separate evaluation split before any
@@ -433,7 +439,7 @@ complete merely because its plan exists.
   curation and measured knowledge benefit remain pending; next action is the
   engineer's review.
 
-### 2026-10-27: Public knowledge review documents prepared
+### 2026-10-27: Public knowledge review documents published
 
 - User requested GitHub publication for engineering review. Prepared the public
   edition on docs/knowledge-curation-review: 36 candidate entries, 21 testbench
@@ -441,10 +447,15 @@ complete merely because its plan exists.
   review instructions and license attribution. Added the entry point to README.
 - The four private examples, original CPU documents, source annotations, full
   local ZIP/HTML pack and local-only instructions remain excluded from Git.
+- Committed as b65a617, pushed to noobjam/Project-x on
+  docs/knowledge-curation-review and verified the remote SHA directly. Opened
+  [draft PR #4](https://github.com/noobjam/Project-x/pull/4) for engineering review.
+  Not merged; reviewer decisions and knowledge integration remain pending.
 - Validation: 36 unique entry IDs, five allowlisted public examples, 21 subchecks,
-  44 local documentation links, an explicit publication file allowlist, private
+  46 local documentation links, an explicit publication file allowlist, private
   source/identifier screening and credential-pattern checks passed. No runtime
-  changes, paid calls or new engineering approvals. Publication is pending.
+  changes, paid calls or new engineering approvals. Local code tests were not
+  rerun for this documentation-only publication; GitHub CI runs separately.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
