@@ -9,18 +9,18 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Phase:** SV-01A and SV-03A are done and merged through
-  [PR #1](https://github.com/noobjam/Project-x/pull/1) at ec4b6c1. Local main has
-  been fast-forwarded to the GitHub merge.
+- **Phase:** SV-01B/C implementation is validated locally on feat/evaluation-packets,
+  starting from published main at 4582f8e. Five source packets and provisional
+  annotations are prepared locally; the final inventory freeze and PR are pending.
 - **Current working plan:** a smaller first release focused on source retrieval,
   structured findings, agent task/cost reporting and reviewable output, evaluated
   against the real Management CPU DOCX.
 - **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
   bounded evidence tools, OpenRouter transport, Python orchestration, immutable
   artifacts and Excel export. LangGraph/LangChain were removed.
-- **Active milestone:** preparation is partially complete. Real-workload inputs
-  are frozen locally and evidence/task conventions are validated. Source packets
-  and annotation/scoring work (SV-01B/C) are the next implementation slice.
+- **Active milestone:** finish SV-01B/C preparation and publication. The new offline
+  tooling builds source packets and scores explicit judgments with fixed label
+  inventories. It does not infer semantic matches or change agent behavior.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
@@ -30,7 +30,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-27:
 
-- Local branch: main; PR #1 merge checkpoint: ec4b6c1. The local-only
+- Local branch: feat/evaluation-packets; starting main: 4582f8e. The local-only
   AGENTS.md remains ignored and must not be staged or published.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #1
@@ -49,7 +49,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | SDK migration | done | Merged at 7c2f05d and published to GitHub in the push through 2bb4293. Last recorded validation: 112 tests passed, Ruff, mypy and build passed. These checks were reported in the migration session, not rerun for publication. |
 | Research council and plan revision | done | Three tracks reviewed dataset relevance, architecture and delivery/cost. Final review found no blocking planning issue; see the council review. This is not semantic validation of agent outputs. |
 | Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
-| Preparation | in_progress | SV-01A/SV-03A are done and merged in PR #1. The real source snapshot and offline validation are recorded below. SV-01B/C packets and annotation/scoring remain planned. |
+| Preparation | in_progress | SV-01A/SV-03A are done and merged in PR #1. SV-01B/C tooling, five local source packets and 37 provisional/disputed labels are prepared; final inventory freeze and PR pending. |
 | Baseline foundation | planned | SV-02 and minimal SV-03B. Must establish task attribution, input binding and legacy reads. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
@@ -61,7 +61,7 @@ complete merely because its plan exists.
 
 | Ticket | Status | Current position and next step |
 | --- | --- | --- |
-| [SV-01](agent-roadmap.md#sv-01-freeze-the-real-workload-pilot-and-evaluation-contract) | in_progress | A: done and merged in PR #1; real local bundle frozen and verified against originals. B/C remain planned. |
+| [SV-01](agent-roadmap.md#sv-01-freeze-the-real-workload-pilot-and-evaluation-contract) | in_progress | A: done and merged in PR #1. B/C: implemented and validated offline; five packets and 37 labels prepared locally. Freeze the inventory after committing, then publish for review. |
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | planned | Implement task envelope and spending attribution after SV-03A conventions. |
 | [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | in_progress | A: done and merged in PR #1; source/span/task conventions and synthetic examples pass. B runtime contracts/readers remain planned. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
@@ -75,6 +75,9 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- On 2026-10-27 the user said “next” after the merge handoff named SV-01B/C.
+  Proceed with that offline slice, validation and a reviewable feature PR. Paid
+  evaluation and merging this new PR are not included in that instruction.
 - User preference: never publish AGENTS.md. Preserve its local copy and ignore
   case variants of the filename. This correction removes the current tracked file;
   the earlier commits still contain their historical copies.
@@ -108,15 +111,13 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **Next implementation slice: SV-01B/C, the smallest offline pilot.** On an
-   instruction to continue implementation, start a focused branch from updated
-   main. First verify the local frozen bundle, then select table, reset and
-   contradiction packets from the actual DOCX extraction with their supporting
-   definitions and cross-references. Add one pinned UART fixture and select one
-   source-complete integration packet. Keep labels outside agent retrieval,
-   record their review state and implement the declared scoring distinctions.
-2. **After preparation, checkpoint progress and proceed to SV-02/minimal
-   SV-03B.** Do not jump to a full graph or general repair engine.
+1. **Finish SV-01B/C publication.** Commit the validated implementation, freeze
+   artifacts/evaluations/pilot-2026-10-27/ with freeze-pilot, verify the resulting
+   inventory, then publish feat/evaluation-packets and open a reviewable PR.
+2. **Review/merge this preparation slice before starting SV-02/minimal SV-03B.**
+   The next implementation slice binds agent tasks, attempts, inputs and spending,
+   with the minimum compatible metadata/readers. Do not expand agent roles or
+   implement general repair. Semantic label review remains a separate activity.
 3. **Before paid evaluation, resolve only the applicable missing inputs.** Confirm
    the pilot allocation and record authorization. Identify the engineering reviewer
    before making semantic-acceptance claims. A proposed budget does not authorize
@@ -125,6 +126,26 @@ complete merely because its plan exists.
 
 ## Validation and result references
 
+- SV-01B/C current checks: 175 offline tests passed (90% aggregate coverage),
+  Ruff check/format, strict mypy and source/wheel builds passed. Twenty-four local
+  documentation links/anchors resolve. Distribution inspection confirms evaluation
+  modules are included while private inputs, artifacts and AGENTS.md are excluded.
+  No paid calls were made. The explicit public-source acquisition used GitHub only.
+- Prepared pilot: artifacts/evaluations/pilot-2026-10-27/, currently awaiting its
+  final clean-commit inventory freeze. It contains three private DOCX projections
+  (table/reset/conflict) and two OpenTitan projections (UART RX and USB handoff).
+  The public recipe pins revision d55a81d1c21b8b35b11175ea5c4d3e06ef2a1d06 and nine
+  source/license files. Original source text and labels stay in ignored artifacts.
+- Packet block counts: table 18, reset 41, conflict 17, UART 226 and USB 310. These
+  are adapter-dependent counts with overlapping private context, not coverage.
+  All 37 labels were validated against exact source spans: 35 agent_proposed and
+  2 disputed. There are no human-reviewed labels, model outputs or quality scores.
+  One known obligation retains unavailable supporting detail; missing visual
+  content stays coverage unknown rather than receiving invented obligations.
+- New scoring regressions verify fixed denominators under output deletion,
+  independently versioned labels for source mutation, unchanged controls, stale
+  evidence rejection, scenario/support separation, reviewer false alarms and
+  incomplete outcomes. Synthetic reviewed states exercise software gates only.
 - Current preparation implementation: 130 offline tests passed (91% aggregate
   coverage), Ruff check/format, strict mypy and source/wheel build passed on
   Python 3.12.7. Twenty-one local documentation links resolve. Built distributions

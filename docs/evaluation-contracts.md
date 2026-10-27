@@ -55,6 +55,11 @@ The offline evaluation manifest has its own format identifier. It is never passe
 to an agent or used as an application run manifest. Existing domain schemas remain
 1.0 and PROMPT_VERSION remains unchanged in this milestone.
 
+SV-01B/C implements these coordinates in evaluation-only packets and annotations,
+with explicit packet/label/output hashes for scoring. This does not introduce the
+SV-02 task envelope or change application checkpoint reuse. Public projections retain
+original-file document hashes separately from their package and projected JSON hashes.
+
 When later changes require new domain schemas, retain explicit V1 readers and
 dispatch by artifact type/version. Adapt only in memory for export, reject unknown
 versions and incompatible resume combinations, and keep spend ledger readers
