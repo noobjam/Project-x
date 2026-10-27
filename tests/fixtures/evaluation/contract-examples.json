@@ -1,0 +1,69 @@
+{
+  "spans": [
+    {
+      "block_id": "P00001",
+      "document_id": "33374ffe92ae94081838efdc2bad4719045ed2f1f128e2c6b87997267af2f4fa",
+      "end": 12,
+      "expected_text": "RESET",
+      "start": 7,
+      "text_sha256": "dec706599b9d24519b28e6e894c0ff11126f4bb7e353dda7bded927b92d6cf55"
+    },
+    {
+      "block_id": "P00001",
+      "document_id": "33374ffe92ae94081838efdc2bad4719045ed2f1f128e2c6b87997267af2f4fa",
+      "end": 19,
+      "expected_text": "RESET",
+      "start": 14,
+      "text_sha256": "dec706599b9d24519b28e6e894c0ff11126f4bb7e353dda7bded927b92d6cf55"
+    },
+    {
+      "block_id": "P00001",
+      "document_id": "33374ffe92ae94081838efdc2bad4719045ed2f1f128e2c6b87997267af2f4fa",
+      "end": 20,
+      "expected_text": "🙂",
+      "start": 19,
+      "text_sha256": "dec706599b9d24519b28e6e894c0ff11126f4bb7e353dda7bded927b92d6cf55"
+    }
+  ],
+  "status": "design_fixture_not_runtime_schema",
+  "task": {
+    "fingerprint_payload": {
+      "assigned_ids": [
+        "P00001"
+      ],
+      "configuration": {
+        "agent_max_turns": 4,
+        "batch_workers": 1,
+        "chunk_max_characters": 24000,
+        "max_cost_usd": 1.0,
+        "max_input_characters": 2000000,
+        "max_model_calls": 20,
+        "max_output_tokens": 12000,
+        "max_revisions": 0,
+        "model": "example/model",
+        "plan_batch_size": 8,
+        "provider": "example/provider",
+        "request_timeout_seconds": 120.0
+      },
+      "contract_version": "draft-1",
+      "inputs": [
+        {
+          "artifact": "source.json",
+          "sha256": "be03671131d01affb4e4d3610b83b8e3552fc4ae53c1d35aa18de00897021e98"
+        }
+      ],
+      "role": "analyst",
+      "stage": "chunk_analysis",
+      "versions": {
+        "code_revision": "synthetic-example-revision",
+        "engine": "openai-agents-v1",
+        "output_schema": "analysis-batch-v1",
+        "prompt": "5",
+        "source_processing": "synthetic-example-adapter-v1",
+        "tool_catalog": "evidence-tools-v1"
+      }
+    },
+    "input_fingerprint": "090cfdf4f3284408773f9990a9e14c52f4243889dd93faaee349cfe32cdd854d",
+    "task_id": "example-analysis-task"
+  }
+}

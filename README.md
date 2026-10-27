@@ -9,6 +9,10 @@ and Excel export. Python controls stage order, validation and durable artifacts;
 the SDK runs each agent's model/tool loop. LangGraph is no longer a dependency.
 Testbench generation, simulation, semantic retrieval and coverage closure are future work.
 
+Offline baseline snapshots and the initial evaluation scope are documented in
+[evals/README.md](evals/README.md). They preserve source/reference separation and
+do not call a model. Current implementation status is in [docs/progress.md](docs/progress.md).
+
 ## Development
 
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then:

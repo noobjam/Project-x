@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-26.
+Last updated: 2026-10-27.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -9,16 +9,17 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Phase:** council planning and session continuity documentation are complete.
-  Application implementation of the revised backlog has not started.
+- **Phase:** SV-01A and SV-03A implementation is validated locally on
+  feat/agent-evaluation, starting from published main at 82df541. The real snapshot
+  and feature PR are the remaining steps for this slice.
 - **Current working plan:** a smaller first release focused on source retrieval,
   structured findings, agent task/cost reporting and reviewable output, evaluated
   against the real Management CPU DOCX.
 - **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
   bounded evidence tools, OpenRouter transport, Python orchestration, immutable
   artifacts and Excel export. LangGraph/LangChain were removed.
-- **Next application milestone:** preparation, starting with SV-01A and SV-03A;
-  then source-faithful pilot fixtures and annotation/scoring states (SV-01B/C).
+- **Active milestone:** freeze the real-workload inputs and baseline, define
+  evidence/task conventions and validate them offline. SV-01B/C follows this slice.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
@@ -26,20 +27,16 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Repository snapshot
 
-Checked on 2026-10-26:
+Checked on 2026-10-27:
 
-- Local branch: main. Publication checkpoint: 2bb4293, which includes the SDK
-  migration and all four roadmap/continuity documents.
+- Local branch: feat/agent-evaluation; starting commit: 82df541. The local-only
+  AGENTS.md remains ignored and must not be staged or published.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
-- Push destination: https://github.com/noobjam/Project-x.git. The push advanced
-  GitHub main from 35e0259 to 2bb4293; git ls-remote verified the matching SHA and
-  the working tree was clean. This entry records that publication checkpoint;
-  subsequent status-only commits may advance the tip.
-- Roadmap, council review and progress are committed and published. The user has
-  subsequently requested that AGENTS.md be removed from tracking and kept local;
-  the current correction removes it from the branch without rewriting earlier commits.
-  No implementation branch or external ticket links have been created for the
-  revised backlog.
+- Push destination: https://github.com/noobjam/Project-x.git. git ls-remote confirms
+  GitHub main at 82df541. The first implementation branch is active but not yet
+  published; no PR has been opened yet.
+- Roadmap, council review and progress are published. AGENTS.md was removed from
+  tracking at 82df541; its local copy remains ignored. Earlier history is unchanged.
 
 Recheck Git state on resume; this snapshot is not a permanent assertion.
 
@@ -50,7 +47,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | SDK migration | done | Merged at 7c2f05d and published to GitHub in the push through 2bb4293. Last recorded validation: 112 tests passed, Ruff, mypy and build passed. These checks were reported in the migration session, not rerun for publication. |
 | Research council and plan revision | done | Three tracks reviewed dataset relevance, architecture and delivery/cost. Final review found no blocking planning issue; see the council review. This is not semantic validation of agent outputs. |
 | Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
-| Preparation | planned | SV-01A/B/C and SV-03A. No application code or pilot fixtures implemented yet. |
+| Preparation | in_progress | Implementing SV-01A and SV-03A offline on feat/agent-evaluation. Source packets and engineering labels remain later substeps. |
 | Baseline foundation | planned | SV-02 and minimal SV-03B. Must establish task attribution, input binding and legacy reads. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
@@ -62,9 +59,9 @@ complete merely because its plan exists.
 
 | Ticket | Status | Current position and next step |
 | --- | --- | --- |
-| [SV-01](agent-roadmap.md#sv-01-freeze-the-real-workload-pilot-and-evaluation-contract) | planned | Start A: local-only source/reference/baseline manifest. Then B/C: source-complete packets, annotation states and scoring. |
+| [SV-01](agent-roadmap.md#sv-01-freeze-the-real-workload-pilot-and-evaluation-contract) | in_progress | A: snapshot tooling passes offline checks; freeze the real inputs after committing it. B/C remain planned. |
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | planned | Implement task envelope and spending attribution after SV-03A conventions. |
-| [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | planned | Start A alongside SV-01: source/span/task conventions and contract examples. B adds minimal versioned readers/metadata later. |
+| [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | in_progress | A: conventions and synthetic examples are implemented and validated; PR review pending. B remains planned. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
 | [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | deferred | Start only if measured extraction/cross-section failures justify it. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | deferred | Evaluate existing scenario fields first; patterns/schema expansion require evidence. |
@@ -79,11 +76,12 @@ complete merely because its plan exists.
 - User preference: never publish AGENTS.md. Preserve its local copy and ignore
   case variants of the filename. This correction removes the current tracked file;
   the earlier commits still contain their historical copies.
-- The user challenged the missing GitHub commits; publication to the confirmed
-  repository is complete. This does not start application implementation or paid
-  evaluation. On a later
-  instruction to continue implementation, start the next eligible offline action;
-  do not require the user to restate the plan or repeat settled decisions.
+- On 2026-10-27 the user said “alright lets go for it” after the offline preparation
+  scope was stated. Proceed with SV-01A/SV-03A, validation and a reviewable feature
+  PR. This does not approve the proposed paid pilot or merging before review.
+- The earlier missing GitHub commits are published to the confirmed repository.
+  The current instruction authorizes the offline preparation slice above; paid
+  evaluation remains a separate decision.
 - The council-reviewed roadmap is the current working proposal. Record any user
   scope acceptance or change here when it is given; council agreement alone is
   not user acceptance or engineering approval.
@@ -94,7 +92,7 @@ complete merely because its plan exists.
   it does not establish approval for this new pilot tranche.
 - No design/DV label reviewer has been assigned. Provisional annotations are
   allowed; semantic acceptance requires reviewed labels. This does not block
-  offline preparation or deterministic fixes once implementation is requested.
+  the authorized offline preparation or deterministic fixes.
 - Private reference material already inspected is development/acceptance-regression
   evidence, not blind gold. Missing visual evidence remains a visible limitation.
 - Revisions are currently disabled in the recorded run configuration. Optional
@@ -104,21 +102,17 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **When implementation is requested, start SV-01A and SV-03A.** Recheck the local
-   published main and any later working-tree changes; preserve them. Use a focused
-   feature branch such as feat/agent-evaluation. Verify local/remote state before
-   remote PR work without losing the migration.
-2. **Freeze provenance before behavior changes.** Record local source/reference
-   hashes, known artifact provenance and baseline code/prompt/schema/settings.
-   Keep private material and answers under ignored local artifacts. Prepare source
-   identity, span-coordinate and task-envelope examples.
-3. **Build the smallest offline pilot.** Use actual DOCX ingestion for a table,
+1. **Finish SV-01A/SV-03A publication.** Commit the validated tooling, run the
+   documented local freeze/verify commands against the real inputs, update this
+   evidence, then push feat/agent-evaluation and open a PR for review.
+2. **Review the preparation slice before merging.** Source/task conventions are
+   design examples; runtime contracts and agent behavior remain unchanged.
+3. **Next implementation slice: SV-01B/C, the smallest offline pilot.** Use actual DOCX ingestion for a table,
    reset and contradiction packet with necessary context. Add one pinned UART
    fixture and select one source-complete integration packet. Keep labels outside
    agent retrieval and mark their review state.
-4. **Review the preparation PR and checkpoint progress.** Record actual checks,
-   completed substeps and the next concrete change. Proceed to SV-02/minimal
-   SV-03B; do not jump to a full graph or general repair engine.
+4. **After preparation, checkpoint progress and proceed to SV-02/minimal
+   SV-03B.** Do not jump to a full graph or general repair engine.
 5. **Before paid evaluation, resolve only the applicable missing inputs.** Confirm
    the pilot allocation and record authorization. Identify the engineering reviewer
    before making semantic-acceptance claims. A proposed budget does not authorize
@@ -127,6 +121,10 @@ complete merely because its plan exists.
 
 ## Validation and result references
 
+- Current preparation implementation: 130 offline tests passed (91% aggregate
+  coverage), Ruff check/format, strict mypy and source/wheel build passed on
+  Python 3.12.7. Twenty local documentation links resolve. Real-input freeze and
+  remote publication remain pending at this checkpoint.
 - Migration: last recorded 112 passing tests and Ruff/mypy/build success. See
   [architecture validation](architecture.md#validation-and-next-capabilities).
   This establishes offline software behavior, not current provider compatibility.
