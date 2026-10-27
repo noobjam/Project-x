@@ -1,0 +1,136 @@
+{
+  "cases": [
+    {
+      "case_id": "opentitan-uart-rx",
+      "limitations": [
+        "Text-only projection; no claim about omitted UART diagrams, waveform timing or full-IP coverage. Context completeness is proposed for the declared RX scope and awaits engineering review."
+      ],
+      "scope": "RX FIFO reset, RX watermark thresholds and overflow behavior. Serial timing, baud synthesis, TX behavior and full UART coverage are outside this packet metric scope.",
+      "selections": [
+        {
+          "first": 1,
+          "last": 9,
+          "path": "hw/ip/uart/doc/programmers_guide.md"
+        },
+        {
+          "first": 9,
+          "last": 15,
+          "path": "hw/ip/uart/doc/theory_of_operation.md"
+        },
+        {
+          "first": 57,
+          "last": 64,
+          "path": "hw/ip/uart/doc/theory_of_operation.md"
+        },
+        {
+          "first": 128,
+          "last": 140,
+          "path": "hw/ip/uart/doc/theory_of_operation.md"
+        },
+        {
+          "first": 147,
+          "last": 149,
+          "path": "hw/ip/uart/doc/theory_of_operation.md"
+        },
+        {
+          "first": 171,
+          "last": 176,
+          "path": "hw/ip/uart/data/uart.hjson"
+        },
+        {
+          "first": 186,
+          "last": 265,
+          "path": "hw/ip/uart/data/uart.hjson"
+        },
+        {
+          "first": 303,
+          "last": 314,
+          "path": "hw/ip/uart/data/uart.hjson"
+        },
+        {
+          "first": 326,
+          "last": 425,
+          "path": "hw/ip/uart/data/uart.hjson"
+        }
+      ]
+    },
+    {
+      "case_id": "opentitan-usb-wake",
+      "limitations": [
+        "Source dependencies for the named handoff are included as text. Context completeness is proposed and awaits engineering review; omitted power-FSM diagrams, analog behavior and external USB standards are not evaluated."
+      ],
+      "scope": "Earlgrey USB suspend/resume ownership handoff among USBDEV, the AON wake module in pinmux, pin retention and power-manager wake recording. No analog timing, complete power-FSM or USB protocol-compliance claim.",
+      "selections": [
+        {
+          "first": 1,
+          "last": 69,
+          "path": "hw/ip/usbdev/doc/wake_resume.md"
+        },
+        {
+          "first": 116,
+          "last": 139,
+          "path": "hw/ip/usbdev/doc/theory_of_operation.md"
+        },
+        {
+          "first": 218,
+          "last": 245,
+          "path": "hw/ip/usbdev/doc/theory_of_operation.md"
+        },
+        {
+          "first": 427,
+          "last": 466,
+          "path": "hw/ip/usbdev/data/usbdev.hjson"
+        },
+        {
+          "first": 965,
+          "last": 1026,
+          "path": "hw/ip/usbdev/data/usbdev.hjson"
+        },
+        {
+          "first": 1225,
+          "last": 1302,
+          "path": "hw/ip/usbdev/data/usbdev.hjson"
+        },
+        {
+          "first": 31,
+          "last": 48,
+          "path": "hw/top_earlgrey/ip_autogen/pinmux/doc/theory_of_operation.md"
+        },
+        {
+          "first": 76,
+          "last": 84,
+          "path": "hw/top_earlgrey/ip_autogen/pinmux/doc/theory_of_operation.md"
+        },
+        {
+          "first": 17,
+          "last": 21,
+          "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md"
+        },
+        {
+          "first": 40,
+          "last": 54,
+          "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md"
+        },
+        {
+          "first": 230,
+          "last": 240,
+          "path": "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md"
+        }
+      ]
+    }
+  ],
+  "files": {
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "hw/ip/uart/data/uart.hjson": "4960f3f5bac47c62cccaf928dafc1c6c3dc0cf823da6cdf07b46b51e413394bc",
+    "hw/ip/uart/doc/programmers_guide.md": "c9cf1517bd3b3c67463a21e09252bdbb821bb9028532180bf3c10e8dee808d58",
+    "hw/ip/uart/doc/theory_of_operation.md": "6f9e15b9af2a77c41ee77717c87287a14635c84f6b3e6f2a7bec708628d77ba6",
+    "hw/ip/usbdev/data/usbdev.hjson": "6d46f06cd2460db650ad7358f602c11d13aa3a7d0e42592bf62fe2849835774f",
+    "hw/ip/usbdev/doc/theory_of_operation.md": "aa2521869452ae52a65bbb92105e1a21a8527ec0cf1538da94739b9af1868cd2",
+    "hw/ip/usbdev/doc/wake_resume.md": "142ba53f8d9b4ed0dfc545936b2de080ac945516f211e556294bbbc3235aa406",
+    "hw/top_earlgrey/ip_autogen/pinmux/doc/theory_of_operation.md": "f3a92d27c929a0f59889168aafad435002b7c77aa52caffc35409357c3c264c0",
+    "hw/top_earlgrey/ip_autogen/pwrmgr/doc/theory_of_operation.md": "c7bd5d37155391871ce88c72b1b9f7977d007a4c3e3119353d90db965fc1329c"
+  },
+  "format": "opentitan-packets-v1",
+  "repository": "https://github.com/lowRISC/opentitan",
+  "revision": "d55a81d1c21b8b35b11175ea5c4d3e06ef2a1d06"
+}
