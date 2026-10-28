@@ -10,55 +10,38 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 ## Current state
 
 - **Active milestone:** SV-05 structured source accounting, in_progress on
-  feat/source-obligation-accounting, based on published 784d03c. The user approved
-  implementation and the bounded comparison on 2026-10-28. No prerequisite merge
-  is needed or authorized. The opt-in implementation is locally complete and
-  validated; a $0.28 candidate allocation is reserved within the existing task
-  ceiling for the frozen comparison. The first quotation-based candidate stopped
-  before planning on four altered quotations, costing $0.023319923. The corrected
-  condition selects fixed source-passage IDs and lets Python copy exact text/spans;
-  it passed 271 offline tests before one new capped execution. The initial model screen and one focused prompt
-  experiment are complete. The prompt experiment was rejected and reverted;
-  engineering-quality acceptance and a successful correction remain pending.
-  The current outputs are not suitable for engineer handoff. The source-free
-  protocol/results are published in draft
-  [PR #6](https://github.com/noobjam/Project-x/pull/6), stacked on PR #5.
-- **Measured result:** the unchanged KB-connected workflow on GPT-5 mini / Azure
+  feat/source-obligation-accounting. The opt-in implementation is published in
+  draft [PR #7](https://github.com/noobjam/Project-x/pull/7), based on PR #6.
+  Technical checks pass; both live candidates failed before planning. Keep the
+  feature disabled by default. No merge, larger run or engineer handoff.
+- **Latest result:** the quotation-based candidate failed exact-source validation
+  after three calls ($0.023319923). The corrected passage-ID candidate passed ID
+  validation but assigned incompatible source dispositions; it was rejected after
+  three calls ($0.031304306). Both retain the full 13-label denominator as
+  unresolved. Raw-output inspection still finds omitted qualifiers and unsupported
+  conflict claims. No extraction or plan-quality improvement is established. See
+  [the trial results](../evals/source-accounting-comparison.md#results).
+- **Retained baseline:** the unchanged KB-connected workflow on GPT-5 mini / Azure
   Sweden fully preserved 9/13 provisional obligations versus 2/13 for the saved
-  Gemini condition. Fully adequate scenarios were 2/13 versus 0/13, with useful
-  partial coverage recorded separately. Unsupported expectations and false review
-  findings remained. This is a strict, provisional development assessment, not
-  engineering approval or proof of KB benefit. See the
-  [comparison report](../evals/quality-results-2026-10-28.md).
-- **Rejected trial:** prompt version 8 added coverage, observation and review
-  instructions. It introduced a false source contradiction and unsupported
-  hardware enforcement, then failed on an invalid global-review artifact after
-  19 calls ($0.101128324). No retry. The application is restored exactly to prompt
-  version 7 for the normal path; the opt-in accounting path uses version 10.
-  Model defaults and .env are unchanged.
-  Separate-case paid validation was not justified after this regression.
-- **Task spending:** $0.2759690285 provider-reported across retained attempts,
+  Gemini condition. Fully adequate scenarios were 2/13 versus 0/13. Unsupported
+  expectations and false review findings remained. The earlier prompt-only trial
+  regressed and was reverted. Normal specialist instructions still match that
+  baseline; prompt version 10 adds only the opt-in accounting instructions.
+  These are development judgments, not engineering approval or proof of KB benefit.
+- **Task spending:** $0.3072733345 provider-reported across retained attempts,
   plus $0.308158400 still uncertain from the earlier HTTP 400. Combined commitment
-  is $0.5841274285; $0.4158725715 remains within the original $1 ceiling. No calls
-  are running. Do not count the reservation as confirmed or silently release it.
-- **Implemented connector:** public Markdown/catalog -> frozen per-run JSON ->
-  bounded SDK search/read tools, role/task access records and Excel retrieval
-  reporting. Code 7ee24a4 is pushed in draft
-  [PR #5](https://github.com/noobjam/Project-x/pull/5), stacked on PR #4; neither is
-  merged. Required tool use is established; correct application is not.
-- **Validation:** the experimental code at a6c9755 passed 244 offline tests,
-  Ruff check/format, strict mypy and source/wheel build in this session. The live
-  trial failed despite those checks. Restoration returns runtime source to the
-  previously validated baseline. Final checks verified 25 local links/anchors,
-  no credential patterns in changed documents, ignored/private artifacts and
-  exact baseline/candidate inputs. No code tests are claimed for documentation.
-- **Current SV-05 checks:** 271-test full offline suite passed (91% coverage).
-  Ruff check/format, strict mypy (44 files), and source/wheel build passed. Original
-  specialist instructions are byte-identical; only the opt-in analyst uses the
-  new contract/prompt. This does not establish extraction-quality improvement.
-- **Knowledge curation:** revision 2 remains in_review in draft
-  [PR #4](https://github.com/noobjam/Project-x/pull/4). All 48 entries remain
-  proposed, spanning OpenHW, Accellera, PULP and OpenTitan. No approvals inferred.
+  is $0.6154317345; $0.3845682655 remains within the original $1 ceiling. No calls
+  are running or scheduled. Do not count the reservation as confirmed or release it
+  without evidence. No new allocation follows automatically from a failed trial.
+- **Validation:** the corrected code at 6e01efc passed all 271 offline tests
+  (91% coverage), Ruff check/format, strict mypy (44 files), and source/wheel build.
+  All four code-head CI checks passed on Python 3.12/3.13. This establishes software
+  checks, not semantic quality. Final reporting changes are documentation only.
+- **Knowledge/runtime:** the KB connector is published in draft
+  [PR #5](https://github.com/noobjam/Project-x/pull/5); the 48 public entries remain
+  proposed in [PR #4](https://github.com/noobjam/Project-x/pull/4). Required search/
+  read access is implemented. Correct application and engineering curation remain
+  unproven. Model defaults and .env are unchanged.
 - **Acceptance boundary:** the actual Management CPU DOCX remains the full
   acceptance workload. These are small, previously inspected development cases.
   Human answers stay outside retrieval; private source, labels and generated
@@ -68,12 +51,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-28:
 
-- Local branch: eval/agent-quality-baseline, based on published 90a2ce5 from
-  feat/agent-knowledge-tools. Protocol 54493b8, experiment a6c9755 and restoration/
-  results 10026da are pushed in draft PR #6. Remote 10026da was verified directly;
-  this publication handoff accompanies that branch. The final diff contains only
-  shared evaluation/roadmap/progress documents. Runtime matches the PR #5 baseline.
-  Main was verified remotely at 52d3241. No merge or private-artifact publication.
+- Local branch: feat/source-obligation-accounting, based on published 784d03c
+  from eval/agent-quality-baseline. Implementation 789b26d and passage-ID correction
+  6e01efc are pushed in draft PR #7. Remote 6e01efc was verified directly; the final
+  documentation/results handoff follows those code commits.
+- Open draft stack: PR #4 -> PR #5 -> PR #6 -> PR #7. None is merged. No prerequisite
+  merge is needed to work on the current branch. Main was last verified remotely
+  at 52d3241. No private evaluation artifacts are published.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -108,22 +92,32 @@ complete merely because its plan exists.
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | done | Merged in PR #3 at 82db1c2: exact task/input bindings, atomic completions, per-call attribution and local task spending. |
 | [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | done | A merged in PR #1; limited B merged in PR #3. Task/run versions, exact inputs, stale-resume rejection and legacy readers are complete. Typed findings stay in SV-07. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
-| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | Instructions-only coverage trial rejected. Next: reviewable source-obligation accounting for omissions; no expanded schema or index is implemented. |
+| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | Opt-in accounting implemented in PR #7; two live conditions rejected before planning. No quality acceptance or interaction index. Next: offline mixed-passage disposition and unsupported-conflict counterexamples. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
 | [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | planned | Typed source/requirement/item findings and local-to-global review; no graph/pattern prerequisite. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Extend CLI/Excel with findings, evidence, limitations and task costs. |
-| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Frozen 13-label model screen complete; prompt trial rejected and retained as failed. No successful correction, KB-benefit result, engineering acceptance or full-DOCX validation. |
+| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Frozen model screen complete; prompt trial and both accounting conditions retained as failures. All 13 labels remain in failed-run scoring. No successful correction, separate-case run, KB-benefit result or engineering acceptance. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
 
+- The corrected source-accounting condition at 6e01efc also failed before
+  planning. Evidence IDs were valid, but two source blocks were both used as
+  evidence and classified non-normative because they contained inline references;
+  one also received a second disposition. Keep the guard and raw failure evidence.
+  Raw extraction still loses source qualifiers and infers an unsupported conflict.
+  Do not hand-edit the output into a passing run or proceed to a separate case.
+  The next corrective work is offline: align disposition granularity with passages
+  and distinguish missing relationship information from a proved contradiction.
+  No new paid execution is scheduled; SV-07 remains a later ticket.
+
 - SV-05's first candidate failed exact-quotation validation before planning.
-  Preserve the failure; do not accept approximate matching or correct model output
-  by hand. The implementation correction precomputes source passages and supplies
-  an enum of valid evidence IDs; Python copies original text/spans. Recheck offline
-  compatibility, freeze draft/report V2 and prompt 10, then execute the separately
-  declared corrected condition once with a $0.28 cap inside the remaining budget.
+  The failure was retained without approximate matching or manual correction.
+  The implementation correction precomputes source passages and supplies an enum
+  of valid evidence IDs; Python copies original text/spans. Offline compatibility
+  passed; draft/report V2 and prompt 10 were frozen and the separately declared
+  corrected condition ran once with a $0.28 cap. Its failed outcome is recorded above.
   This changes evidence selection mechanics, not frozen semantic expectations.
 
 - On 2026-10-28 the user approved SV-05: source-linked requirements with explicit
@@ -133,7 +127,7 @@ complete merely because its plan exists.
   bounded-packet trial with a versioned accounting artifact and unchanged V1 plan/
   analysis exports. Exact quotations establish location, not semantic completeness.
   No extra agent role, full-document rollout or SV-07 implementation in this slice.
-  Preserve the remaining $0.4391924945 aggregate allocation; no merge.
+  The remaining aggregate balance at that approval was $0.4391924945; no merge.
 
 - The first alternative-model screen retained the same effective source, KB,
   runtime, prompts and generation limits. GPT-5 mini / Azure Sweden completed in
@@ -246,37 +240,25 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Active SV-05 comparison:** commit the candidate and freeze its runtime,
-   source/KB/configuration/annotation hashes. Run the opt-in workflow once on the
-   existing 13-label packet using GPT-5 mini / Azure Sweden, max $0.28, with
-   unchanged planner/reviewer prompts and no automatic workflow retry. Inspect
-   actual obligations, proposed dispositions, unaccounted spans and downstream
-   output against the fixed labels. The original $1 aggregate ceiling and
-   outstanding $0.308158400 reservation remain in force. If the candidate improves
-   without new unsupported behavior, allocate a separate development-case check
-   from the actual remaining balance. Keep source/reference/artifacts private;
-   publish a focused review PR, no merge. See the
-   [trial protocol](../evals/source-accounting-comparison.md).
+1. **SV-05 corrective design and offline checks:** inspect the retained failures
+   in artifacts/evaluations/source-accounting-2026-10-28-v1/ and -v2/, especially
+   reference/rejected-extraction-notes.json in v2. Add synthetic cases for a passage
+   containing both a real obligation and an informative cross-reference, and for
+   two different mechanisms whose timing relationship is unknown. Propose a small
+   correction to disposition granularity and conflict claims before changing the
+   runtime contract again. Preserve exact source validation, existing exports,
+   baseline instructions and the frozen 13-label inventory. Do not add agents or
+   broaden to the full DOCX. Technical PR review may proceed; no merge authorized.
 
-0. **SV-05/SV-07 next implementation candidate:** use the frozen failure cases
-   to define a small, versioned source-obligation inventory and source-supported
-   findings. First concrete action: specify how each explicit obligation is
-   retained, marked unresolved or excluded with evidence, and how a finding binds
-   both supporting source and the affected claim. Preserve existing output/export
-   compatibility and avoid one model call per source block. Mere existence of a
-   citation does not establish support; measure semantic errors separately.
-   Keep SV-06 observations/pass-fail judgments using existing scenario fields.
-   The instruction-only experiment failed; do not layer on more wording or change
-   model defaults without evidence. Continue focused, reversible implementation
-   within the recorded authorization; no merge. Before another paid comparison,
-   freeze the candidate, pass offline checks and record an allocation within the
-   remaining $0.4391924945, including the outstanding reservation. A separate
-   development case follows only after the candidate clears known regressions.
-   Read local experiment.json, assessments and decision.json under
-   artifacts/evaluations/model-quality-2026-10-28/ and
-   artifacts/evaluations/prompt-quality-2026-10-28/; never pass reference/ to agents.
+2. **SV-10 comparison gate:** no further paid run is scheduled. A later candidate
+   needs a frozen intervention, passing offline checks and a recorded allocation
+   within the actual $0.3845682655 remaining, including the old uncertain reservation.
+   Evaluate the analyst before spending on downstream planning. A separate case
+   follows only after improved extraction without new unsupported behavior; the
+   current candidates did not clear that gate. SV-07 evidence-backed findings and
+   SV-06 scenario adequacy remain subsequent work, not claims of this milestone.
 
-1. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
+3. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
    [focused review guide](knowledge/REVISION_NOTES.md)
    for K13–K15, C10, TB06/K03 and E10–E18. Record entry-specific engineering
    decisions with the reviewed commit; resolve or retain the E14 reset conflict.
@@ -287,16 +269,16 @@ complete merely because its plan exists.
    C10's reliable gap-to-row links belong to SV-07/SV-09; this review does not
    implement them or replace SV-04.
 
-2. **Next planned implementation: SV-04.** On the next implementation instruction, create
-   a focused branch from current main. First add offline counterexamples for matches
-   beyond character 1,000, Unicode coordinates and more than 12 search hits; fix
+4. **Planned source-retrieval work: SV-04.** After the current correction/review, use
+   a focused branch based on the required reviewed code. First add offline cases
+   for matches beyond character 1,000, Unicode coordinates and more than 12 hits; fix
    match-centered excerpts and stable pagination against the exact task snapshot.
-3. **Complete bounded source context.** Add bounded section/neighbor access and
+5. **Complete bounded source context.** Add bounded section/neighbor access and
    consistent table-header context in prompts/tools, with explicit warnings when
    support is unavailable. Preserve reference validation, tool permissions and both
    frozen evaluation inventories. No broader roles or general repair are in scope.
-4. **Before further paid SV-10 evaluation, resolve its allocation and authorization.** The
-   proposed $5 tranche is still unapproved. Check the selected endpoint's tools,
+6. **Preserve evaluation authorization.** The proposed $5 tranche is still
+   unapproved. Check the selected endpoint's tools,
    structured output and reasoning round trips where applicable before comparisons.
    Record reasoning replay as a separate behavior condition. Identify an engineering
    reviewer before semantic-acceptance claims; offline work can continue independently.
@@ -731,6 +713,34 @@ complete merely because its plan exists.
   results at 10026da in draft PR #6 and verified the remote SHA directly. Push CI
   passed for 10026da; its PR CI was still running when this handoff was written.
   This publication-status update is the only follow-up change.
+
+### 2026-10-28: Source accounting implemented; live candidates rejected
+
+- Implemented opt-in source obligations, conditions/constraints/exceptions,
+  proposed dispositions, exact source spans and visible unaccounted text. Immutable
+  extraction/task receipts support resume; CLI/Excel show the bound report. One
+  source chunk is supported; V1 analysis/plan and accounting readers remain usable.
+- Quotation-based condition 789b26d failed before analysis acceptance on four
+  altered quotations. Retained three calls and $0.023319923, zero unsettled.
+  Replaced model-retyped quotes with enumerated passage selection and exact Python
+  copying; froze draft/report V2 and prompt 10 at 6e01efc before the next call.
+- Corrected condition 24f871cd-26dd-45ce-b72c-c326cdd451f1 failed before planning
+  on incompatible dispositions after three calls and $0.031304306, zero unsettled.
+  No accepted analysis/plan or separate-case validation. Both failed-run scores
+  retain 13 unresolved obligations. Raw diagnostics also show semantic omissions
+  and unsupported synthesis; the valid source IDs do not establish coverage.
+- Passed 271 offline tests, Ruff check/format, strict mypy and source/wheel build.
+  All four code-head CI checks passed. Original specialist instruction expressions
+  match baseline exactly. Private inputs, labels, raw responses, assessments and
+  ledgers stay under ignored artifacts/evaluations/source-accounting-2026-10-28-v1/
+  and -v2/. The output is not ready for engineer handoff.
+- Final reporting checks verified 28 local links/anchors, unchanged frozen runtime,
+  source/KB/annotation/protocol hashes, and absence of tracked private paths or
+  credential patterns. No new code tests were needed for these reporting edits.
+- Published code at 6e01efc in draft PR #7 and verified the remote SHA. The review
+  stack remains unmerged. Confirmed task charges are $0.3072733345 plus the old
+  $0.308158400 uncertain reservation. No further paid run is scheduled. Next work
+  is the offline correction described above; this does not complete SV-05.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
