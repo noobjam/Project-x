@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -29,7 +31,8 @@ from soc_verifier.agents.tasks import (
     fingerprint,
     runtime_versions,
 )
-from soc_verifier.agents.tools import EvidenceContext
+from soc_verifier.agents.tools import EvidenceContext, get_knowledge_entries, search_knowledge
+from soc_verifier.domain.knowledge import KnowledgeSnapshot
 from soc_verifier.domain.models import SpecAnalysis, Specification, VerificationPlan
 from soc_verifier.providers.openrouter import OpenRouterTransport
 from soc_verifier.settings import Settings
@@ -48,19 +51,55 @@ class AgentRuntime:
 
     @property
     def configuration(self) -> dict[str, object]:
-        return self.settings.agent_configuration()
+        configuration = self.settings.agent_configuration()
+        if self.artifacts.exists("knowledge.json"):
+            configuration["knowledge"] = ArtifactReference.capture(
+                self.artifacts, "knowledge.json"
+            ).model_dump()
+        return configuration
 
-    def _evidence(self, task: TaskEnvelope) -> EvidenceContext:
+    def _evidence(self, task: TaskEnvelope, accesses: list[dict[str, Any]]) -> EvidenceContext:
         references = task.inputs.evidence
         source = references["source"].read(self.artifacts)
         analysis = references["analysis"].read(self.artifacts) if "analysis" in references else None
         plan = references["plan"].read(self.artifacts) if "plan" in references else None
-        for reference in references.values():
-            reference.read(self.artifacts)
+        for evidence_reference in references.values():
+            evidence_reference.read(self.artifacts)
+        reference = references.get("knowledge")
+        actual = (
+            ArtifactReference.capture(self.artifacts, "knowledge.json")
+            if self.artifacts.exists("knowledge.json")
+            else None
+        )
+        if reference != actual:
+            raise ValueError("Task knowledge binding does not match the run snapshot")
+        knowledge = (
+            KnowledgeSnapshot.model_validate(reference.read(self.artifacts)) if reference else None
+        )
+
+        def audit(record: dict[str, Any]) -> None:
+            invocation = current_invocation.get()
+            if invocation is None or reference is None:
+                raise ValueError("Knowledge access requires a bound invocation")
+            self.artifacts.write(
+                f"knowledge-access.{uuid4()}.json",
+                {
+                    "format": "knowledge-access-v1",
+                    "created_at": datetime.now(UTC).isoformat(),
+                    **invocation.attribution(),
+                    "role": task.inputs.role,
+                    "snapshot_sha256": reference.sha256,
+                    **record,
+                },
+            )
+            accesses.append(record)
+
         return EvidenceContext(
             Specification.model_validate(source),
             SpecAnalysis.model_validate(analysis) if analysis is not None else None,
             VerificationPlan.model_validate(plan) if plan is not None else None,
+            knowledge,
+            audit if knowledge else None,
         )
 
     def run[T: BaseModel](
@@ -84,7 +123,16 @@ class AgentRuntime:
                     stage="direct",
                     assigned_ids=[],
                     evidence={
-                        "source": ArtifactReference.capture(self.artifacts, "specification.json")
+                        "source": ArtifactReference.capture(self.artifacts, "specification.json"),
+                        **(
+                            {
+                                "knowledge": ArtifactReference.capture(
+                                    self.artifacts, "knowledge.json"
+                                )
+                            }
+                            if self.artifacts.exists("knowledge.json")
+                            else {}
+                        ),
                     },
                     input_sha256=fingerprint(context),
                     instruction_sha256=fingerprint(instruction),
@@ -177,6 +225,10 @@ class AgentRuntime:
                 "reviewer": create_reviewer,
             }[role]
             agent = factory(model, instruction, schema)
+            accesses: list[dict[str, Any]] = []
+            evidence = self._evidence(task, accesses)
+            if evidence.knowledge is not None:
+                agent.tools.extend([search_knowledge, get_knowledge_entries])
             agent.model_settings = ModelSettings(max_tokens=self.settings.max_output_tokens)
             logger.info(
                 "agent_start role=%s task=%s tools=%s max_turns=%s",
@@ -189,7 +241,7 @@ class AgentRuntime:
                 result = await Runner.run(
                     agent,
                     input=context,
-                    context=self._evidence(task),
+                    context=evidence,
                     max_turns=self.settings.agent_max_turns,
                     # Keep proprietary source/outputs local; no OpenAI tracing export.
                     run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
@@ -209,6 +261,13 @@ class AgentRuntime:
             except ModelBehaviorError:
                 # SDK errors may include rejected output text; keep it out of CLI logs.
                 raise ModelResponseError("Agent returned an invalid structured artifact") from None
+            if evidence.knowledge is not None:
+                searches = [a for a in accesses if a["tool"] == "search_knowledge"]
+                reads = [a for a in accesses if a["tool"] == "get_knowledge_entries"]
+                if not searches or (any(a["entry_ids"] for a in searches) and not reads):
+                    raise ModelResponseError(
+                        "Agent completed without consulting available knowledge"
+                    )
             logger.info(
                 "agent_finish role=%s task=%s model_calls=%s",
                 role,

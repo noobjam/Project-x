@@ -1,0 +1,341 @@
+{
+  "format": "knowledge-catalog-v1",
+  "entries": [
+    {
+      "id": "K01",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "8631d737715ecc82e994de87a77e9697008b7f9d770651bae83d7f785be50c10"
+    },
+    {
+      "id": "K02",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "aabe61078c20a899899123fd0daffaeb6b8d28468b460c575840a030d0888e95"
+    },
+    {
+      "id": "K03",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "50ba9eb843138fc27986aeac2060e661cf447d3fca4694ccda20f2f5394f7bdc"
+    },
+    {
+      "id": "K04",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "a2b884c7620f19f811343aec95ab5b36750cd550701e2cd827c5453b5a317992"
+    },
+    {
+      "id": "K05",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "9df84942868f067711bb4c265acec9fffe1024932f481dc909313cfa2fa568e2"
+    },
+    {
+      "id": "K06",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "2e9bac0d642cb7544f14f0d88eabe4b8d8203e403052e71090dd00f9d8ad5008"
+    },
+    {
+      "id": "K07",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "55b24027cdef7d0d0fc40b6d2ca8fd9176dfc2546d17c9c85b94e6b831648d47"
+    },
+    {
+      "id": "K08",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "dd477592a818c5415a39843e8c115a1703d19033fea1dd322d8b669c4efad179"
+    },
+    {
+      "id": "K09",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "cd8a3dc9850a4dcd85a0fe44fadb3a050872a2dd93324d0a4187013148439ea4"
+    },
+    {
+      "id": "K10",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "826eb4c63ceb87ebf2335523f38b988b68d1cc7e670824bfbde2897c974cf3bf"
+    },
+    {
+      "id": "K11",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "f8b643bd0abffca4ffdc20a4bb20436ee2cc2ac258de34e4eb955feb3cf61b0e"
+    },
+    {
+      "id": "K12",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "3721bb8ab65a3ededd86a7c50184406dfdef73f401333d072d5815ffb3247e6d"
+    },
+    {
+      "id": "K13",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "6f38d4578c3babf27492d1ed7c4d9df74dc6746b62a21fd7417d752e65056007"
+    },
+    {
+      "id": "K14",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "454935c98ac6ed590793e7b796eef0afb074aaf3e8cf67e6d9612678893d280b"
+    },
+    {
+      "id": "K15",
+      "file": "patterns.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "c274a50f5c2162ce5cdfb77ecbe1d03e896c21c8d4417c0a70765aacfa963657"
+    },
+    {
+      "id": "C01",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "9991f178ef70cfafb946b82424dfb73b4707f15761b08c185a3e9a0ec614af56"
+    },
+    {
+      "id": "C02",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "9cdbca8c54de1920f72155ccd59451fb2f37b1219896847d5275ce87331c2335"
+    },
+    {
+      "id": "C03",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "d3a7bcad2bc3125fc7bd9c818aaa6370142449b3a56830326b566bff2e861686"
+    },
+    {
+      "id": "C04",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "84d6733d676543f294d061921281ce45a419fbe88f7f11823f91973030b39af7"
+    },
+    {
+      "id": "C05",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "285173f489465122de85e21010fb40cc2810918dd0fb420aec9cd8c2fdd480ea"
+    },
+    {
+      "id": "C06",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "6ddac07ec0c9e01f3531bed059715e6fd5d83efb532f5eeebb57554f904657b8"
+    },
+    {
+      "id": "C07",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "fcfa7893cb18ce35d9b2e7f7660208c8fb7491c5eb6cd38860c9a8e10658cc71"
+    },
+    {
+      "id": "C08",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "d2410ce8f898fb59a30667622e5460bcecd1ca81a84e5d2078afa531a5812184"
+    },
+    {
+      "id": "C09",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "905ef6c131480b633ce703798c6753fddaa45076f25e27aef1948f0c3cc8b3fc"
+    },
+    {
+      "id": "C10",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "6a94cc62145b7d8b8c672c89ca1c02321f727050b38837bf5abcaa6de996e135"
+    },
+    {
+      "id": "C11",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "b626e4f72bb0ff64c244ef2525e9d5b702bd8c89c44e702ea3adbd5f73981002"
+    },
+    {
+      "id": "C12",
+      "file": "planning-checklist.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "0df37fcd0ce7d97eca49ca00dc2cc8420f0c0aeb29adeff8ab5c54cde8cc3b3d"
+    },
+    {
+      "id": "TB01",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "16d8b2645808ce1ff59ccbad00cbe2b360caab8744c4908788860bbb6ce7fca0"
+    },
+    {
+      "id": "TB02",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "d8eb602bb8f99b2ac91ac50a04cbd638339123e78e381ba2588d677fb144f8e0"
+    },
+    {
+      "id": "TB03",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "8aa3df0d64f77ad3129c6d518036e51b10b0d651a023042d38194eb6d2ab0bf2"
+    },
+    {
+      "id": "TB04",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "583a449b80ec9940a66e8397d834198f3f901a77cfb337348b74a08a44c8897f"
+    },
+    {
+      "id": "TB05",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "52da3e06e04797d718e9fd21b7cdcb4fc16186766b7be5586b727e708f19ef14"
+    },
+    {
+      "id": "TB06",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "2f2d73a736e82d0d4286e7f3e64dc6f15417d29638ec99eb4c411fc045da5250"
+    },
+    {
+      "id": "TB07",
+      "file": "testbench-checklists.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "64317571c86de282f3e9385bf5d4f924297a6535e0d82381d2a7d8189b772e07"
+    },
+    {
+      "id": "E01",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "00c297a0e71585eecd46f39f6859be3cdac58c3905c05759abe60f5f68046bd8"
+    },
+    {
+      "id": "E02",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "f4fa6fa98cc85ca633cc5dcdb58ddde2f56a8eaf977bd5052759962341f79d55"
+    },
+    {
+      "id": "E03",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "a8c2b559991ff604986f8d01ee1fc16280dd5417d1dff49075a8c50cb2c7aa51"
+    },
+    {
+      "id": "E08",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "41c3e02e2150564637e602e60aaf3a5a274851540de4ec769c7876686a0aa347"
+    },
+    {
+      "id": "E09",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "49a0b4bcbc03caf357675dc9c9f9d15e51278004b91147840421fa74acbf519a"
+    },
+    {
+      "id": "E10",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "060ced9430c0c5f8c37ebf9d18787fc59b9464eef56c6b59f5984782a21db1fc"
+    },
+    {
+      "id": "E11",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "e980d14cff11749d0bb1b8b138c4767ff76c241d522e9464b61cc28d6178c6ba"
+    },
+    {
+      "id": "E12",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "ffc9b9c341bab7f28e09fa9a405c933a0481890bfa6b5af4af56649bab12cb7a"
+    },
+    {
+      "id": "E13",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "e880236188a0fd5e642a421bd5658c2ef298d853d9bebe1801fd862e1c81a06f"
+    },
+    {
+      "id": "E14",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "dafefcce9c8285ef986ce849fe29f3a54a00c1dd852fe2ff02ede0dc75052575"
+    },
+    {
+      "id": "E15",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "0989ce85b784cc5c8c1b8b330ebcdc3deac6104b20aedc915a956597e4ed27cb"
+    },
+    {
+      "id": "E16",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "22c48709ef885a1f2bd8d1e4486f130aad115b7d97aeb2b0a02d2d9df9e59d67"
+    },
+    {
+      "id": "E17",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "048ef38ebcdf6d089673b6010e3d79676d03cd20f73697910d1df9bbcc885571"
+    },
+    {
+      "id": "E18",
+      "file": "examples.md",
+      "status": "proposed",
+      "reviewer": "",
+      "sha256": "46b965a497ecbe5060f4385a5253a3edec7a5371c92bfcb9c65755307fe60fae"
+    }
+  ]
+}

@@ -121,3 +121,32 @@ def test_task_metadata_never_rebinds_an_unversioned_checkpoint(tmp_path, specifi
     artifacts.write("analysis.json", analysis)
     with pytest.raises(ValueError, match="Legacy checkpoint"):
         bind(artifacts, specification)
+
+
+def test_child_tasks_inherit_knowledge_and_reject_mutation(
+    tmp_path, specification, knowledge_snapshot
+):
+    artifacts = ArtifactStore(tmp_path)
+    artifacts.write("specification.json", specification)
+    artifacts.write("knowledge.json", knowledge_snapshot)
+    knowledge_ref = ArtifactReference.capture(artifacts, "knowledge.json")
+    parent = bind(
+        artifacts,
+        specification,
+        evidence={
+            "source": ArtifactReference.capture(artifacts, "specification.json"),
+            "knowledge": knowledge_ref,
+        },
+    )
+    child = parent.child(
+        "chunk.json",
+        stage="chunk",
+        assigned_ids=["P00001"],
+        data=specification,
+        instruction="analyze",
+        schema=SpecAnalysis,
+    )
+    assert child.envelope.inputs.evidence["knowledge"] == knowledge_ref
+    artifacts.path("knowledge.json").write_text("{}")
+    with pytest.raises(ValueError, match="input artifact changed"):
+        child.validate_inputs()

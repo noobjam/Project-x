@@ -33,6 +33,18 @@ Automatic model selection and per-role model settings are not implemented.
 
 ## Agents and tools
 
+An optional knowledge catalog enables `search_knowledge` and
+`get_knowledge_entries` for all three specialists. The run stores an immutable
+`knowledge-snapshot-v1` JSON artifact, inherited by every task and child batch.
+The catalog hashes Markdown entries and records proposed/approved status;
+approved entries require a reviewer, and proposed entries require explicit trial
+opt-in. Search returns at most five matches per page; reads return at most four
+entries and 4,000 characters per entry, within the shared tool response bound.
+The runtime checks consultation before accepting output and records
+`knowledge-access-v1` events by task/invocation, entry hash and character offset.
+These are access records, not per-item application claims. Guidance is untrusted
+methodology, never specification evidence or permission to execute tools.
+
 | Agent | Responsibility | Tools |
 | --- | --- | --- |
 | Requirements analyst | Extract grounded requirements and investigate system interactions | `search_spec`, `get_source_blocks` |
@@ -118,7 +130,8 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 5 and engine `openai-agents-v2` identify task-aware runs. Version 2.0 run
+version 6 adds knowledge consultation; engine `openai-agents-v2` identifies
+task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
 remain exportable with new metadata marked unavailable; `spend` and `tasks` read
 old ledgers without rewriting or inferring missing attribution. Unknown task,

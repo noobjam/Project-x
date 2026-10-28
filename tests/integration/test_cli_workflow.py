@@ -1,3 +1,4 @@
+import json
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -185,3 +186,76 @@ def test_unknown_result_version_cannot_export(tmp_path, monkeypatch):
     result = runner.invoke(app, ["export", run_id, "-o", str(tmp_path / "out.xlsx")])
     assert result.exit_code == 1 and "Unknown run result schema version" in result.output
     assert not (tmp_path / "out.xlsx").exists()
+
+
+def test_cli_freezes_knowledge_and_exports_retrieval(
+    tmp_path,
+    monkeypatch,
+    specification,
+    analysis,
+    verification_plan,
+    clean_review,
+    knowledge_catalog,
+):
+    from soc_verifier.agents.tasks import ArtifactReference
+
+    settings = Settings(
+        _env_file=None,
+        artifact_dir=tmp_path / "artifacts",
+        openrouter_api_key=SecretStr("test-only"),
+        model="test/model",
+        provider="test-endpoint",
+    )
+    monkeypatch.setattr("soc_verifier.cli.Settings", lambda: settings)
+    agents = Mock()
+    agents.configuration = settings.agent_configuration()
+    agents.run.side_effect = [analysis, verification_plan, clean_review]
+    monkeypatch.setattr("soc_verifier.cli.AgentRuntime", lambda *args, **kwargs: agents)
+    source = ArtifactStore(tmp_path).write("specification.json", specification)
+    arguments = ["plan", str(source), "--knowledge-catalog", str(knowledge_catalog)]
+    rejected = runner.invoke(app, arguments)
+    assert rejected.exit_code == 1 and "No approved knowledge" in rejected.output
+    agents.run.assert_not_called()
+    generated = runner.invoke(app, [*arguments, "--allow-proposed-knowledge"])
+    assert generated.exit_code == 0, generated.output
+    root = next((settings.artifact_dir / "runs").iterdir())
+    store = ArtifactStore(root)
+    ref = ArtifactReference.capture(store, "knowledge.json")
+    assert store.read("manifest.json")["knowledge"] == ref.model_dump()
+    for call in agents.run.call_args_list:
+        assert call.kwargs["task"].inputs.evidence["knowledge"] == ref
+    # Authoring edits must not affect an existing run's frozen snapshot.
+    knowledge_catalog.write_text("{}")
+    resumed = runner.invoke(app, ["resume", root.name])
+    assert resumed.exit_code == 0, resumed.output
+    assert agents.run.call_count == 3
+    access = {
+        "format": "knowledge-access-v1",
+        "created_at": "2026-10-28T00:00:00Z",
+        "role": "planner",
+        "task_id": "synthetic-task",
+        "tool": "get_knowledge_entries",
+        "entry_ids": ["K01"],
+        "snapshot_sha256": ref.sha256,
+        "offset": 0,
+    }
+    store.write("knowledge-access.synthetic.json", access)
+    reported = runner.invoke(app, ["knowledge", root.name])
+    assert reported.exit_code == 0 and json.loads(reported.output) == [access]
+    destination = tmp_path / "knowledge-plan.xlsx"
+    exported = runner.invoke(app, ["export", root.name, "-o", str(destination)])
+    assert exported.exit_code == 0, exported.output
+    workbook = load_workbook(destination)
+    assert workbook["Knowledge retrieval"]["D2"].value == "K01"
+    assert workbook["Knowledge retrieval"]["E2"].value == ref.sha256
+    workbook.close()
+    store.path("knowledge.json").unlink()
+    rejected = runner.invoke(app, ["resume", root.name])
+    assert rejected.exit_code == 1 and "knowledge snapshot changed" in rejected.output
+    assert agents.run.call_count == 3
+
+
+def test_cli_proposed_flag_requires_catalog(tmp_path, specification):
+    source = ArtifactStore(tmp_path).write("specification.json", specification)
+    result = runner.invoke(app, ["plan", str(source), "--allow-proposed-knowledge"])
+    assert result.exit_code == 1 and "requires --knowledge-catalog" in result.output

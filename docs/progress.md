@@ -9,21 +9,29 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Live review trial:** in_progress, limited SV-10A/B diagnostic on the frozen
-  Management CPU reset packet on fix/openrouter-compressed-response. The user
-  requested actual generated output after the knowledge review handoff. Allocate
-  at most $1 total: the first attempt failed after a confirmed $0.002845425 charge;
-  reserve $0.49 each for the current planner and the workflow with provisional K13/K15,
-  C10 and TB06 planning guidance. Same source, model/provider and limits; no
-  reference answers or worked examples enter context. This is a local exploratory
-  trial, not engineering acceptance or approval of the separate $5 pilot proposal.
-  Keep outputs private and report failures and unsettled charges within the cap.
+- **Active implementation:** bounded KB integration for SV-10B, in_progress on
+  feat/agent-knowledge-tools. The user rejected the manual-guidance trial as a
+  KB test and requested a real connection. Local snapshot/catalog and search/read
+  tools, runtime/task binding, CLI opt-in and Excel retrieval records are now
+  implemented locally. Validation: 239 offline tests, Ruff check/format, mypy
+  and source/wheel build passed. Connected live output remains. These edits are
+  uncommitted and unpublished. The original $1 task ceiling remains in force.
+- **Live review trial:** in_review, limited SV-10A/B diagnostic on the frozen
+  Management CPU reset packet. Baseline and provisional-guidance candidate both
+  completed with needs_review. They produced six and four plan items respectively;
+  neither is engineering-approved. Total provider-reported spending, including
+  the initial failed call: **$0.021857550**, zero unsettled reservations, within
+  the $1 task ceiling. This trial did not exercise KB retrieval. The private review pack
+  is artifacts/evaluations/live-review-2026-10-28-v2/review/.
 - **Transport fix:** the first live response exposed double decoding of buffered
   compressed responses. Offline gzip/deflate regressions failed before the fix.
   Rebuilding encoding/length/framing headers resolves them; compressed SDK tool
   loops and accounting pass. Full validation: 206 tests, Ruff check/format, mypy
-  and source/wheel build passed. Prompts and domain schemas are unchanged.
-- **Active milestone:** knowledge curation revision 2, in_review on
+  and source/wheel build passed. Committed at be849b6 on
+  fix/openrouter-compressed-response, based on the PR #4 review branch. Production
+  prompts and domain schemas are unchanged; trial instructions are separately
+  versioned and stored locally. The fix is not merged.
+- **Curation milestone:** knowledge curation revision 2, in_review on
   docs/knowledge-curation-review for draft PR #4. Published at 82d401c and verified
   against the remote branch. The [focused review guide](knowledge/REVISION_NOTES.md)
   maps all four comments from 5a1aah to the changes and remaining decisions.
@@ -42,8 +50,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   has not started. PR #3 passed all four push/PR CI checks at final head 95ae453
   on Python 3.12/3.13; its implementation validation included 202 offline tests,
   Ruff, mypy and source/wheel build. The merge session verified those results.
-- **No new paid evaluation:** the migrated runtime has not yet had a paid live
-  engineering evaluation. Quality and savings remain unmeasured.
+- **Evaluation limit:** two new live diagnostic outputs exist, but no engineer
+  quality scores or full-DOCX acceptance. Only the candidate planner received
+  provisional K13/K15, C10 and TB06 guidance; analyst/reviewer prompts were unchanged.
+  Independent analyses differed, so this single pair does not isolate a knowledge
+  effect or prove quality/cost improvement. No reference answers or worked examples
+  entered context. Both completed runs made three model calls and no tool calls.
 - **Original knowledge handoff:** the ignored v1 HTML/ZIP pack is an unchanged
   historical snapshot with 40 draft entries: 12 planning questions,
   seven testbench groups (21 subchecks), 12 source-backed patterns and nine worked
@@ -66,10 +78,11 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-28:
 
-- Local branch: docs/knowledge-curation-review; revision 2 content committed and
-  published at 82d401c, directly verified remotely before this handoff update.
-  main remains at 52d3241 (verified remotely). The revision changes only nine
-  review/progress Markdown files. AGENTS.md remains local-only and ignored.
+- Local branch: feat/agent-knowledge-tools, based on the transport-fix branch
+  at be849b6 and PR #4 at 6874716. Transport fix publication pending at this
+  checkpoint. The knowledge revision remains published on its original branch;
+  main remains at 52d3241. Private run outputs and trial scripts are ignored;
+  AGENTS.md remains local-only.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -89,6 +102,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Published at 82d401c in draft PR #4. Four engineering comments incorporated; 48 entries including 14 public examples. Documentation checks passed; entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
+| Live review diagnostic | in_review | Two completed private reset-packet plans and a feedback pack; $0.021857550 total including one failed call. Semantic judgments pending. Transport fix has 206 passing offline tests and live completion evidence; not merged. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -108,10 +122,28 @@ complete merely because its plan exists.
 | [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | planned | Typed source/requirement/item findings and local-to-global review; no graph/pattern prerequisite. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Extend CLI/Excel with findings, evidence, limitations and task costs. |
-| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | planned | A baseline, B incremental comparisons, C optional repair experiment, D full-DOCX acceptance. Preparation may proceed offline. |
+| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Limited A/B reset-packet diagnostic completed; six baseline/four candidate items, pending engineering assessment. Independent analyses limit attribution. Full paired pilot, repair and full-DOCX acceptance remain pending. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-28 the user explicitly rejected testing without connecting the KB.
+  Implement bounded search/read tools over a frozen per-run knowledge snapshot,
+  record retrieval by role/task, validate offline, then generate actual connected
+  output for engineering review within the remaining original $1 task ceiling.
+  Proposed entries require an explicit trial opt-in; no engineering approvals
+  are inferred. Retrieval is not proof of correct application or better quality.
+  Source-only retrieval fixes remain SV-04; no broad schema/agent redesign or merge.
+
+- On 2026-10-28 the user requested actual live output for the engineer. This
+  supersedes the earlier documentation-only scope for a bounded local diagnostic.
+  The task ceiling was $1; after the first call failed at $0.002845425, two fresh
+  workflows each received a $0.49 ceiling. Both used the configured Gemini
+  3.1 Flash Lite/Google EU endpoint, identical source and limits, with no repair
+  loop. The candidate added only provisional planner guidance. The successful
+  executions cost $0.009802925 and $0.009209200; no allocation is silently renewed.
+  This is not acceptance of the separate proposed $5 pilot or publication of
+  private plans. The needed transport fix is isolated for review; no merge.
 
 - On 2026-10-28 the user said to keep moving after the proposed revision of
   PR #4. Revise and publish the knowledge review documents: K13–K15, broader
@@ -187,7 +219,23 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
+0. **SV-10B actual KB connection:** finish runtime/task/CLI wiring, add offline
+   failure-boundary tests and freeze the public catalog. Then run a source-only
+   baseline and KB-connected candidate within the remaining $0.978142450 task
+   ceiling, preserving every failed call. Record actual search/read actions and
+   prepare a new private review pack. Publish a focused review PR based on PR #4;
+   no merge. The earlier manual-guidance pack below is historical evidence only.
+
+   **Earlier output review:** start with
+   artifacts/evaluations/live-review-2026-10-28-v2/review/START_REVIEW.md and both
+   Excel plans. Record corrections separately using FEEDBACK.md. Confirm omitted
+   obligations, reset timing/polarity/exemptions, undefined-access handling and
+   vague expected results. Distinguish extraction errors from planner/reviewer
+   errors; do not interpret fewer rows/findings as a quality improvement. Keep
+   private outputs off GitHub. Publish the tested transport fix as a separate
+   review PR based on PR #4; no merge is authorized.
+
+1. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
    [focused review guide](knowledge/REVISION_NOTES.md)
    for K13–K15, C10, TB06/K03 and E10–E18. Record entry-specific engineering
    decisions with the reviewed commit; resolve or retain the E14 reset conflict.
@@ -198,21 +246,33 @@ complete merely because its plan exists.
    C10's reliable gap-to-row links belong to SV-07/SV-09; this review does not
    implement them or replace SV-04.
 
-1. **Next implementation: SV-04.** On the next implementation instruction, create
+2. **Next planned implementation: SV-04.** On the next implementation instruction, create
    a focused branch from current main. First add offline counterexamples for matches
    beyond character 1,000, Unicode coordinates and more than 12 search hits; fix
    match-centered excerpts and stable pagination against the exact task snapshot.
-2. **Complete bounded source context.** Add bounded section/neighbor access and
+3. **Complete bounded source context.** Add bounded section/neighbor access and
    consistent table-header context in prompts/tools, with explicit warnings when
    support is unavailable. Preserve reference validation, tool permissions and both
    frozen evaluation inventories. No broader roles or general repair are in scope.
-3. **Before paid SV-10A evaluation, resolve its allocation and authorization.** The
+4. **Before further paid SV-10 evaluation, resolve its allocation and authorization.** The
    proposed $5 tranche is still unapproved. Check the selected endpoint's tools,
    structured output and reasoning round trips where applicable before comparisons.
    Record reasoning replay as a separate behavior condition. Identify an engineering
    reviewer before semantic-acceptance claims; offline work can continue independently.
 
 ## Validation and result references
+
+- Live diagnostic: original packet verification passed (41 blocks). Both outputs
+  pass application schemas, source/requirement/item reference checks and workbook
+  row/ID checks; exported cells contain text rather than formulas. Both used
+  identical source bytes. The local summaries and ledgers reconcile seven total
+  attempts including the failed call, with $0.021857550 reported and zero reserved.
+  Frozen source/reference inventories were not changed. Review questions are
+  provisional observations, not human quality labels. No complete-spec claim.
+- Transport fix: gzip/deflate regression tests reproduced DecodingError before
+  changing headers. Final 206-test suite, Ruff check/format, mypy (40 source files)
+  and sdist/wheel build passed. Compressed SDK integration covers all three roles,
+  tool follow-ups, replay without extra calls and unchanged charge accounting.
 
 - Knowledge revision 2: checked 48 unique entry IDs, 14 public examples, 21
   testbench subchecks, local links/anchors, six new pinned source-file hashes
@@ -305,6 +365,15 @@ complete merely because its plan exists.
   synchronized working tree at that checkpoint. No force push was used.
 
 ## Milestone history
+
+### 2026-10-28: Actual KB integration started
+
+- User clarified that the desired experiment must exercise runtime KB retrieval.
+  Started feat/agent-knowledge-tools from the local tested transport fix; initial
+  catalog/snapshot and bounded tool edits are local and unvalidated. Runtime and
+  CLI integration remain unfinished. No additional paid calls or publication.
+- Next: wire frozen knowledge into every specialist task, test the connection,
+  run within the remaining original budget, and supply traceable actual output.
 
 ### 2026-10-26 SDK migration and architecture planning
 
@@ -513,6 +582,30 @@ complete merely because its plan exists.
   action is entry-specific engineer confirmation using the focused review guide.
   SV-04 is still planned; runtime knowledge integration requires a separately
   defined evaluation split.
+
+### 2026-10-28: Live reset-packet review trial and transport fix
+
+- User requested actual generated outputs. First run
+  70491ac9-5373-4cd7-b0ae-e216755ba448 failed after one paid response; retained its
+  $0.002845425 charge and artifacts. Reproduced double decompression offline and
+  committed the narrow header fix with regression tests as be849b6. No model or
+  provider switch, permanent prompt change or schema change was needed.
+- Fresh baseline cd1e9727-8e07-4213-925b-9fccab50de9f and candidate
+  6b05182f-bf2d-4de0-8219-d0a199e46f7e completed with needs_review. Both contain
+  seven extracted requirements, but different obligations; the candidate has
+  four plan items versus six baseline items. Counts are not quality scores.
+- Provisional guidance was injected only into candidate planner instructions by
+  an ignored local runner. Exact instructions, guidance, source hashes, code
+  commit, task bindings and charge ledgers are preserved. Independent extraction
+  and model variability limit this comparison. Previously inspected development
+  evidence is not held-out gold, and no engineer answers were supplied.
+- Prepared two Excel plans, exact JSON artifacts, source text, a review guide and
+  a separate feedback form under the ignored live-review-2026-10-28-v2 directory.
+  Final charge $0.021857550 including failure; no unsettled charges. The engineer
+  should assess the outputs before further knowledge expansion or larger runs.
+- Offline fix validation passed 206 tests plus lint, formatting, types and build;
+  live outputs passed structural/workbook checks. Branch publication remains the
+  delivery step; merging and engineering acceptance remain pending.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;

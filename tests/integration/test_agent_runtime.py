@@ -519,3 +519,114 @@ def test_ambiguous_reasoning_history_stops_before_another_paid_request(tmp_path,
     assert report["tasks"][0]["failed_invocations"] == 1
     assert report["tasks"][0]["model_calls"] == 2
     assert report["reported_usd"] == "0.0002"
+
+
+def knowledge_lookup(name, arguments):
+    return completion(
+        {
+            "content": None,
+            "tool_calls": [
+                {
+                    "id": name,
+                    "type": "function",
+                    "function": {"name": name, "arguments": json.dumps(arguments)},
+                }
+            ],
+        },
+        "tool_calls",
+    )
+
+
+def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
+    tmp_path, specification, analysis, verification_plan, clean_review, knowledge_snapshot
+):
+    from soc_verifier.agents.knowledge import read_knowledge_accesses
+    from soc_verifier.agents.tasks import ArtifactReference
+
+    outputs = {
+        "SpecAnalysis": analysis,
+        "VerificationPlan": verification_plan,
+        "PlanReview": clean_review,
+    }
+
+    def respond(payload):
+        names = {tool["function"]["name"] for tool in payload["tools"]}
+        assert {"search_knowledge", "get_knowledge_entries"} <= names
+        messages = [m for m in payload["messages"] if m["role"] == "tool"]
+        if not messages:
+            return knowledge_lookup("search_knowledge", {"query": "reset"})
+        if len(messages) == 1:
+            assert json.loads(messages[0]["content"])["items"][0]["status"] == "proposed"
+            return knowledge_lookup("get_knowledge_entries", {"ids": ["K01"]})
+        assert json.loads(messages[-1]["content"])["items"][0]["text"] == (
+            knowledge_snapshot.entries[0].text
+        )
+        name = payload["response_format"]["json_schema"]["schema"]["title"]
+        return completion({"content": outputs[name].model_dump_json()})
+
+    api = API(respond)
+    agents, client, artifacts = runtime(tmp_path, specification, api)
+    artifacts.write("knowledge.json", knowledge_snapshot)
+    reference = ArtifactReference.capture(artifacts, "knowledge.json")
+    with client:
+        workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
+        assert workflow.run()["status"] == "draft_ready"
+        assert workflow.run()["status"] == "draft_ready"
+        assert len(api.requests) == 9
+        accesses = read_knowledge_accesses(artifacts)
+        assert len(accesses) == 6
+        assert {a["role"] for a in accesses} == {"analyst", "planner", "reviewer"}
+        assert {a["tool"] for a in accesses} == {"search_knowledge", "get_knowledge_entries"}
+        assert {a["snapshot_sha256"] for a in accesses} == {reference.sha256}
+        for access in accesses:
+            assert access["entry_ids"] == ["K01"]
+            assert access["entry_hashes"] == {"K01": knowledge_snapshot.entries[0].sha256}
+            assert access["task_id"] and access["invocation_id"]
+        for path in artifacts.root.glob("*.task.json"):
+            assert (
+                artifacts.read(path.name)["inputs"]["evidence"]["knowledge"]
+                == reference.model_dump()
+            )
+        # Editing or deleting the frozen snapshot cannot silently reuse completed work.
+        artifacts.path("knowledge.json").write_text("{}")
+        with pytest.raises(ValueError, match="inputs or versions changed"):
+            workflow.run()
+        assert len(api.requests) == 9
+    assert read_spending(artifacts).reported == Decimal("0.0009")
+    assert read_spending(artifacts).unsettled_calls == 0
+
+
+@pytest.mark.parametrize("mode", ["skip", "search_only", "no_matches"])
+def test_knowledge_cannot_be_silently_ignored(
+    tmp_path, specification, analysis, knowledge_snapshot, mode
+):
+    def respond(payload):
+        if mode != "skip" and not any(m["role"] == "tool" for m in payload["messages"]):
+            query = "reset" if mode == "search_only" else "unmatched-topic"
+            return knowledge_lookup("search_knowledge", {"query": query})
+        return completion({"content": analysis.model_dump_json()})
+
+    api = API(respond)
+    agents, client, artifacts = runtime(tmp_path, specification, api)
+    artifacts.write("knowledge.json", knowledge_snapshot)
+    with client:
+        if mode == "no_matches":
+            assert (
+                agents.run(
+                    role="analyst",
+                    instruction=instructions.ANALYZE,
+                    context="reset",
+                    schema=SpecAnalysis,
+                )
+                == analysis
+            )
+        else:
+            with pytest.raises(ModelResponseError, match="without consulting"):
+                agents.run(
+                    role="analyst",
+                    instruction=instructions.ANALYZE,
+                    context="reset",
+                    schema=SpecAnalysis,
+                )
+    assert len(api.requests) == (1 if mode == "skip" else 2)
+    assert read_spending(artifacts).unsettled_calls == 0

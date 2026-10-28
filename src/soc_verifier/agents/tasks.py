@@ -49,7 +49,7 @@ def runtime_versions() -> dict[str, str]:
         "code_sha256": fingerprint(code),
         "prompt": PROMPT_VERSION,
         "source_processing": SOURCE_PROCESSING_VERSION,
-        "tools": "1",
+        "tools": "2",
         "reasoning_replay": "openrouter-v1",
         "openai": version("openai"),
         "openai-agents": version("openai-agents"),
