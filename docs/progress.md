@@ -10,8 +10,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 ## Current state
 
 - **Active milestone:** knowledge curation revision 2, in_review on
-  docs/knowledge-curation-review for draft PR #4. Local document revision and
-  checks are complete; publication is pending. The [focused review guide](knowledge/REVISION_NOTES.md)
+  docs/knowledge-curation-review for draft PR #4. Published at 82d401c and verified
+  against the remote branch. The [focused review guide](knowledge/REVISION_NOTES.md)
   maps all four comments from 5a1aah to the changes and remaining decisions.
   No entries are engineering-approved or connected to runtime retrieval.
 - **Phase:** the baseline foundation is merged through
@@ -44,7 +44,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   E10–E18 add transferable cases, pinned sources and an explicit reset-value
   conflict in E14. The four private examples and original CPU material remain
   excluded. [PR #4](https://github.com/noobjam/Project-x/pull/4) remains draft and
-  unmerged; revision 2 awaits publication and focused engineering confirmation.
+  unmerged; revision 2 is published and awaits focused engineering confirmation.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
   The roadmap, council review and this progress tracker remain shared documents.
 
@@ -52,10 +52,10 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-28:
 
-- Local branch: docs/knowledge-curation-review; existing remote head a01d3ed
-  before revision 2 publication. main remains at 52d3241 (verified remotely).
-  Only nine review/progress Markdown files change. AGENTS.md remains local-only
-  and ignored.
+- Local branch: docs/knowledge-curation-review; revision 2 content committed and
+  published at 82d401c, directly verified remotely before this handoff update.
+  main remains at 52d3241 (verified remotely). The revision changes only nine
+  review/progress Markdown files. AGENTS.md remains local-only and ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -74,7 +74,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
-| Knowledge curation revision 2 | in_review | Four engineering comments incorporated into proposed documents; 48 entries including 14 public examples. Documentation checks passed locally; publication and entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
+| Knowledge curation revision 2 | in_review | Published at 82d401c in draft PR #4. Four engineering comments incorporated; 48 entries including 14 public examples. Documentation checks passed; entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -173,8 +173,8 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Knowledge curation:** publish revision 2 to the existing draft PR #4 and
-   verify its remote SHA. Use the [focused review guide](knowledge/REVISION_NOTES.md)
+0. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
+   [focused review guide](knowledge/REVISION_NOTES.md)
    for K13–K15, C10, TB06/K03 and E10–E18. Record entry-specific engineering
    decisions with the reviewed commit; resolve or retain the E14 reset conflict.
    The original v1 pack remains a historical snapshot. New source fingerprints
@@ -480,7 +480,7 @@ complete merely because its plan exists.
   changes, paid calls or new engineering approvals. Local code tests were not
   rerun for this documentation-only publication; GitHub CI runs separately.
 
-### 2026-10-28: Knowledge review revision 2 prepared
+### 2026-10-28: Knowledge review revision 2 published
 
 - Incorporated all four comments from 5a1aah into proposed revisions: K13–K15
   for clock/reset, data/control and registers; C10 for automatic draft completion
@@ -494,9 +494,11 @@ complete merely because its plan exists.
   Markdown changes; source downloads and validation evidence stay ignored.
   AGENTS.md and private/frozen material remain unchanged. No runtime changes,
   code-test rerun, paid evaluation, merge or engineering approval is claimed.
-- Publication to the existing draft PR #4 is the remaining delivery step,
-  followed by entry-specific engineer confirmation. SV-04 is still planned;
-  runtime knowledge integration requires a separately defined evaluation split.
+- Committed and pushed as 82d401c to the existing draft PR #4; its full remote
+  SHA matched the local commit. The PR remains draft and unmerged. The next
+  action is entry-specific engineer confirmation using the focused review guide.
+  SV-04 is still planned; runtime knowledge integration requires a separately
+  defined evaluation split.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
