@@ -236,6 +236,10 @@ be matched safely are rejected before another paid request. This adapter behavio
 is a separately versioned comparison condition; it is not proof of compatibility
 with every live model/provider. Model routing and caching optimization remain deferred.
 
+The transport passes already-decoded response bytes to the SDK with rebuilt
+encoding/length headers. Compressed provider replies are decoded once; their
+usage is accounted before local validation, including failed generations.
+
 The OpenAI client SDK supplies API calls and the Agents SDK supplies the tool loop;
 OpenRouter still supplies inference and billing. The model and provider remain
 explicit configuration, shared across roles. Automatic model selection, per-role

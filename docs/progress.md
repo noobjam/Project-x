@@ -9,6 +9,20 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
+- **Live review trial:** in_progress, limited SV-10A/B diagnostic on the frozen
+  Management CPU reset packet on fix/openrouter-compressed-response. The user
+  requested actual generated output after the knowledge review handoff. Allocate
+  at most $1 total: the first attempt failed after a confirmed $0.002845425 charge;
+  reserve $0.49 each for the current planner and the workflow with provisional K13/K15,
+  C10 and TB06 planning guidance. Same source, model/provider and limits; no
+  reference answers or worked examples enter context. This is a local exploratory
+  trial, not engineering acceptance or approval of the separate $5 pilot proposal.
+  Keep outputs private and report failures and unsettled charges within the cap.
+- **Transport fix:** the first live response exposed double decoding of buffered
+  compressed responses. Offline gzip/deflate regressions failed before the fix.
+  Rebuilding encoding/length/framing headers resolves them; compressed SDK tool
+  loops and accounting pass. Full validation: 206 tests, Ruff check/format, mypy
+  and source/wheel build passed. Prompts and domain schemas are unchanged.
 - **Active milestone:** knowledge curation revision 2, in_review on
   docs/knowledge-curation-review for draft PR #4. Published at 82d401c and verified
   against the remote branch. The [focused review guide](knowledge/REVISION_NOTES.md)

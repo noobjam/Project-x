@@ -1,8 +1,10 @@
 """Exercise the real Agents SDK and OpenAI client against a simulated OpenRouter API."""
 
+import gzip
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 
 import httpx
 import pytest
@@ -144,8 +146,9 @@ def test_sdk_agent_executes_tool_then_uses_result(tmp_path, specification, analy
     assert "test-only" not in caplog.text
 
 
+@pytest.mark.parametrize("compressed", [False, True])
 def test_all_three_agents_run_through_sdk(
-    tmp_path, specification, analysis, verification_plan, clean_review
+    tmp_path, specification, analysis, verification_plan, clean_review, compressed
 ):
     outputs = {
         "SpecAnalysis": analysis,
@@ -183,7 +186,21 @@ def test_all_three_agents_run_through_sdk(
         assert json.loads(payload["messages"][-1]["content"])["items"]
         return completion({"content": outputs[name].model_dump_json()})
 
-    api = API(respond)
+    def wire_response(payload):
+        response = respond(payload)
+        if not compressed:
+            return response
+        return httpx.Response(
+            200,
+            headers={
+                "content-type": "application/json",
+                "content-encoding": "gzip",
+                "transfer-encoding": "chunked",
+            },
+            stream=httpx.ByteStream(gzip.compress(response.content)),
+        )
+
+    api = API(wire_response)
     agents, client, artifacts = runtime(tmp_path, specification, api)
     with client:
         workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
@@ -191,6 +208,10 @@ def test_all_three_agents_run_through_sdk(
         assert workflow.run()["status"] == "draft_ready"
     assert len(api.requests) == 6
     assert artifacts.read("result.json")["human_approved"] is False
+    spending = read_spending(artifacts)
+    assert spending.attempts == 6
+    assert spending.reported == Decimal("0.0006")
+    assert spending.unsettled_calls == 0
 
 
 def test_tool_followup_input_limit_is_checked_before_billing(tmp_path, specification):

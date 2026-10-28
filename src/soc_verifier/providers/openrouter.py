@@ -310,11 +310,17 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                     "reasoning_fields": fields,
                 }
             )
-        # Return a buffered response for the OpenAI SDK's typed parser. No retries
-        # are performed here; every new network attempt must reserve its own cost.
+        # HTTPX has already decoded response.content. Rebuild entity headers so
+        # the SDK does not decompress those bytes again or inherit wire framing.
+        headers = [
+            (key, value)
+            for key, value in response.headers.multi_items()
+            if key.lower() not in {"content-encoding", "content-length", "transfer-encoding"}
+        ]
+        # No retries: every new network attempt must reserve its own cost.
         return httpx.Response(
             response.status_code,
-            headers=response.headers,
+            headers=headers,
             content=response.content,
             request=request,
         )

@@ -1,5 +1,7 @@
+import gzip
 import json
 import logging
+import zlib
 from unittest.mock import Mock
 
 import httpx
@@ -54,6 +56,42 @@ def settings(**overrides):
         provider="test-endpoint",
         **overrides,
     )
+
+
+@pytest.mark.parametrize("encoding", [None, "gzip", "deflate"])
+def test_buffered_response_preserves_decoded_json_and_rebuilds_entity_headers(encoding):
+    payload = {
+        "choices": [{"finish_reason": "stop", "message": {"content": "café — reset"}}],
+        "usage": {"cost": 0.0001},
+    }
+    decoded = json.dumps(payload, ensure_ascii=False).encode()
+    encoded = {None: lambda data: data, "gzip": gzip.compress, "deflate": zlib.compress}[encoding](
+        decoded
+    )
+    headers = {
+        "content-type": "application/json",
+        "content-length": str(len(encoded)),
+        "x-request-id": "compressed-request",
+    }
+    if encoding:
+        headers["content-encoding"] = encoding
+
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda _: httpx.Response(200, headers=headers, stream=httpx.ByteStream(encoded))
+        )
+    ) as client:
+        result = OpenRouterTransport(settings(), client)._send(
+            httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions", json={})
+        )
+
+    assert result.json() == payload
+    assert result.content == decoded
+    assert "content-encoding" not in result.headers
+    assert "transfer-encoding" not in result.headers
+    assert int(result.headers["content-length"]) == len(decoded)
+    assert result.headers["content-type"] == "application/json"
+    assert result.headers["x-request-id"] == "compressed-request"
 
 
 def test_structured_request_routing_and_redacted_logging(caplog):
