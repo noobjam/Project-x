@@ -22,6 +22,8 @@ Suitable as agent guidance after these corrections? Yes / No / Pending
 
 For a testbench group, identify the subcheck, for example `TB04.2`. For a worked example, assess starting conditions, stimulus, observation and pass/fail criteria. An unavailable testbench component should be recorded as a dependency.
 
+For revision 2, use the [focused review questions](REVISION_NOTES.md). For each reusable example, also confirm what transfers to another design, what must be re-derived from its specification, and when the example is unsuitable. For TB06, choose sufficient evidence for the particular check; a covergroup per test is not mandatory.
+
 For source disagreements, retain both references and identify the authority that resolves them. Do not approve an invented behavior simply to complete a row.
 
 Add a closing comment if useful:

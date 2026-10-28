@@ -1,6 +1,6 @@
 # Testbench knowledge subchecklists
 
-All entries are **proposed and unreviewed**. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
+All entries are **proposed; none is engineering-approved**. TB06 incorporates engineering feedback and its revised wording needs confirmation. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
 
 The environment needs separate checklists for its capabilities. These seven groups contain **21 subchecks** for the planning agent to consider. They describe dependencies of proposed tests; they do not claim that a testbench is implemented or ready.
 
@@ -68,11 +68,13 @@ Background: [Accellera UVM 1.2 User Guide, sections 1.1.3–1.1.9](https://www.a
 
 ## TB06 — Coverage and traceability
 
-- **TB06.1:** Map each selected requirement and test to an observation or coverage goal; identify uncovered requirements.
-- **TB06.2:** Define the relevant boundary bins, configurations and interaction combinations, with justified exclusions.
-- **TB06.3:** Check when coverage is sampled and ensure completed or accepted behavior is measured rather than merely attempted stimulus.
+- **TB06.1:** Link each selected requirement to a check and its evidence. A self-checking test's pass/fail result can establish the specific scenario it exercised; assertion results or functional coverage may be appropriate for other checks. Identify requirements with no check. Do not require one covergroup per test.
+- **TB06.2:** Choose the detail needed to establish the intended scope. For directed subsystem/SoC tests, a record of the checked condition, configuration and result may suffice. Define bins or cross-coverage only when needed to show that relevant boundaries or combinations occurred, particularly in randomized tests. Record justified exclusions; one passing scenario does not cover an entire feature's configurations.
+- **TB06.3:** Check that the evidence is meaningful: required stimulus reached the checking point, the checker was enabled, and a skip or timeout cannot count as a pass. Where coverage is sampled, measure the specified event or completed/accepted behavior. Where formal assertions are used, record assumptions, reachability and proof status; a condition that never occurred does not establish that scenario was exercised.
 
-**Why it matters:** Attempted stimulus does not establish that a relevant condition occurred.
+**Why it matters:** Evidence should match the claimed behavior without adding coverage machinery that answers no useful question.
+
+**Review basis:** [5a1aah's TB06 feedback](https://github.com/noobjam/Project-x/pull/4#issuecomment-6455313481), consistent with the alternative evidence methods in [K03](patterns.md#k03--separate-stimulus-choices-from-coverage-evidence). Revised wording still needs engineering confirmation.
 
 **Use when:** When planning the corresponding environment capability; adapt to the project's chosen tools.
 

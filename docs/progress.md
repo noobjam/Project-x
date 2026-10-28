@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-27.
+Last updated: 2026-10-28.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -9,6 +9,11 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
+- **Active milestone:** knowledge curation revision 2, in_review on
+  docs/knowledge-curation-review for draft PR #4. Local document revision and
+  checks are complete; publication is pending. The [focused review guide](knowledge/REVISION_NOTES.md)
+  maps all four comments from 5a1aah to the changes and remaining decisions.
+  No entries are engineering-approved or connected to runtime retrieval.
 - **Phase:** the baseline foundation is merged through
   [PR #3](https://github.com/noobjam/Project-x/pull/3) at 82db1c2. SV-02 and the
   limited SV-03 scope are done: exact task/input bindings, per-call spending,
@@ -19,36 +24,38 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
   bounded evidence tools, OpenRouter transport, Python orchestration, immutable
   artifacts and Excel export. LangGraph/LangChain were removed.
-- **Next milestone:** SV-04 retrieval and bounded source context. Implementation
+- **Next implementation milestone:** SV-04 retrieval and bounded source context. Implementation
   has not started. PR #3 passed all four push/PR CI checks at final head 95ae453
   on Python 3.12/3.13; its implementation validation included 202 offline tests,
   Ruff, mypy and source/wheel build. The merge session verified those results.
 - **No new paid evaluation:** the migrated runtime has not yet had a paid live
   engineering evaluation. Quality and savings remain unmeasured.
-- **Knowledge curation handoff:** prepared locally on main, pending engineering
-  curation. The ignored pack contains 40 draft entries: 12 planning questions,
+- **Original knowledge handoff:** the ignored v1 HTML/ZIP pack is an unchanged
+  historical snapshot with 40 draft entries: 12 planning questions,
   seven testbench groups (21 subchecks), 12 source-backed patterns and nine worked
   examples. Sources span OpenHW, Accellera, PULP and OpenTitan, plus private
   examples; a source inventory records versions, hashes and original files.
   Comparable-system source usage is documented separately. No entries have been
   approved or integrated into the runtime; canonical evaluation files are intact.
-- **GitHub curation review:** in_review on docs/knowledge-curation-review, published
-  in [draft PR #4](https://github.com/noobjam/Project-x/pull/4). The
-  [GitHub review guide](https://github.com/noobjam/Project-x/blob/docs/knowledge-curation-review/docs/knowledge/README.md)
-  opens the 36 public-source entries. Publication commit b65a617 was verified
-  directly against the remote branch. The four private examples, original CPU
-  files, annotations and local-only instructions remain excluded. Review is
-  pending; this branch is not merged into main.
+- **Curation review scope:** revision 2 has 48 proposed public entries: 15
+  patterns, 12 planning questions, seven testbench groups (21 subchecks) and 14
+  examples across OpenTitan, PULP AXI, CV32E40P and CORE-V MCU. K13–K15 adapt
+  the engineer's proposals; C10 and TB06/K03 address completion and evidence.
+  E10–E18 add transferable cases, pinned sources and an explicit reset-value
+  conflict in E14. The four private examples and original CPU material remain
+  excluded. [PR #4](https://github.com/noobjam/Project-x/pull/4) remains draft and
+  unmerged; revision 2 awaits publication and focused engineering confirmation.
 - **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
   The roadmap, council review and this progress tracker remain shared documents.
 
 ## Repository snapshot
 
-Checked on 2026-10-27:
+Checked on 2026-10-28:
 
-- Local branch: docs/knowledge-curation-review, published in draft PR #4 at
-  b65a617 before this handoff update. main remains at 52d3241 (the PR #3 handoff).
-  AGENTS.md remains local-only and ignored.
+- Local branch: docs/knowledge-curation-review; existing remote head a01d3ed
+  before revision 2 publication. main remains at 52d3241 (verified remotely).
+  Only nine review/progress Markdown files change. AGENTS.md remains local-only
+  and ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -67,6 +74,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Session continuity documentation | done | Local agent instructions and shared progress tracker created. Initial documentation checks passed. AGENTS.md is now local-only; roadmap, council review and progress remain published. |
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
+| Knowledge curation revision 2 | in_review | Four engineering comments incorporated into proposed documents; 48 entries including 14 public examples. Documentation checks passed locally; publication and entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -90,6 +98,12 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-28 the user said to keep moving after the proposed revision of
+  PR #4. Revise and publish the knowledge review documents: K13–K15, broader
+  public examples, C10, TB06/K03 and the progress handoff. This is documentation
+  curation, not authorization to merge, integrate knowledge, execute EDA tools or
+  run paid inference. No implementation ticket scope has changed.
 
 - On 2026-10-27 the user approved merging PR #3 if checks were clear and requested
   the next move. Final review found no blocking issue or pending review comment;
@@ -132,10 +146,11 @@ complete merely because its plan exists.
   full-document runs. Proposed per-run allocations must fit conservative reservations
   and sum to the accepted ceiling. Earlier prototype testing is already completed;
   it does not establish approval for this new pilot tranche.
-- The user has a verification engineer available (2026-10-27). Prepare the local
-  curation handoff; record reviewer identity and decisions when returned. No
-  engineering judgments have been received. Semantic acceptance still requires
-  reviewed labels; offline preparation can continue independently.
+- The user's engineering reviewer, GitHub account 5a1aah, supplied four PR #4
+  comments on 2026-10-27. These propose additions/corrections, not blanket
+  approval. Revision 2 asks for confirmation of the edited entries, applicability
+  and unresolved source conflicts. Semantic acceptance still requires reviewed
+  labels and measured plan quality.
 - The user clarified that this handoff is for knowledge-base content curation,
   with substantive material from multiple credible sources and a comparison of
   sources used by similar agents. Testbench subchecklists are planning knowledge,
@@ -158,17 +173,16 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Knowledge curation:** give the engineer the
-   [public review guide](https://github.com/noobjam/Project-x/blob/docs/knowledge-curation-review/docs/knowledge/README.md)
-   and [draft PR #4](https://github.com/noobjam/Project-x/pull/4). The full local
-   pack remains under artifacts/evaluations/engineer-review-2026-10-27-v1/.
-   Ask them to keep, correct,
-   remove or add entries and state applicability. Import returned decisions only
-   after confirming reviewer identity, source versions and unresolved conflicts;
-   preserve the frozen pilot. Define a separate evaluation split before any
-   approved examples enter runtime knowledge. This does not replace SV-04.
-   The [public review edition](knowledge/README.md) supports comments directly
-   on GitHub using its [review template](knowledge/REVIEW_TEMPLATE.md).
+0. **Knowledge curation:** publish revision 2 to the existing draft PR #4 and
+   verify its remote SHA. Use the [focused review guide](knowledge/REVISION_NOTES.md)
+   for K13–K15, C10, TB06/K03 and E10–E18. Record entry-specific engineering
+   decisions with the reviewed commit; resolve or retain the E14 reset conflict.
+   The original v1 pack remains a historical snapshot. New source fingerprints
+   and validation evidence are under artifacts/evaluations/engineer-review-2026-10-28-v2/.
+   Before approved examples guide the agent, define a separate evaluation split
+   for an SV-10 comparison. Preserve frozen inventories and reference answers.
+   C10's reliable gap-to-row links belong to SV-07/SV-09; this review does not
+   implement them or replace SV-04.
 
 1. **Next implementation: SV-04.** On the next implementation instruction, create
    a focused branch from current main. First add offline counterexamples for matches
@@ -185,6 +199,15 @@ complete merely because its plan exists.
    reviewer before semantic-acceptance claims; offline work can continue independently.
 
 ## Validation and result references
+
+- Knowledge revision 2: checked 48 unique entry IDs, 14 public examples, 21
+  testbench subchecks, local links/anchors, six new pinned source-file hashes
+  and cited line-range bounds. The nine-file Markdown allowlist, credential
+  patterns, exclusion of private example entries and AGENTS.md ignore/tracking
+  checks passed. Source facts were compared with the cited documents, including
+  UVM chapter 5 and the mailbox reset conflict. Whitespace checks passed.
+  No local code tests, HDL/formal runs or paid model calls were performed.
+  Engineering approval and measured knowledge benefit remain pending.
 
 - PR #3 merge check: all four push/PR CI checks passed on final head 95ae453,
   covering Python 3.12 and 3.13. No pending review comments or blocking findings.
@@ -456,6 +479,24 @@ complete merely because its plan exists.
   source/identifier screening and credential-pattern checks passed. No runtime
   changes, paid calls or new engineering approvals. Local code tests were not
   rerun for this documentation-only publication; GitHub CI runs separately.
+
+### 2026-10-28: Knowledge review revision 2 prepared
+
+- Incorporated all four comments from 5a1aah into proposed revisions: K13–K15
+  for clock/reset, data/control and registers; C10 for automatic draft completion
+  with linked source gaps; TB06/K03 for appropriate evidence without mandatory
+  covergroups. Added a comment-to-change review guide and focused questions.
+- Expanded worked examples from five to 14 across four projects. E10–E18 use
+  pinned PULP AXI, CV32E40P and CORE-V MCU documents; source summaries, proposed
+  checks, missing inputs and transfer limits are separate. E14 retains a newly
+  identified reset-value conflict. All 48 entries remain proposed.
+- Local documentation checks passed as recorded above. Only review/progress
+  Markdown changes; source downloads and validation evidence stay ignored.
+  AGENTS.md and private/frozen material remain unchanged. No runtime changes,
+  code-test rerun, paid evaluation, merge or engineering approval is claimed.
+- Publication to the existing draft PR #4 is the remaining delivery step,
+  followed by entry-specific engineer confirmation. SV-04 is still planned;
+  runtime knowledge integration requires a separately defined evaluation split.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;

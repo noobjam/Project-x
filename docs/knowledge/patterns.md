@@ -1,6 +1,6 @@
 # Source-backed knowledge patterns
 
-All entries are **proposed and unreviewed**. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
+All entries are **proposed; none is engineering-approved**. K13–K15 adapt engineering contributions; their edited wording still needs confirmation. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
 
 ## K01 — Trace every plan item to a versioned requirement
 
@@ -83,9 +83,9 @@ Here we attempt to answer the question, "how will the testbench know the test pa
 
 **Use when:** Plans with directed or randomized tests.
 
-**Concrete example / proposed adaptation:** Randomize a receive-buffer threshold, then separately track the occupancies below, at and above each relevant setting.
+**Concrete example / proposed adaptation:** A directed test can explicitly reach and check a selected threshold, recording its configuration and pass/fail result. A randomized test may need counters or bins to establish which threshold cases actually occurred. Choose the evidence per requirement; a covergroup per test is not mandatory.
 
-**Limits and disagreements:** Do not inherit a source project's coverage closure threshold or treat code coverage alone as functional completeness.
+**Limits and disagreements:** Do not inherit a source project's coverage closure threshold or treat code coverage alone as functional completeness. The quoted guide prefers functional coverage; that is its methodology preference, not a universal requirement. Following [5a1aah's TB06 feedback](https://github.com/noobjam/Project-x/pull/4#issuecomment-6455313481), directed subsystem/SoC checks may use meaningful pass/fail records. Such a record supports only the behavior and configurations actually checked; skipped checks and an idle assertion cannot establish exercised scenarios.
 
 **Source:** [openhw — docs/VerifPlans/VerificationPlanning101.md](https://github.com/openhwfoundation/core-v-verif/blob/1dfa4836868fc2fc8e3754ee5c1c43fb42948aa3/docs/VerifPlans/VerificationPlanning101.md#L76-L83)
 
@@ -693,3 +693,86 @@ Since the worst case difference for reception is 5%, the uart can be expected to
 </details>
 
 **For the engineer:** Which source governs these details, and what correction should we retain in the knowledge entry?
+
+## K13 — Plan clock and reset connectivity checks from the specification
+
+**Source family:** Engineer-contributed SoC integration practice. **Status:** proposed adaptation, confirmation pending.
+
+**Provenance:** [5a1aah's clock/reset proposal](https://github.com/noobjam/Project-x/pull/4#issuecomment-6454839896), 27 October 2026. This condensed planning rule preserves the proposed method and limits; it does not validate the comment's executable assertion examples. [E15](examples.md#e15--separate-reset-release-from-permission-to-boot) and [E18](examples.md#e18--account-for-clock-domains-without-inventing-timing) supply independent public specification cases.
+
+**Proposed reusable rule:** Build a specification-derived clock/reset connection table. For each in-scope block input, identify the source, destination, mode, expected relation and source reference. Include explicitly forbidden connections. Use the table to propose connectivity checks and to expose missing specifications.
+
+**Use when:** A subsystem or SoC integrates multiple clock/reset domains, clock gates, reset controllers or functional/test-mode selections.
+
+**Required inputs:** Versioned clock/reset architecture, mode definitions, polarity, reset ownership and specified timing. RTL port inventories can help detect missing endpoints; they cannot supply the expected wiring. RTL/netlist access, formal tooling and observation points are execution dependencies, not assumed agent capabilities.
+
+**Planning procedure:**
+
+1. Record each path using the following fields. Keep undefined cells unresolved.
+
+   | Source | Destination | Mode/condition | Expected relation | Spec location | Check/evidence | Open question |
+   | --- | --- | --- | --- | --- | --- | --- |
+   | Spec-defined source | Spec-defined block input | Functional, test or power mode | Direct, inverted, constant, muxed, specified delay, or forbidden | Document/revision/section | Proposed method and required access | Missing mode, endpoint or timing |
+
+2. Account for every in-scope clock/reset input, or record a justified exclusion. Check polarity, mode selection and unintended reset ownership. Use inventory comparisons to find omissions, not to manufacture specification facts.
+3. Choose formal connectivity, simulation assertions or directed observation according to available evidence and tools. Check that each condition can occur. Simulation establishes only the exercised cases; a formal result is conditional on its model, assumptions and proof status.
+4. If gates, PLLs or synchronizers are abstracted, record the boundaries and separate qualification needed for their behavior. Reset release timing must come from the specification and sampling model; synchronizer depth alone does not justify an unconditional exact-cycle claim.
+5. Plan separate frequency/ratio, reset sequencing or clock-switch checks where specified. Review changed paths after integration or DFT changes when those stages are in scope.
+
+**Evidence to request:** A reviewed path table, endpoint omissions/exclusions, method and assumptions per path, and eventual check results. Record unreachable conditions, incomplete proofs and missing timing explicitly. A completed plan is not a claim that these checks have run.
+
+**Limits:** Logical connectivity does not establish clock quality, timing closure or safe clock/reset domain crossing. Power-dependent behavior needs the applicable power intent. A table derived solely from the same database that generated the implementation can share its errors. Do not promise a fixed runtime or exhaustive verification of the entire design.
+
+**For the engineer:** Confirm the required table fields, acceptable methods and exclusions. Which clock/reset modes are routinely absent from your input specifications?
+
+## K14 — Check data and control connections in each specified mode
+
+**Source family:** Engineer-contributed SoC integration practice. **Status:** proposed adaptation, confirmation pending.
+
+**Provenance:** [5a1aah's data/control proposal](https://github.com/noobjam/Project-x/pull/4#issuecomment-6454839896), 27 October 2026. [E16](examples.md#e16--trace-an-event-through-a-two-level-interrupt-map) illustrates why a system connection may require more than a direct-wire check.
+
+**Proposed reusable rule:** Turn interrupt, DMA, pinmux, configuration, strap, debug and power-control maps into conditional source-to-destination checks. Preserve bit mappings, reductions, tie-offs, permitted delays and prohibited paths exactly as specified.
+
+**Use when:** Independently verified IPs are connected at subsystem/SoC level, or integration settings select different routes.
+
+**Required inputs:** Signal/interrupt maps, mode and mux tables, interface definitions, latency rules and security/power constraints where relevant. Record absent inputs rather than copying current RTL behavior into the expectation.
+
+**Planning procedure:**
+
+1. Use the K13 table format, adding bit mapping/width and any handshake rule. Account for in-scope endpoints and justified exclusions; do not turn every internal net into an LLM-generated test row.
+2. Group equivalent connections into parameterized checks. For a vector mapping, stimulate one source bit at a time and check all relevant destinations, including those that should remain inactive. This can distinguish swaps, shifts and unintended fan-out.
+3. Exercise each specified mux selection, default, gating condition and tie-off. Undefined reserved selections remain open questions.
+4. State whether the stimulus forces an integration boundary or triggers the real peripheral event. A forced signal can check wiring but does not establish that the peripheral generates the event correctly.
+5. Separate direct/registered wiring from functional behavior such as queues, arbitration, interrupt acknowledgement or variable-latency handshakes. Use the corresponding behavior's specification to define those expectations.
+
+**Evidence to request:** A result for each selected path/condition, the observation points and a list of unexercised or excluded cases. Directed pass/fail records may suffice under [TB06](testbench-checklists.md#tb06--coverage-and-traceability); additional coverage is chosen for a purpose.
+
+**Limits:** Correct connections do not establish correct feature operation, bus protocol behavior or safe domain crossing. A structural absence of a wire is not proof that secret data cannot affect an output through other logic. Formal checks require explicit assumptions and reachable conditions; simulation covers its exercised cases. Power isolation and post-DFT behavior need their own applicable context.
+
+**For the engineer:** Confirm which connection families belong in the initial knowledge set, how to group repetitive paths, and which cases require functional rather than wiring checks.
+
+## K15 — Verify register policies and cover excluded special behavior
+
+**Source family:** Engineer-contributed register verification practice; Accellera UVM register methodology. **Status:** proposed adaptation, confirmation pending.
+
+**Provenance:** [5a1aah's register proposal](https://github.com/noobjam/Project-x/pull/4#issuecomment-6454839896), 27 October 2026. The [UVM 1.2 User Guide](https://www.accellera.org/images/downloads/standards/uvm/uvm_users_guide_1.2.pdf), chapter 5, supplies register-layer context. [E13](examples.md#e13--separate-interrupt-status-mask-and-clear-behavior) and [E14](examples.md#e14--check-read-side-effects-and-illegal-register-accesses) are public cases with special behavior.
+
+**Proposed reusable rule:** Derive a field-level register table from the applicable specification. Combine ordinary reset/access checks with targeted checks for side effects, volatile fields, locks and hardware/software interactions. Every exclusion from a generic test needs a reason and a planned alternative or an explicit unresolved dependency.
+
+**Use when:** A design exposes a register map through one or more software/debug/bus interfaces.
+
+**Required inputs:** Address maps, field positions, access policy, reset values by reset type, legal access widths/strobes, side effects and initiator permissions. Register models, bus adapters and backdoor paths are required only by methods that use them; record whether they exist.
+
+**Planning procedure:**
+
+1. Record address, field, access, reset domain/value, side effect and source reference. Include defined reserved/unmapped behavior. An access label such as RW does not override a more specific field description.
+2. Propose ordinary read/write/reset checks for suitable stable fields. UVM register sequences are an option if the environment supports them. Reset stimulus, model reset kind and sequence exclusions must be configured for the target; selecting a sequence name does not establish those details.
+3. Add targeted cases for each applicable behavior: write-one-to-clear, read-to-clear or FIFO pop, self-clearing commands, locks, partial writes, address aliasing, hardware/software collisions and retained state. Do not assume collision priority or a reserved read value.
+4. Use bus access to check the externally visible contract. Direct register observation may help localize errors if valid paths exist; it does not replace interface checks or prove side effects. Avoid destructive blanket writes to volatile or side-effect registers.
+5. At system level, select address/access/permission checks through each permitted initiator. Reuse block-level evidence where justified; agree the scope instead of automatically repeating every bit test at SoC level.
+
+**Evidence to request:** The reviewed register table, selected checks, justified exclusions, targeted special-case checks and results by relevant interface/reset type. Apply TB06 when selecting evidence; a separate covergroup for every field is not required.
+
+**Limits:** A model and RTL generated from the same erroneous description may agree. Compare the description with the governing specification. Correct register storage does not prove the controlled feature works. Unknown timing, reset values or simultaneous-update priority remain linked open questions. The comment's SVA snippets are illustrative and are not validated templates in this package.
+
+**For the engineer:** Confirm the minimum field information, acceptable exclusions, and the appropriate split between block-level and system-level checking.

@@ -1,16 +1,18 @@
 # Sources and comparable systems
 
-Snapshot checked on 27 October 2026. Source credibility establishes provenance; engineering curation must still establish correctness and applicability.
+Initial snapshot checked on 27 October 2026; revision 2 sources added and checked on 28 October 2026. Source credibility establishes provenance; engineering curation must still establish correctness and applicability. Existing comparative-system research below retains its original snapshot date.
 
 ## Source families
 
 | Source | Material selected | Intended use |
 | --- | --- | --- |
 | OpenHW CORE-V-VERIF | Planning guidance, simulation-plan template and RV32I plan | Traceability, checking methods, coverage and concrete instruction-plan examples |
+| OpenHW CV32E40P and CORE-V MCU | Pinned integration, interrupt and clock-domain specifications | Boot permission, interrupt acknowledgement, system event routing and domain assignments in E15–E18 |
 | Accellera | UVM 1.2 User Guide | Environment, stimulus, monitor and scoreboard roles; adapt to the target UVM version |
-| PULP | AXI verification-component documentation | Traffic, response delays, reference modeling and integration constraints |
+| PULP | AXI verification-component, crossbar and mailbox documentation | Traffic, reference modeling and integration constraints; address/error/ordering and register-side-effect cases in E10–E14 |
 | OpenTitan | Specifications, authored testplans and environment documents across six blocks | Peripheral tests, resets, errors, interrupts and cross-component handoff |
 | RISC-V International | [Unprivileged ISA manual](https://docs.riscv.org/reference/isa/_attachments/riscv-unprivileged.pdf), ADDI section | Authoritative cross-check for K04; select the actual target ISA revision |
+| Engineering contribution | [5a1aah's four comments on PR #4](https://github.com/noobjam/Project-x/pull/4#issuecomment-6454839896), 27 October 2026 | Proposed K13–K15 and corrections to uncertainty, coverage and example breadth; revised wording remains unapproved |
 
 The rows below inventory the public files inspected or collected locally during preparation. They are linked upstream instead of vendored into this repository. Collection does not mean every passage has been reviewed or converted to an entry. The excerpts used for entries are visible in [patterns](patterns.md) and [examples](examples.md).
 
@@ -36,6 +38,25 @@ The rows below inventory the public files inspected or collected locally during 
 
 - [README.md](https://github.com/pulp-platform/axi/blob/70b8e54fd460e3308e58be596ceb3566a6e3576e/README.md) — SHA-256 `9a8390200dee89eb56763f485145da896ac02c6c06eb12fdf7fbc2bbdca2eeb4`
 - [LICENSE](https://github.com/pulp-platform/axi/blob/70b8e54fd460e3308e58be596ceb3566a6e3576e/LICENSE) — SHA-256 `6527a46225891b976fa94f634f6ee0cd22e1c7129d6f11c5c98c997627625fc7`
+
+Revision 2 adds the following inspected documentation at the same pinned version. E10–E14 distinguish paraphrased source facts from our proposed tests; no upstream test pass is inferred.
+
+- [doc/axi_xbar.md](https://github.com/pulp-platform/axi/blob/70b8e54fd460e3308e58be596ceb3566a6e3576e/doc/axi_xbar.md) — SHA-256 `7ded1f2ea27d5d3fd28b10fb1566a965c7e746966258077d422ebf51fe004a57`
+- [doc/axi_lite_mailbox.md](https://github.com/pulp-platform/axi/blob/70b8e54fd460e3308e58be596ceb3566a6e3576e/doc/axi_lite_mailbox.md) — SHA-256 `64503e9e264162812590ad943c682859b92f9dd1a812259efa6b5f57896f3cc1`
+
+### openhw-cv32e40p
+
+**Version:** b353438ff469c030c89f6804f3b24a2852880e8b, pinned for revision 2 examples E15 and E17. These documents describe a particular core configuration and revision; do not treat them as universal RISC-V behavior.
+
+- [docs/source/integration.rst](https://github.com/openhwgroup/cv32e40p/blob/b353438ff469c030c89f6804f3b24a2852880e8b/docs/source/integration.rst) — SHA-256 `0de3f22eff73fb2b9effecc675506d0c6b80b72d14cd031d51e65fc89d20cb7b`
+- [docs/source/exceptions_interrupts.rst](https://github.com/openhwgroup/cv32e40p/blob/b353438ff469c030c89f6804f3b24a2852880e8b/docs/source/exceptions_interrupts.rst) — SHA-256 `8b7ecffb4bb6ddc429de5eef219288d6f46c1e07b640f0e6131b45fd55c53227`
+
+### openhw-core-v-mcu
+
+**Version:** 61fe7db2ebd13621975d97d484ef8fe99d3615a6, pinned for revision 2 examples E16 and E18. The MCU documents refer to a core-specific manual version. No compatibility with the independently pinned CV32E40P revision above is assumed. The selected text supplies architecture and maps, not every register, endpoint or timing definition needed to execute a test.
+
+- [docs/doc-src/interrupts.rst](https://github.com/openhwgroup/core-v-mcu/blob/61fe7db2ebd13621975d97d484ef8fe99d3615a6/docs/doc-src/interrupts.rst) — SHA-256 `ac0c29efcc36b44cc1e3f68e14a41507efd8c8e6cd19838d2fd6fd7fdd8a9dbe`
+- [docs/doc-src/clock_domains.rst](https://github.com/openhwgroup/core-v-mcu/blob/61fe7db2ebd13621975d97d484ef8fe99d3615a6/docs/doc-src/clock_domains.rst) — SHA-256 `6dcd04d4696d47a0c601db56e60a65bbc4b2cbfc943645b388b97857a607e78c`
 
 ### opentitan
 
@@ -110,6 +131,8 @@ Reported data usage is separate from what we can obtain and safely treat as cura
 
 - **K04:** the OpenHW introductory ADDI example and its actual RV32I plan disagree about overflow. Check the applicable ISA before reusing the example.
 - **K12:** pinned OpenTitan UART testplan wording disagrees with its specification on watermark clearing and FIFO depth. Preserve the boundary-testing method and resolve the detailed behavior.
+- **E14:** the PULP mailbox register overview gives ERROR a zero default, while the Read Error field's detailed reset value is one. The expected reset value remains unresolved. This discrepancy does not prevent planning the separately documented read-to-clear and access-error checks.
+- **Cross-project transfer:** OpenTitan UART and PULP mailbox threshold/status rules differ. Reuse the boundary/masking method while deriving the comparison and persistence rules from the target specification. CORE-V MCU event routing and CV32E40P interrupt pins describe different integration layers and independently pinned versions.
 
 These are reasons to review individual entries instead of treating a repository's reputation as automatic approval.
 
@@ -117,8 +140,10 @@ These are reasons to review individual entries instead of treating a repository'
 
 Original source excerpts are identified beside their upstream links, versions and locations. Proposed rules, examples and checklist synthesis are Project X drafts. Third-party excerpts retain their authors' rights:
 
-- OpenHW material: Copyright OpenHW Group; Apache-2.0 WITH SHL-2.0. See [Solderpad 2.0](licenses/OpenHW-SHL-2.0.txt) and [Apache 2.0](licenses/Apache-2.0.txt).
+- Original CORE-V-VERIF material: Copyright OpenHW Group; Apache-2.0 WITH SHL-2.0. See [Solderpad 2.0](licenses/OpenHW-SHL-2.0.txt) and [Apache 2.0](licenses/Apache-2.0.txt).
+- The newly linked CV32E40P/CORE-V MCU documents identify Apache-2.0 WITH [SHL-2.1](https://solderpad.org/licenses/SHL-2.1/); CV32E40P integration documentation credits OpenHW Group and Dolphin Design. Revision 2 links the originals and supplies attributed paraphrases and proposed checks, without vendoring these files. The older CORE-V-VERIF notices above remain unchanged.
 - OpenTitan material: Copyright lowRISC contributors; [Apache 2.0](licenses/Apache-2.0.txt).
 - PULP material: upstream [Solderpad 0.51 license](licenses/PULP-SHL-0.51.txt); source documentation is linked and quoted with attribution.
 - The linked Accellera UVM 1.2 guide identifies Apache 2.0 licensing in its copyright page. The PDF is not republished here.
 - Papers and the RISC-V manual are linked with limited summaries or quotations; no private research corpus is represented as downloadable.
+- Engineering proposals remain attributed to GitHub contributor 5a1aah and linked to their original comments. Project X's edited rules are proposed adaptations, not claims of independent literature validation or final approval by that contributor.

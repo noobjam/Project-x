@@ -1,6 +1,6 @@
 # Planning knowledge checklist
 
-All entries are **proposed and unreviewed**. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
+All entries are **proposed; none is engineering-approved**. C10 incorporates engineering feedback and its revised wording needs confirmation. Original evidence and our proposed adaptations are identified separately. Use the [review template](REVIEW_TEMPLATE.md) to keep, correct or remove entries and state applicability.
 
 These questions are proposed planning guidance. The [source-backed patterns](patterns.md) explain their foundation; individual questions also require engineering judgment. The [OpenHW planning guide](https://github.com/openhwfoundation/core-v-verif/blob/1dfa4836868fc2fc8e3754ee5c1c43fb42948aa3/docs/VerifPlans/VerificationPlanning101.md) supplies the requirement, checking and coverage structure. It does not independently validate every proposed rule below.
 
@@ -78,7 +78,11 @@ State what signal, register or outcome demonstrates pass/fail. Identify missing 
 
 ## C10 — Conflicting requirements
 
-Preserve both conflicting statements and their locations. Request a decision from the design owner instead of choosing a convenient interpretation.
+Preserve both conflicting statements and their source locations. Complete the draft without waiting for clarification. Put the conflict, the affected requirement/test IDs and the specific decision needed in the affected plan rows' **Open questions** column. Mark the dependent expected result as unresolved; do not choose an interpretation or invent a value to complete it. Continue planning checks whose expectations are supported.
+
+If the missing information prevents a concrete test from being drafted, retain the requirement and a linked finding rather than silently dropping it. Record who or what document can resolve the question for later review. Draft completion does not mean every test is ready to implement.
+
+**Review basis:** [5a1aah's PR #4 feedback](https://github.com/noobjam/Project-x/pull/4#issuecomment-6454918911). The current exporter already has an Open questions column and source gaps do not trigger revision retries. Reliable gap-to-row linkage remains implementation work; this checklist revision does not change runtime behavior.
 
 **Use when:** Use for the relevant feature or test type; omit only with an engineering reason.
 
