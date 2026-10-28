@@ -134,10 +134,7 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 7 added enforced knowledge consultation; version 8 trials explicit source
-coverage checks, observable source-supported expectations and evidence-backed
-review instructions. These are behavioral instructions, not deterministic proof
-of completeness or correctness. Engine `openai-agents-v2` identifies
+version 7 adds enforced knowledge consultation; engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
 remain exportable with new metadata marked unavailable; `spend` and `tasks` read
