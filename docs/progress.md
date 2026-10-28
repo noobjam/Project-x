@@ -12,7 +12,9 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Active milestone:** SV-10A/B model and quality benchmark, in_progress on
   eval/agent-quality-baseline. The user approved evaluation first, an early
   alternative-model comparison, then only evidence-backed workflow changes.
-  No new comparison has completed yet. The user rejected the current output as unsuitable
+  The first model comparison completed; provisional scoring shows better extraction
+  but remaining unsupported plan expectations and false review findings. A focused
+  prompt-version-8 trial is in preparation. The user rejected the current output as unsuitable
   for engineer handoff. Retain the package as diagnostic evidence; correct known
   quality failures internally before presenting it as a review deliverable. The connected candidate completed with needs_review:
   six requirements, five plan items and five automated findings. All three
@@ -26,10 +28,10 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   and one resume. It has no accepted final plan. The connected candidate also
   has preliminary quality issues requiring engineering review; no KB benefit or
   comparative quality gain is established.
-- **Task spending:** $0.0697225375 provider-reported across all retained attempts,
+- **Task spending:** $0.1515207815 provider-reported across all retained attempts,
   plus a separate $0.308158400 uncertain reservation from an earlier HTTP 400.
-  Combined commitment $0.3778809375 remains within the original $1 ceiling.
-  Remaining allocation is $0.6221190625. The authorized comparison stays inside
+  Combined commitment $0.4596791815 remains within the original $1 ceiling.
+  Remaining allocation is $0.5403208185. The authorized comparison stays inside
   this original aggregate ceiling; failures do not renew it.
 - **Implemented connector:** public Markdown/catalog -> frozen per-run JSON ->
   bounded SDK search/read tools. Required consultation, content hashes, task/batch
@@ -102,8 +104,8 @@ complete merely because its plan exists.
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | done | Merged in PR #3 at 82db1c2: exact task/input bindings, atomic completions, per-call attribution and local task spending. |
 | [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | done | A merged in PR #1; limited B merged in PR #3. Task/run versions, exact inputs, stale-resume rejection and legacy readers are complete. Typed findings stay in SV-07. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
-| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | deferred | Start only if measured extraction/cross-section failures justify it. |
-| [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | deferred | Evaluate existing scenario fields first; patterns/schema expansion require evidence. |
+| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | Instructions-only coverage experiment admitted after complete-packet omissions persisted in the model screen; schemas and interaction indexes remain deferred. |
+| [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; trial source-supported observations and explicit unknowns. No pattern library or schema expansion. |
 | [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | planned | Typed source/requirement/item findings and local-to-global review; no graph/pattern prerequisite. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Extend CLI/Excel with findings, evidence, limitations and task costs. |
@@ -111,6 +113,16 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- The first alternative-model screen retained the same effective source, KB,
+  runtime, prompts and generation limits. GPT-5 mini / Azure Sweden completed in
+  16 calls at $0.081798244 with no unsettled charge. Provisional full-obligation
+  extraction was 9/13 versus 2/13 for the saved Gemini condition, but unsupported
+  expectations and review false alarms remained. These are strict complete-label
+  judgments; useful partial coverage is recorded separately. No model promotion.
+  Admit a bundled instructions-only SV-05/06/review trial, prompt version 8, on
+  that model before considering additional schemas. Source was already present,
+  so the bounded SV-05 trial may precede SV-04; the roadmap records this exception.
 
 - On 2026-10-28 the user approved the revised evaluation-first approach: freeze
   explicit quality criteria, compare the existing connected workflow with a
