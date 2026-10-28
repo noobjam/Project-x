@@ -91,7 +91,8 @@ For the experimental SV-05 source-accounting workflow, add `--source-accounting`
 to `plan` (and to `resume` for that run), or set `SOC_VERIFIER_SOURCE_ACCOUNTING=true`.
 It defaults off and currently accepts only one bounded source chunk; larger
 inputs fail before inference. The analyst records conditions, constraints and
-exceptions with exact source quotations. Python resolves quotation locations,
+exceptions and selects from precomputed source-passage IDs. Python copies exact
+source quotations and locations from those IDs,
 preserves those fields in the planner's requirements and exposes unaccounted text
 as unresolved. This adds no specialist role or separate extraction call.
 
@@ -105,7 +106,9 @@ uv run soc-verifier resume <run-id> --source-accounting
 The local `accounting` command works after extraction, even if planning failed.
 Exports add a **Source accounting** sheet with quotations, structured facts,
 proposed dispositions and unaccounted text. Unknown quotations and stale input
-bindings fail validation. A quotation proves location, not correct interpretation
+bindings fail validation. The model does not retype source quotations. Passage
+boundaries are mechanical sentence/line splits; table rows stay whole. A quotation
+proves location, not correct interpretation
 or complete extraction; non-normative dispositions also require review. This
 trial has no engineering-quality approval. Historical runs retain their original
 analysis/plan formats and report accounting as unavailable.

@@ -6,13 +6,17 @@ from openpyxl import load_workbook
 from typer.testing import CliRunner
 
 from soc_verifier.cli import app
-from soc_verifier.domain.accounting import SourceQuote
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def accounting_draft(unit_accounting_draft):
+    return unit_accounting_draft
 
 
 class Agents:
@@ -83,23 +87,17 @@ def test_tampering_rejected_without_inference(
         read_accounting(artifacts, "source-accounting.r000.json")
 
 
-def test_invalid_quote_stops_before_planner(tmp_path, specification, accounting_draft):
+def test_invalid_source_unit_stops_before_planner(tmp_path, specification, accounting_draft):
     invalid = accounting_draft.model_copy(
         update={
             "obligations": [
-                accounting_draft.obligations[0].model_copy(
-                    update={
-                        "evidence": [
-                            SourceQuote(block_id="P00001", quote="invented text", occurrence=0)
-                        ]
-                    }
-                )
+                accounting_draft.obligations[0].model_copy(update={"evidence_ids": ["made-up"]})
             ]
         }
     )
     agents = Agents(invalid)
     artifacts = ArtifactStore(tmp_path)
-    with pytest.raises(ValueError, match="quotation"):
+    with pytest.raises(ValueError):
         PlanningWorkflow(agents, artifacts, max_revisions=0, source_accounting=True).run(
             specification
         )

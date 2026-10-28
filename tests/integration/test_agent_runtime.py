@@ -545,7 +545,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
     verification_plan,
     clean_review,
     knowledge_snapshot,
-    accounting_draft,
+    unit_accounting_draft,
     source_accounting,
 ):
     from soc_verifier.agents.knowledge import read_knowledge_accesses
@@ -553,7 +553,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
 
     outputs = {
         "SpecAnalysis": analysis,
-        "AccountingDraft": accounting_draft,
+        "UnitAccountingDraft": unit_accounting_draft,
         "VerificationPlan": verification_plan,
         "PlanReview": clean_review,
     }

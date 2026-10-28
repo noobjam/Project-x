@@ -8,7 +8,11 @@ from soc_verifier.domain.accounting import (
     SourceAccounting,
     SourceDisposition,
     SourceQuote,
+    UnitAccountingDraft,
+    bound_accounting_schema,
     compile_accounting,
+    compile_unit_accounting,
+    source_units,
 )
 
 
@@ -122,3 +126,82 @@ def test_duplicate_obligations_and_unknown_formats_fail(accounting_draft):
         AccountingDraft.model_validate(data)
     with pytest.raises(ValidationError):
         SourceAccounting.model_validate({"format": "source-accounting-v999"})
+
+
+def test_source_unit_selection_copies_unicode_and_repeated_text_exactly(
+    specification, unit_accounting_draft
+):
+    text = "DM\u2019s reset → output.\r\nDM\u2019s reset → output.\nThe width is 8."
+    spec = specification.model_copy(
+        update={"blocks": [specification.blocks[0].model_copy(update={"text": text})]}
+    )
+    units = source_units(spec)
+    assert [u.text for u in units] == [
+        "DM\u2019s reset → output.",
+        "DM\u2019s reset → output.",
+        "The width is 8.",
+    ]
+    chosen = units[1]
+    draft = unit_accounting_draft.model_copy(
+        update={
+            "obligations": [
+                unit_accounting_draft.obligations[0].model_copy(
+                    update={"evidence_ids": [chosen.id]}
+                )
+            ]
+        }
+    )
+    analysis, facts, missing = compile_unit_accounting(draft, spec)
+    span = facts[0].evidence[0]
+    assert (span.start, span.end) == (chosen.start, chosen.end)
+    assert text[span.start : span.end] == chosen.text
+    assert [text[s.start : s.end] for s in missing] == [
+        "DM\u2019s reset → output.\r\n",
+        "\nThe width is 8.",
+    ]
+    assert analysis.gaps
+
+
+def test_bound_schema_restricts_evidence_to_actual_source_units(
+    specification, unit_accounting_draft
+):
+    schema = bound_accounting_schema(specification)
+    parsed = schema.model_validate(unit_accounting_draft.model_dump())
+    compile_unit_accounting(parsed, specification)
+    data = unit_accounting_draft.model_dump()
+    data["obligations"][0]["evidence_ids"] = ["P00001:U99999"]
+    with pytest.raises(ValidationError):
+        schema.model_validate(data)
+    with pytest.raises(ValueError, match="unknown source unit"):
+        compile_unit_accounting(UnitAccountingDraft.model_validate(data), specification)
+    data["obligations"][0]["evidence_ids"] = [source_units(specification)[0].id] * 2
+    with pytest.raises(ValueError, match="Repeated"):
+        compile_unit_accounting(UnitAccountingDraft.model_validate(data), specification)
+
+
+def test_table_rows_remain_whole_source_units(specification):
+    text = "Port | Width | Meaning\nreq_i | 8 | Request. Must remain stable."
+    spec = specification.model_copy(
+        update={
+            "blocks": [
+                specification.blocks[0].model_copy(update={"kind": "table_row", "text": text})
+            ]
+        }
+    )
+    units = source_units(spec)
+    assert len(units) == 1 and units[0].text == text
+
+
+def test_v1_accounting_still_reads_without_migration(tmp_path, specification, accounting_draft):
+    from soc_verifier.storage.artifacts import ArtifactStore
+    from soc_verifier.workflows.spec_to_plan.accounting import project_accounting, read_accounting
+
+    artifacts = ArtifactStore(tmp_path)
+    artifacts.write("specification.json", specification)
+    artifacts.write("obligations.r000.json", accounting_draft)
+    analysis, report = project_accounting(artifacts, "obligations.r000.json", "analysis.json")
+    artifacts.write("analysis.json", analysis)
+    artifacts.write("source-accounting.r000.json", report)
+    assert (
+        read_accounting(artifacts, "source-accounting.r000.json").format == "source-accounting-v1"
+    )

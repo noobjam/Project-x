@@ -1,9 +1,11 @@
 """Source accounting is inspectable extraction evidence, not semantic approval."""
 
+import re
+from enum import StrEnum
 from hashlib import sha256
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, create_model, model_validator
 
 from soc_verifier.domain.models import Contract, NonEmpty, Requirement, SpecAnalysis, Specification
 
@@ -63,7 +65,7 @@ class AccountingDraft(Contract):
 
 
 class SourceAccounting(Contract):
-    format: Literal["source-accounting-v1"] = "source-accounting-v1"
+    format: Literal["source-accounting-v1", "source-accounting-v2"] = "source-accounting-v1"
     specification_sha256: Digest
     analysis_artifact: NonEmpty
     analysis_sha256: Digest
@@ -73,6 +75,108 @@ class SourceAccounting(Contract):
     dispositions: list[SourceDisposition]
     unaccounted: list[SourceSpan]
     semantic_acceptance: Literal["unreviewed"] = "unreviewed"
+
+
+class SourceUnit(Contract):
+    id: NonEmpty
+    block_id: NonEmpty
+    text: NonEmpty
+    start: int
+    end: int
+
+
+class UnitObligation(ObligationFacts):
+    evidence_ids: Annotated[list[NonEmpty], Field(min_length=1, max_length=12)]
+
+
+class UnitAccountingDraft(Contract):
+    format: Literal["source-accounting-draft-v2"] = "source-accounting-draft-v2"
+    obligations: Annotated[list[UnitObligation], Field(min_length=1)]
+    dispositions: list[SourceDisposition]
+    gaps: list[str]
+
+    @model_validator(mode="after")
+    def unique_ids(self) -> Self:
+        if len({r.id for r in self.obligations}) != len(self.obligations):
+            raise ValueError("Duplicate obligation IDs")
+        return self
+
+
+def source_units(spec: Specification) -> list[SourceUnit]:
+    """Mechanical sentence/line boundaries, never a normative or semantic classifier."""
+    units = []
+    for block in spec.blocks:
+        ends = (
+            [match.end() for match in re.finditer(r"(?:[.!?](?=\s)|\r\n|\r|\n)", block.text)]
+            if block.kind == "paragraph"
+            else []
+        )
+        start = 0
+        for end in sorted({*ends, len(block.text)}):
+            if block.text[start:end].strip():
+                units.append(
+                    SourceUnit(
+                        id=f"{block.id}:U{start:05d}",
+                        block_id=block.id,
+                        text=block.text[start:end],
+                        start=start,
+                        end=end,
+                    )
+                )
+            start = end
+    return units
+
+
+def bound_accounting_schema(spec: Specification) -> type[UnitAccountingDraft]:
+    """Constrain model choices to actual passages; source text is copied by Python."""
+    # Dynamic source-specific classes cannot be expressed as static Python type aliases.
+    enum_factory: Any = StrEnum
+    identifiers: Any = enum_factory(
+        "SourceUnitID", {f"U{i}": u.id for i, u in enumerate(source_units(spec))}
+    )
+    obligation: Any = create_model(
+        "BoundObligation",
+        __base__=UnitObligation,
+        evidence_ids=(list[identifiers], Field(min_length=1, max_length=12)),
+    )
+    return create_model(
+        "UnitAccountingDraft",
+        __base__=UnitAccountingDraft,
+        obligations=(list[obligation], Field(min_length=1)),
+    )
+
+
+def compile_unit_accounting(
+    draft: UnitAccountingDraft, spec: Specification
+) -> tuple[SpecAnalysis, list[AccountedObligation], list[SourceSpan]]:
+    units = {unit.id: unit for unit in source_units(spec)}
+    blocks = {block.id: block for block in spec.blocks}
+    obligations = []
+    for obligation in draft.obligations:
+        references = []
+        if len(set(obligation.evidence_ids)) != len(obligation.evidence_ids):
+            raise ValueError("Repeated source unit in obligation evidence")
+        for identifier in obligation.evidence_ids:
+            if identifier not in units:
+                raise ValueError("Accounting cites an unknown source unit")
+            unit = units[identifier]
+            # Preserve exact occurrence even when identical sentences repeat.
+            text = blocks[unit.block_id].text
+            position = text.find(unit.text)
+            occurrence = 0
+            while position < unit.start:
+                position = text.find(unit.text, position + 1)
+                occurrence += 1
+            references.append(
+                SourceQuote(block_id=unit.block_id, quote=unit.text, occurrence=occurrence)
+            )
+        obligations.append(
+            DraftObligation(**obligation.model_dump(exclude={"evidence_ids"}), evidence=references)
+        )
+    return compile_accounting(
+        AccountingDraft(obligations=obligations, dispositions=draft.dispositions, gaps=draft.gaps),
+        spec,
+    )
 
 
 def compile_accounting(

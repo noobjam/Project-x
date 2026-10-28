@@ -45,3 +45,24 @@ allocation from the then-remaining balance. That case is not blind gold. If the
 candidate fails or regresses, retain the result, keep the feature experimental
 and record the next corrective decision before more paid work. No full-DOCX run,
 model promotion, merge or engineering handoff is authorized by this experiment.
+
+## Corrected condition: passage selection
+
+The first condition at 789b26d stopped before planning after three calls costing
+$0.023319923: four model-retyped quotations did not match source text. Two involved
+Unicode corruption and two altered or mixed source passages. No analysis was
+accepted; no workflow retry was made. Preserve this failed attempt in results.
+
+The next candidate replaces model-retyped quotations with selection from
+precomputed passage IDs. Python splits paragraphs mechanically at sentence/line
+boundaries, retains whole table rows and supplies exact source text/spans. The
+output schema restricts evidence IDs to the supplied set. This changes the analyst
+input/output representation, not its semantic obligations or evaluation labels.
+Draft/report version 2 and prompt version 10 record that change; V1 accounting
+remains readable. Preserve all earlier comparison conditions and costs.
+
+Freeze this corrected condition before one new $0.28-capped execution. Prior
+confirmed spending is now $0.2759690285, with $0.308158400 still uncertain;
+$0.4158725715 remains under the same $1 aggregate cap. The source, model/provider,
+KB, planner/reviewer instructions, generation limits and 13-label inventory remain
+fixed. A valid selected ID proves location, not support or complete extraction.

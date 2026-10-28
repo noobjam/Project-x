@@ -15,7 +15,11 @@ from soc_verifier.agents.tasks import (
     fingerprint,
     runtime_versions,
 )
-from soc_verifier.domain.accounting import AccountingDraft, compile_accounting
+from soc_verifier.domain.accounting import (
+    bound_accounting_schema,
+    compile_unit_accounting,
+    source_units,
+)
 from soc_verifier.domain.models import (
     PlanReview,
     SpecAnalysis,
@@ -160,31 +164,50 @@ def _run_workflow(
         name = _analysis_artifact(revision)
         if source_accounting:
             extraction_name = f"obligations.r{revision:03d}.json"
+            schema = bound_accounting_schema(spec)
+            units = source_units(spec)
+            supplied = {
+                "document_name": spec.document_name,
+                "extraction_warnings": spec.extraction_warnings,
+                "blocks": [
+                    {
+                        "id": block.id,
+                        "section": block.section,
+                        "locator": block.locator,
+                        "units": [
+                            unit.model_dump(mode="json")
+                            for unit in units
+                            if unit.block_id == block.id
+                        ],
+                    }
+                    for block in spec.blocks
+                ],
+            }
             extraction_task = bind(
                 extraction_name,
                 state,
                 "analyst",
                 prompts.ANALYZE_ACCOUNTED,
-                AccountingDraft,
+                schema,
                 [b.id for b in spec.blocks],
             )
-            draft = extraction_task.load(AccountingDraft)
+            draft = extraction_task.load(schema)
             if draft is None:
                 draft = agents.run(
                     role="analyst",
                     instruction=prompts.ANALYZE_ACCOUNTED,
                     context=json.dumps(
                         {
-                            "specification": state["specification"],
+                            "specification": supplied,
                             "previous_analysis": state.get("analysis"),
                             "review": state.get("review"),
                         }
                     ),
-                    schema=AccountingDraft,
+                    schema=schema,
                     task=extraction_task.envelope,
                 )
             # Source-dependent validation precedes both checkpoint acceptance and planning.
-            compile_accounting(draft, spec)
+            compile_unit_accounting(draft, spec)
             extraction_task.save(draft)
             analysis, accounting = project_accounting(artifacts, extraction_name, name)
             artifacts.write(name, analysis)

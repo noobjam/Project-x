@@ -14,7 +14,10 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   implementation and the bounded comparison on 2026-10-28. No prerequisite merge
   is needed or authorized. The opt-in implementation is locally complete and
   validated; a $0.28 candidate allocation is reserved within the existing task
-  ceiling for the frozen comparison. No new inference has started yet. The initial model screen and one focused prompt
+  ceiling for the frozen comparison. The first quotation-based candidate stopped
+  before planning on four altered quotations, costing $0.023319923. The corrected
+  condition selects fixed source-passage IDs and lets Python copy exact text/spans;
+  it passed 271 offline tests before one new capped execution. The initial model screen and one focused prompt
   experiment are complete. The prompt experiment was rejected and reverted;
   engineering-quality acceptance and a successful correction remain pending.
   The current outputs are not suitable for engineer handoff. The source-free
@@ -31,11 +34,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   instructions. It introduced a false source contradiction and unsupported
   hardware enforcement, then failed on an invalid global-review artifact after
   19 calls ($0.101128324). No retry. The application is restored exactly to prompt
-  version 7; model defaults, schemas, orchestration and .env are unchanged.
+  version 7 for the normal path; the opt-in accounting path uses version 10.
+  Model defaults and .env are unchanged.
   Separate-case paid validation was not justified after this regression.
-- **Task spending:** $0.2526491055 provider-reported across retained attempts,
+- **Task spending:** $0.2759690285 provider-reported across retained attempts,
   plus $0.308158400 still uncertain from the earlier HTTP 400. Combined commitment
-  is $0.5608075055; $0.4391924945 remains within the original $1 ceiling. No calls
+  is $0.5841274285; $0.4158725715 remains within the original $1 ceiling. No calls
   are running. Do not count the reservation as confirmed or silently release it.
 - **Implemented connector:** public Markdown/catalog -> frozen per-run JSON ->
   bounded SDK search/read tools, role/task access records and Excel retrieval
@@ -48,9 +52,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   previously validated baseline. Final checks verified 25 local links/anchors,
   no credential patterns in changed documents, ignored/private artifacts and
   exact baseline/candidate inputs. No code tests are claimed for documentation.
-- **Current SV-05 checks:** 265-test full offline suite passed, followed by the
-  expanded 11-test accounting integration file (including two added CLI/revision
-  cases). Ruff, strict mypy (44 files), and source/wheel build passed. Original
+- **Current SV-05 checks:** 271-test full offline suite passed (91% coverage).
+  Ruff check/format, strict mypy (44 files), and source/wheel build passed. Original
   specialist instructions are byte-identical; only the opt-in analyst uses the
   new contract/prompt. This does not establish extraction-quality improvement.
 - **Knowledge curation:** revision 2 remains in_review in draft
@@ -114,6 +117,14 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- SV-05's first candidate failed exact-quotation validation before planning.
+  Preserve the failure; do not accept approximate matching or correct model output
+  by hand. The implementation correction precomputes source passages and supplies
+  an enum of valid evidence IDs; Python copies original text/spans. Recheck offline
+  compatibility, freeze draft/report V2 and prompt 10, then execute the separately
+  declared corrected condition once with a $0.28 cap inside the remaining budget.
+  This changes evidence selection mechanics, not frozen semantic expectations.
 
 - On 2026-10-28 the user approved SV-05: source-linked requirements with explicit
   conditions/values/exceptions and visible skipped/unresolved passages, followed

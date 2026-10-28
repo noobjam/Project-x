@@ -6,7 +6,14 @@ import socket
 
 import pytest
 
-from soc_verifier.domain.accounting import AccountingDraft, DraftObligation, SourceQuote
+from soc_verifier.domain.accounting import (
+    AccountingDraft,
+    DraftObligation,
+    SourceQuote,
+    UnitAccountingDraft,
+    UnitObligation,
+    source_units,
+)
 from soc_verifier.domain.knowledge import KnowledgeEntry, KnowledgeSnapshot
 from soc_verifier.domain.models import (
     PlanReview,
@@ -76,6 +83,24 @@ def accounting_draft(specification, analysis):
                 evidence=[
                     SourceQuote(block_id="P00001", quote=specification.blocks[0].text, occurrence=0)
                 ],
+            )
+        ],
+        dispositions=[],
+        gaps=[],
+    )
+
+
+@pytest.fixture
+def unit_accounting_draft(specification, analysis):
+    requirement = analysis.requirements[0]
+    return UnitAccountingDraft(
+        obligations=[
+            UnitObligation(
+                **requirement.model_dump(exclude={"source_ids"}),
+                conditions=["System reset is asserted"],
+                constraints=[],
+                exceptions=[],
+                evidence_ids=[unit.id for unit in source_units(specification)],
             )
         ],
         dispositions=[],
