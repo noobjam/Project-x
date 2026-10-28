@@ -552,6 +552,12 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
     def respond(payload):
         names = {tool["function"]["name"] for tool in payload["tools"]}
         assert {"search_knowledge", "get_knowledge_entries"} <= names
+        reader = next(
+            t["function"]
+            for t in payload["tools"]
+            if t["function"]["name"] == "get_knowledge_entries"
+        )
+        assert reader["parameters"]["properties"]["ids"]["maxItems"] == 4
         messages = [m for m in payload["messages"] if m["role"] == "tool"]
         if not messages:
             assert "response_format" not in payload

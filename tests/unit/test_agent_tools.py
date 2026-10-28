@@ -3,6 +3,7 @@ import hashlib
 import json
 
 import pytest
+from agents import ModelBehaviorError
 from agents.tool_context import ToolContext
 
 from soc_verifier.agents.tools import (
@@ -105,7 +106,7 @@ def test_knowledge_search_pages_all_hits_and_read_preserves_limits(
     ],
 )
 def test_knowledge_reads_reject_invalid_bounds(specification, knowledge_snapshot, arguments):
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, ModelBehaviorError)):
         invoke(
             get_knowledge_entries,
             EvidenceContext(specification, knowledge=knowledge_snapshot),

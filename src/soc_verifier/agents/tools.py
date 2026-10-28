@@ -4,9 +4,10 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
 from agents import RunContextWrapper, function_tool
+from pydantic import Field
 
 from soc_verifier.agents.attempts import current_invocation
 from soc_verifier.domain.knowledge import KnowledgeSnapshot
@@ -197,7 +198,9 @@ def search_knowledge(ctx: RunContextWrapper[EvidenceContext], query: str, offset
 
 @function_tool(failure_error_function=None)
 def get_knowledge_entries(
-    ctx: RunContextWrapper[EvidenceContext], ids: list[str], start_character: int = 0
+    ctx: RunContextWrapper[EvidenceContext],
+    ids: Annotated[list[str], Field(min_length=1, max_length=4)],
+    start_character: int = 0,
 ) -> str:
     """Read selected guidance by exact ID, up to four entries and 4000 characters per entry.
 

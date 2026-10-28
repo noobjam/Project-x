@@ -15,6 +15,7 @@ from agents import (
     OpenAIChatCompletionsModel,
     RunConfig,
     Runner,
+    UserError,
 )
 from openai import APIConnectionError, AsyncOpenAI
 from pydantic import BaseModel
@@ -278,7 +279,7 @@ class AgentRuntime:
                 raise ModelResponseError(
                     "Agent turn limit reached; no final artifact accepted"
                 ) from None
-            except ModelBehaviorError:
+            except (ModelBehaviorError, UserError):
                 # SDK errors may include rejected output text; keep it out of CLI logs.
                 raise ModelResponseError("Agent returned an invalid structured artifact") from None
             if evidence.knowledge is not None:
