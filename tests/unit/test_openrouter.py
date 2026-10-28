@@ -94,6 +94,60 @@ def test_buffered_response_preserves_decoded_json_and_rebuilds_entity_headers(en
     assert result.headers["x-request-id"] == "compressed-request"
 
 
+@pytest.mark.parametrize(
+    "choice,forced",
+    [
+        ("required", True),
+        ({"type": "function", "function": {"name": "search"}}, True),
+        ("auto", False),
+        ("none", False),
+        (None, False),
+    ],
+)
+def test_forced_tool_turn_uses_tool_schema_and_final_turn_keeps_output_schema(choice, forced):
+    def respond(request):
+        payload = json.loads(request.content)
+        assert ("response_format" not in payload) is forced
+        assert payload["tools"][0]["function"]["parameters"]["required"] == ["query"]
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"finish_reason": "stop", "message": {"content": "{}"}}],
+                "usage": {"cost": 0.0001},
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        OpenRouterTransport(settings(), client)._send(
+            httpx.Request(
+                "POST",
+                "https://openrouter.ai/api/v1/chat/completions",
+                json={
+                    "tool_choice": choice,
+                    "tools": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "search",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {"query": {"type": "string"}},
+                                },
+                            },
+                        }
+                    ],
+                    "response_format": {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": "PlanReview",
+                            "schema": PlanReview.model_json_schema(),
+                        },
+                    },
+                },
+            )
+        )
+
+
 def test_structured_request_routing_and_redacted_logging(caplog):
     def respond(request):
         payload = json.loads(request.content)

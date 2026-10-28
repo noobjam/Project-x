@@ -177,6 +177,12 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             "zdr": True,
         }
         payload["max_tokens"] = self.settings.max_output_tokens
+        choice = payload.get("tool_choice")
+        if choice == "required" or (isinstance(choice, dict) and choice.get("type") == "function"):
+            # A forced function turn returns arguments under the tool schema, not
+            # a final artifact. Combining both output modes is rejected by some
+            # providers. Keep the final schema on subsequent auto/none turns.
+            payload.pop("response_format", None)
         output = payload.get("response_format", {}).get("json_schema")
         if output:
             output["schema"] = _strict_schema(output["schema"])

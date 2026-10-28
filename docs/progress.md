@@ -23,6 +23,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   failed KB diagnostic, not a completed candidate. A local follow-up now uses
   API tool choice to require search/read before generation; prompt version 7.
   Focused SDK tests pass; full validation and a new matched pair are pending.
+- **Provider compatibility follow-up:** prompt-7 candidate c253b6ee was rejected
+  with HTTP 400 before tool execution. Its $0.308158400 reservation remains
+  uncertain; confirmed spending is still $0.033133100. Do not settle it at zero
+  without provider evidence. The next candidate is capped at $0.40; a fresh
+  baseline is conditional on the remaining task ceiling after settlement.
+  A local transport change omits the final-output schema only on forced function
+  turns, retaining tool-argument schemas and restoring final structured output.
 - **Live review trial:** in_review, limited SV-10A/B diagnostic on the frozen
   Management CPU reset packet. Baseline and provisional-guidance candidate both
   completed with needs_review. They produced six and four plan items respectively;

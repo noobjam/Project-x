@@ -554,12 +554,14 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         assert {"search_knowledge", "get_knowledge_entries"} <= names
         messages = [m for m in payload["messages"] if m["role"] == "tool"]
         if not messages:
+            assert "response_format" not in payload
             assert payload["tool_choice"] == {
                 "type": "function",
                 "function": {"name": "search_knowledge"},
             }
             return knowledge_lookup("search_knowledge", {"query": "reset"})
         if len(messages) == 1:
+            assert "response_format" not in payload
             assert payload["tool_choice"] == {
                 "type": "function",
                 "function": {"name": "get_knowledge_entries"},

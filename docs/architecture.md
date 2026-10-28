@@ -46,6 +46,8 @@ guard rejects providers that ignore required consultation. The runtime records
 `knowledge-access-v1` events by task/invocation, entry hash and character offset.
 These are access records, not per-item application claims. Guidance is untrusted
 methodology, never specification evidence or permission to execute tools.
+Forced function turns use the function's argument schema without a simultaneous
+final-output response schema; automatic/final turns retain the artifact schema.
 
 | Agent | Responsibility | Tools |
 | --- | --- | --- |
