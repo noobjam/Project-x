@@ -9,13 +9,18 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Active milestone:** SV-10B actual KB diagnostic, in_review on
-  feat/agent-knowledge-tools. The connected candidate completed with needs_review:
+- **Active milestone:** SV-10A/B model and quality benchmark, in_progress on
+  eval/agent-quality-baseline. The user approved evaluation first, an early
+  alternative-model comparison, then only evidence-backed workflow changes.
+  No new comparison has completed yet. The user rejected the current output as unsuitable
+  for engineer handoff. Retain the package as diagnostic evidence; correct known
+  quality failures internally before presenting it as a review deliverable. The connected candidate completed with needs_review:
   six requirements, five plan items and five automated findings. All three
   specialists searched and read guidance: six accesses, eight distinct entries,
   nine model calls, $0.0192188975 reported. All selected entries were fully returned.
-  The private engineer package is ready at
-  artifacts/evaluations/live-kb-review-2026-10-28-v4/review/START_REVIEW.md.
+  The retained diagnostic package is at
+  artifacts/evaluations/live-kb-review-2026-10-28-v4/review/START_REVIEW.md;
+  its existing review invitation is superseded by this handoff hold.
 - **Comparison outcome:** the matched source-only workflow failed traceability
   because its planner omitted an extracted requirement on the initial attempt
   and one resume. It has no accepted final plan. The connected candidate also
@@ -24,7 +29,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Task spending:** $0.0697225375 provider-reported across all retained attempts,
   plus a separate $0.308158400 uncertain reservation from an earlier HTTP 400.
   Combined commitment $0.3778809375 remains within the original $1 ceiling.
-  No further paid execution is scheduled; do not reset the task allocation.
+  Remaining allocation is $0.6221190625. The authorized comparison stays inside
+  this original aggregate ceiling; failures do not renew it.
 - **Implemented connector:** public Markdown/catalog -> frozen per-run JSON ->
   bounded SDK search/read tools. Required consultation, content hashes, task/batch
   binding, local retrieval reporting and Excel records are implemented. Final
@@ -57,7 +63,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 Checked on 2026-10-28:
 
-- Local branch: feat/agent-knowledge-tools. Code head 7ee24a4 is pushed and its
+- Local branch: eval/agent-quality-baseline, created from 90a2ce5. Benchmark
+  preparation is local and uncommitted. Code head 7ee24a4 is pushed and its
   remote SHA verified. PR #5 targets docs/knowledge-curation-review (PR #4).
   Main remains 52d3241. The progress handoff accompanies this review branch;
   private artifacts and AGENTS.md stay ignored.
@@ -80,7 +87,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Published at 82d401c in draft PR #4. Four engineering comments incorporated; 48 entries including 14 public examples. Documentation checks passed; entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
-| Actual KB diagnostic | in_review | Connected candidate and 65-file private review package complete; all specialists used search/read tools. Matched baseline failed traceability twice. PR #5 is draft, 244 tests and code-head CI pass; engineering acceptance and KB benefit remain pending. |
+| Actual KB diagnostic | in_progress | Technical connection and diagnostic artifacts exist; user rejected current output for engineer handoff. Internal quality correction is next. Matched baseline failed traceability twice; no engineering acceptance or measured KB benefit. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -104,6 +111,15 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-28 the user approved the revised evaluation-first approach: freeze
+  explicit quality criteria, compare the existing connected workflow with a
+  capable alternative model early, and make targeted workflow changes only when
+  supported by the evidence. Validate changes on separate development cases.
+  Retain the original $1 aggregate ceiling, current EU/ZDR routing constraints,
+  private evaluation artifacts and reviewed-PR workflow. This does not authorize
+  a merge, a full-document run, the proposed $5 pilot or a claim of engineering
+  acceptance. New annotations and our judgments remain agent_proposed.
 
 - On 2026-10-28 the user explicitly rejected testing without connecting the KB.
   Implement bounded search/read tools over a frozen per-run knowledge snapshot,
@@ -197,15 +213,27 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **SV-10B engineering review:** open
-   artifacts/evaluations/live-kb-review-2026-10-28-v4/review/START_REVIEW.md and
-   candidate-plan.xlsx. RETRIEVAL.md records actual reads; PRELIMINARY_NOTES.md
-   identifies source-backed issues for adjudication; FEEDBACK.md captures decisions.
-   Keep this source/plan package private. The code is in draft PR #5, stacked on
-   PR #4, and is not merged. Confirm omitted obligations, unsupported expectations
-   and checklist application before another paid comparison. Preserve the failed
-   source-only comparison and all earlier failures in any quality assessment.
-   The earlier manual-guidance pack is historical, not a KB-retrieval test.
+0. **SV-10A/B benchmark before workflow changes:** freeze revised source-bound
+   obligations and pass/fail criteria using the existing evaluation contracts.
+   Reuse previous output only after verifying unchanged effective inputs. Compare
+   one explicitly pinned alternative model/provider within the remaining task
+   budget; keep failures and uncertain charges. Current source/KB/workflow remain
+   fixed. Select targeted SV-05/06/07 changes from the results, then validate on a
+   separate development packet. The user rejected
+   the current candidate for engineer review. Diagnosis: source-ID validation
+   checks reference existence but not extraction completeness; requirement-to-plan
+   mapping cannot catch requirements omitted during extraction; KB guards confirm
+   access rather than application; nonempty expected-results strings can remain
+   vague; review findings lack mandatory source support. The relevant source text
+   was supplied, so source retrieval alone is not an adequate explanation.
+   Next implementation proposal: use the observed omissions, unsupported outcomes
+   and false review findings plus valid controls as evaluation cases; trial source
+   accounting, observable pass/fail checks and source-supported review. Relevant
+   scopes are SV-05/06 experiments and SV-07, evaluated through SV-10. Reconcile
+   ticket dependencies before implementation; no broad schema/agent redesign is
+   implied. Model capability remains unisolated without a controlled comparison.
+   The subsequent user approval permits the bounded comparison above. Keep the existing package
+   private as diagnostic evidence and do not treat it as ready for handoff.
 
 1. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
    [focused review guide](knowledge/REVISION_NOTES.md)
@@ -622,6 +650,19 @@ complete merely because its plan exists.
   a focused fix to adjudicated omissions/application errors and another bounded
   comparison under an explicitly recorded allocation. SV-10 remains in_progress;
   the broader SV-04 source-retrieval ticket remains planned.
+
+### 2026-10-28: Engineer handoff held after output assessment
+
+- User rejected the current output as unsuitable for engineer review and asked
+  whether architecture explains the failures. Inspected extraction, knowledge
+  consultation, plan validation and reviewer contracts against the actual run.
+- Identified structural gaps in completeness and evidence checks; the model's
+  contribution remains unmeasured. Preserve the three-role runtime while defining
+  focused quality changes rather than assuming more knowledge or more agents fixes
+  the observed failures. No code changes, new tests, inference or publication in
+  this assessment session; this checkpoint is local and uncommitted.
+- The existing package remains historical diagnostic material. Its handoff
+  invitation is withdrawn pending internal correction; no engineering approval.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
