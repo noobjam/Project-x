@@ -123,6 +123,27 @@ For C source chunks and B planning batches, a large run starts `2*C + B + 2` age
 tasks before corrections/revisions. Each task may make several model requests.
 Small inputs start three tasks. All follow-up requests use the same cost/call ledger.
 
+### Bounded source-accounting experiment
+
+SV-05 is opt-in through `source_accounting`. It currently rejects multi-chunk
+source packets before inference; planner and reviewer batching still work.
+The analyst returns `source-accounting-draft-v1`: obligations with conditions,
+constraints, exceptions and verbatim source quotations, plus grouped proposed
+non-normative/unresolved dispositions. Python resolves exact quote occurrences
+to Unicode code-point spans with complete block-text hashes, rejects nonexistent
+evidence and contradictory dispositions, and computes unaccounted text intervals.
+It does not infer whether the quoted text semantically supports the requirement.
+
+The immutable `obligations.rNNN.json` task completion is validated before planning.
+Python projects all structured facts into V1 requirement statements without a
+second model pass. `source-accounting.rNNN.json` binds the exact specification,
+raw extraction and projected analysis bytes. Its status remains unreviewed.
+Unaccounted/unresolved source adds visible analysis gaps; the opt-in batched
+planner/reviewer also receives those gaps. Downstream tasks bind the accounting
+snapshot, and interrupted projections are recreated from validated completions
+without recharging extraction. The local CLI and Excel export verify the same
+bindings. Existing source, analysis, plan and review schemas remain unchanged.
+
 ## Spending and migration compatibility
 
 Reservations use advertised endpoint context capacity and output ceiling at pinned
@@ -134,7 +155,9 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 7 adds enforced knowledge consultation; engine `openai-agents-v2` identifies
+version 7 added enforced knowledge consultation; version 9 adds the opt-in
+structured accounting analyst. Existing planner/reviewer instructions are unchanged.
+Engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
 remain exportable with new metadata marked unavailable; `spend` and `tasks` read

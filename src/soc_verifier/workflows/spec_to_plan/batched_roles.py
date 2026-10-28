@@ -219,6 +219,11 @@ def plan_batches(
             previous = f"plan.r{revision - 1:03d}.batch{number:04d}.json"
             context: dict[str, object] = {
                 "assigned_requirements": local.model_dump(mode="json"),
+                **(
+                    {"analysis_gaps": analysis.gaps}
+                    if "source_accounting" in task.envelope.inputs.evidence
+                    else {}
+                ),
                 "system_requirement_index": index,
                 "evidence": evidence(
                     spec, {source for item in local.requirements for source in item.source_ids}
@@ -335,6 +340,11 @@ def review_batches(
                 instruction=prompts.REVIEW_CHUNK,
                 context={
                     "evidence": evidence(spec, source_ids),
+                    **(
+                        {"analysis_gaps": analysis.gaps}
+                        if "source_accounting" in task.envelope.inputs.evidence
+                        else {}
+                    ),
                     "system_requirement_index": requirement_directory(analysis),
                     "requirements": [item.model_dump(mode="json") for item in local],
                     "plan": [item.model_dump(mode="json") for item in local_plan],
@@ -389,6 +399,11 @@ def review_batches(
                 "specification_outline": specification_outline(spec),
                 "extraction_warnings": spec.extraction_warnings,
                 "requirement_index": index,
+                **(
+                    {"analysis_gaps": analysis.gaps}
+                    if "source_accounting" in task.envelope.inputs.evidence
+                    else {}
+                ),
                 "plan_index": [
                     {
                         "id": item.id,

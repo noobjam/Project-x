@@ -201,6 +201,15 @@ packet was demonstrably supplied and a model screen still misses explicit facts,
 an instructions-only coverage trial may precede SV-04. It adds no extraction
 schema or interaction index and must be compared before expansion.
 
+After that prompt-only trial failed, the user approved a structured bounded-packet
+trial before SV-04: extract conditions, values/constraints and exceptions with
+exact source quotations; record grouped non-normative/unresolved dispositions;
+compute unaccounted source text locally. Keep accounting separately versioned and
+project facts into the existing analysis/plan contracts. Start opt-in with one
+bounded source chunk, rejecting larger inputs before inference. No interaction
+index or additional role is included. This limited scope does not complete the
+full ticket or authorize full-document expansion.
+
 Test independently reviewable behavioral obligations and a small source-linked
 interaction index for identified failures. Preserve parameterized register/interrupt
 families when the source supports uniform behavior. Use compact source dispositions;
@@ -212,6 +221,10 @@ Acceptance:
 - Representation size and calls are measured before full-document expansion.
 - Improvement comes from correctly recovered behavior, not more rows.
 - Missing relationship edges are unknown dependencies, not proof of independence.
+- Fabricated quotations/IDs and stale accounting fail before planning. Unaccounted
+  text remains visible; quoted text is never called semantically covered by code.
+- Structured facts survive projection into planner inputs and offline exports.
+  Interrupted execution reuses validated extraction; historical exports/spend work.
 
 Cancel or defer expansion if it fails the targeted cases, creates unsupported
 relationships or increases cost/review effort without a measured benefit.

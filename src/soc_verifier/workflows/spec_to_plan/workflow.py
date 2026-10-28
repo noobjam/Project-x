@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Literal, TypedDict
 
+from pydantic import BaseModel
+
 from soc_verifier.agents import instructions as prompts
 from soc_verifier.agents.base import AgentExecutor
 from soc_verifier.agents.tasks import (
@@ -13,6 +15,7 @@ from soc_verifier.agents.tasks import (
     fingerprint,
     runtime_versions,
 )
+from soc_verifier.domain.accounting import AccountingDraft, compile_accounting
 from soc_verifier.domain.models import (
     PlanReview,
     SpecAnalysis,
@@ -22,6 +25,7 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.storage.artifacts import ArtifactStore
+from soc_verifier.workflows.spec_to_plan.accounting import project_accounting
 from soc_verifier.workflows.spec_to_plan.batched_roles import (
     analyze_batches,
     plan_batches,
@@ -40,6 +44,7 @@ class PlanState(TypedDict, total=False):
     review_revision: int
     revision: int
     status: Literal["draft_ready", "needs_review"]
+    source_accounting_artifact: str
 
 
 @dataclass
@@ -50,11 +55,17 @@ class PlanningWorkflow:
     chunk_max_characters: int = 24_000
     plan_batch_size: int = 8
     batch_workers: int = 1
+    source_accounting: bool = False
 
     def run(self, specification: Specification | None = None) -> PlanState:
         if specification is None:
             specification = Specification.model_validate(self.artifacts.read("specification.json"))
         self.artifacts.write("specification.json", specification)
+        if (
+            self.source_accounting
+            and len(split_specification(specification, self.chunk_max_characters)) > 1
+        ):
+            raise ValueError("Source accounting trial requires one bounded source chunk")
         execution = {
             "format": "task-execution-v1",
             "versions": runtime_versions(),
@@ -64,6 +75,7 @@ class PlanningWorkflow:
             "max_revisions": self.max_revisions,
             "chunk_max_characters": self.chunk_max_characters,
             "plan_batch_size": self.plan_batch_size,
+            "source_accounting": self.source_accounting,
         }
         if self.artifacts.exists("knowledge.json"):
             execution["knowledge"] = ArtifactReference.capture(
@@ -83,6 +95,7 @@ class PlanningWorkflow:
             chunk_max_characters=self.chunk_max_characters,
             plan_batch_size=self.plan_batch_size,
             batch_workers=self.batch_workers,
+            source_accounting=self.source_accounting,
         )
 
 
@@ -95,6 +108,7 @@ def _run_workflow(
     chunk_max_characters: int,
     plan_batch_size: int,
     batch_workers: int,
+    source_accounting: bool,
 ) -> PlanState:
     if not 0 <= max_revisions <= 5:
         raise ValueError("max_revisions must be between 0 and 5")
@@ -108,7 +122,7 @@ def _run_workflow(
         state: PlanState,
         role: Literal["analyst", "planner", "reviewer"],
         instruction: str,
-        schema: type[SpecAnalysis] | type[VerificationPlan] | type[PlanReview],
+        schema: type[BaseModel],
         assigned_ids: list[str],
     ) -> Task:
         names = {"source": "specification.json"}
@@ -116,6 +130,8 @@ def _run_workflow(
             names["knowledge"] = "knowledge.json"
         if "analysis" in state:
             names["analysis"] = _analysis_artifact(state["analysis_revision"])
+        if "source_accounting_artifact" in state:
+            names["source_accounting"] = state["source_accounting_artifact"]
         if "plan" in state:
             names["plan"] = f"plan.r{state['revision']:03d}.json"
         if "review" in state:
@@ -142,6 +158,43 @@ def _run_workflow(
         spec = Specification.model_validate(state["specification"])
         revision = state.get("analysis_revision", -1) + 1
         name = _analysis_artifact(revision)
+        if source_accounting:
+            extraction_name = f"obligations.r{revision:03d}.json"
+            extraction_task = bind(
+                extraction_name,
+                state,
+                "analyst",
+                prompts.ANALYZE_ACCOUNTED,
+                AccountingDraft,
+                [b.id for b in spec.blocks],
+            )
+            draft = extraction_task.load(AccountingDraft)
+            if draft is None:
+                draft = agents.run(
+                    role="analyst",
+                    instruction=prompts.ANALYZE_ACCOUNTED,
+                    context=json.dumps(
+                        {
+                            "specification": state["specification"],
+                            "previous_analysis": state.get("analysis"),
+                            "review": state.get("review"),
+                        }
+                    ),
+                    schema=AccountingDraft,
+                    task=extraction_task.envelope,
+                )
+            # Source-dependent validation precedes both checkpoint acceptance and planning.
+            compile_accounting(draft, spec)
+            extraction_task.save(draft)
+            analysis, accounting = project_accounting(artifacts, extraction_name, name)
+            artifacts.write(name, analysis)
+            accounting_name = f"source-accounting.r{revision:03d}.json"
+            artifacts.write(accounting_name, accounting)
+            return {
+                "analysis": analysis.model_dump(mode="json"),
+                "analysis_revision": revision,
+                "source_accounting_artifact": accounting_name,
+            }
         task = bind(
             name, state, "analyst", prompts.ANALYZE, SpecAnalysis, [b.id for b in spec.blocks]
         )
@@ -302,6 +355,11 @@ def _run_workflow(
                 "human_approved": False,
                 "revision_limit_reached": review_result.needs_revision,
                 "analysis_artifact": _analysis_artifact(state["analysis_revision"]),
+                **(
+                    {"source_accounting_artifact": state["source_accounting_artifact"]}
+                    if "source_accounting_artifact" in state
+                    else {}
+                ),
                 "plan_artifact": f"plan.r{state['revision']:03d}.json",
                 "review_artifact": f"review.r{state['revision']:03d}.json",
             },

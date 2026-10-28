@@ -10,6 +10,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
+from soc_verifier.domain.accounting import SourceAccounting
 from soc_verifier.domain.models import (
     PlanReview,
     SpecAnalysis,
@@ -29,6 +30,7 @@ def export_plan(
     review: PlanReview,
     task_metadata: str | None = None,
     knowledge_accesses: list[dict[str, Any]] | None = None,
+    source_accounting: SourceAccounting | None = None,
 ) -> None:
     validate_sources(analysis, specification)
     validate_traceability(plan, analysis)
@@ -124,6 +126,77 @@ def export_plan(
         metadata = workbook.create_sheet("Run metadata")
         _row(metadata, ["Field", "Availability"])
         _row(metadata, ["Task input and spending attribution", task_metadata])
+        _row(metadata, ["Source accounting", "unreviewed" if source_accounting else "unavailable"])
+
+    if source_accounting is not None:
+        sheet = workbook.create_sheet("Source accounting")
+        _row(
+            sheet,
+            [
+                "Record",
+                "Requirement",
+                "Source ID",
+                "Start",
+                "End",
+                "Source text",
+                "Conditions",
+                "Constraints",
+                "Exceptions",
+                "Reason",
+            ],
+        )
+        blocks = {block.id: block for block in specification.blocks}
+        for obligation in source_accounting.obligations:
+            for span in obligation.evidence:
+                _row(
+                    sheet,
+                    [
+                        "Unreviewed evidence",
+                        obligation.id,
+                        span.block_id,
+                        str(span.start),
+                        str(span.end),
+                        blocks[span.block_id].text[span.start : span.end],
+                        "\n".join(obligation.conditions),
+                        "\n".join(obligation.constraints),
+                        "\n".join(obligation.exceptions),
+                        "",
+                    ],
+                )
+        for disposition in source_accounting.dispositions:
+            for identifier in disposition.source_ids:
+                _row(
+                    sheet,
+                    [
+                        "Proposed " + disposition.status,
+                        "",
+                        identifier,
+                        "",
+                        "",
+                        blocks[identifier].text,
+                        "",
+                        "",
+                        "",
+                        disposition.reason,
+                    ],
+                )
+        for span in source_accounting.unaccounted:
+            _row(
+                sheet,
+                [
+                    "Unaccounted",
+                    "",
+                    span.block_id,
+                    str(span.start),
+                    str(span.end),
+                    blocks[span.block_id].text[span.start : span.end],
+                    "",
+                    "",
+                    "",
+                    "No quotation or disposition accounts for this text.",
+                ],
+            )
+        _row(sheet, ["Quotations establish source location, not complete or correct extraction."])
 
     if knowledge_accesses:
         knowledge = workbook.create_sheet("Knowledge retrieval")

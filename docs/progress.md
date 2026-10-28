@@ -9,8 +9,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Active milestone:** SV-10A/B quality benchmark, in_progress on
-  eval/agent-quality-baseline. The initial model screen and one focused prompt
+- **Active milestone:** SV-05 structured source accounting, in_progress on
+  feat/source-obligation-accounting, based on published 784d03c. The user approved
+  implementation and the bounded comparison on 2026-10-28. No prerequisite merge
+  is needed or authorized. The opt-in implementation is locally complete and
+  validated; a $0.28 candidate allocation is reserved within the existing task
+  ceiling for the frozen comparison. No new inference has started yet. The initial model screen and one focused prompt
   experiment are complete. The prompt experiment was rejected and reverted;
   engineering-quality acceptance and a successful correction remain pending.
   The current outputs are not suitable for engineer handoff. The source-free
@@ -44,6 +48,11 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   previously validated baseline. Final checks verified 25 local links/anchors,
   no credential patterns in changed documents, ignored/private artifacts and
   exact baseline/candidate inputs. No code tests are claimed for documentation.
+- **Current SV-05 checks:** 265-test full offline suite passed, followed by the
+  expanded 11-test accounting integration file (including two added CLI/revision
+  cases). Ruff, strict mypy (44 files), and source/wheel build passed. Original
+  specialist instructions are byte-identical; only the opt-in analyst uses the
+  new contract/prompt. This does not establish extraction-quality improvement.
 - **Knowledge curation:** revision 2 remains in_review in draft
   [PR #4](https://github.com/noobjam/Project-x/pull/4). All 48 entries remain
   proposed, spanning OpenHW, Accellera, PULP and OpenTitan. No approvals inferred.
@@ -105,6 +114,15 @@ complete merely because its plan exists.
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-28 the user approved SV-05: source-linked requirements with explicit
+  conditions/values/exceptions and visible skipped/unresolved passages, followed
+  by the frozen 13-label comparison on the same model/KB and a separate case only
+  if the candidate improves without new unsupported behavior. Implement an opt-in
+  bounded-packet trial with a versioned accounting artifact and unchanged V1 plan/
+  analysis exports. Exact quotations establish location, not semantic completeness.
+  No extra agent role, full-document rollout or SV-07 implementation in this slice.
+  Preserve the remaining $0.4391924945 aggregate allocation; no merge.
 
 - The first alternative-model screen retained the same effective source, KB,
   runtime, prompts and generation limits. GPT-5 mini / Azure Sweden completed in
@@ -216,6 +234,18 @@ complete merely because its plan exists.
   and broader agent teams remain deferred according to the roadmap.
 
 ## Next moves
+
+0. **Active SV-05 comparison:** commit the candidate and freeze its runtime,
+   source/KB/configuration/annotation hashes. Run the opt-in workflow once on the
+   existing 13-label packet using GPT-5 mini / Azure Sweden, max $0.28, with
+   unchanged planner/reviewer prompts and no automatic workflow retry. Inspect
+   actual obligations, proposed dispositions, unaccounted spans and downstream
+   output against the fixed labels. The original $1 aggregate ceiling and
+   outstanding $0.308158400 reservation remain in force. If the candidate improves
+   without new unsupported behavior, allocate a separate development-case check
+   from the actual remaining balance. Keep source/reference/artifacts private;
+   publish a focused review PR, no merge. See the
+   [trial protocol](../evals/source-accounting-comparison.md).
 
 0. **SV-05/SV-07 next implementation candidate:** use the frozen failure cases
    to define a small, versioned source-obligation inventory and source-supported

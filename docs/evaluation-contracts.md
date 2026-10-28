@@ -65,7 +65,13 @@ production checkpoint.
   legacy reservation/settlement amounts remain readable without inference.
 
 Run manifests/results use version 2.0 and engine `openai-agents-v2`; domain source,
-analysis, plan and review schemas remain 1.0 and PROMPT_VERSION remains 5. Unknown
+analysis, plan and review schemas remain 1.0. Prompt version 9 adds the opt-in
+SV-05 source-accounting analyst; separate draft/report formats use version 1.
+The report binds exact source, extraction and projected analysis artifact hashes.
+Quote occurrence resolution uses exact persisted text and computes Unicode spans
+locally; normalized/paraphrased or missing quotations fail. Unquoted text without
+a disposition stays unaccounted. Location validity and model-proposed dispositions
+never establish semantic coverage or engineering approval. Unknown
 versions and stale fingerprints fail explicitly. Legacy runs can export and report
 spending with task metadata unavailable, but cannot resume under the new engine.
 No immutable legacy artifacts are migrated or rewritten.

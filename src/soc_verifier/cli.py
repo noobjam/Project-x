@@ -28,6 +28,7 @@ from soc_verifier.providers.reporting import read_task_report
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.storage.readers import read_result
+from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 app = typer.Typer(no_args_is_help=True, help="Traceable system-level verification workflows.")
@@ -73,6 +74,9 @@ def plan(
         Path | None, typer.Option("--knowledge-catalog", exists=True, dir_okay=False)
     ] = None,
     allow_proposed_knowledge: Annotated[bool, typer.Option("--allow-proposed-knowledge")] = False,
+    source_accounting: Annotated[
+        bool | None, typer.Option("--source-accounting/--no-source-accounting")
+    ] = None,
 ) -> None:
     """Run the analyst, planner and reviewer agents on an extracted specification."""
     with _errors():
@@ -84,6 +88,8 @@ def plan(
             else None
         )
         settings = Settings()
+        if source_accounting is not None:
+            settings = settings.model_copy(update={"source_accounting": source_accounting})
         settings.require_agents()
         spec = Specification.model_validate_json(specification.read_text(encoding="utf-8"))
         run_id = str(uuid4())
@@ -122,11 +128,16 @@ def resume(
     max_output_tokens: Annotated[
         int | None, typer.Option("--max-output-tokens", min=256, max=64_000)
     ] = None,
+    source_accounting: Annotated[
+        bool | None, typer.Option("--source-accounting/--no-source-accounting")
+    ] = None,
 ) -> None:
     """Resume an interrupted run using its validated artifact checkpoints."""
     with _errors():
         run_id = str(UUID(run_id))
         settings = Settings()
+        if source_accounting is not None:
+            settings = settings.model_copy(update={"source_accounting": source_accounting})
         settings.require_agents()
         root = settings.artifact_dir / "runs" / run_id
         if not root.is_dir():
@@ -244,8 +255,29 @@ def export_command(
             if result.get("schema_version") == "2.0"
             else "unavailable (legacy run)",
             knowledge_accesses=read_knowledge_accesses(artifacts),
+            source_accounting=read_accounting(artifacts, result["source_accounting_artifact"])
+            if "source_accounting_artifact" in result
+            else None,
         )
         typer.echo(f"Exported draft verification plan to {output}")
+
+
+@app.command()
+def accounting(
+    run_id: Annotated[str, typer.Argument()],
+    revision: Annotated[int, typer.Option("--revision", min=0)] = 0,
+) -> None:
+    """Inspect validated source accounting, including before a plan completes; no API calls."""
+    with _errors():
+        root = Settings().artifact_dir / "runs" / str(UUID(run_id))
+        if not root.is_dir():
+            raise ValueError("Unknown run ID")
+        artifacts = ArtifactStore(root)
+        name = f"source-accounting.r{revision:03d}.json"
+        if not artifacts.exists(name):
+            typer.echo("Source accounting unavailable for this analysis revision.")
+            return
+        typer.echo(read_accounting(artifacts, name).model_dump_json(indent=2))
 
 
 @app.command()
@@ -303,6 +335,7 @@ def _execute(
                 chunk_max_characters=settings.chunk_max_characters,
                 plan_batch_size=settings.plan_batch_size,
                 batch_workers=settings.batch_workers,
+                source_accounting=settings.source_accounting,
             )
             result = workflow.run()
             if completed:

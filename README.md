@@ -87,6 +87,29 @@ show retrieval, not proof that guidance was correctly applied to each plan row.
 Changing the saved snapshot prevents resume; changing authoring files leaves
 existing snapshots intact. Tool follow-ups consume the same run budget.
 
+For the experimental SV-05 source-accounting workflow, add `--source-accounting`
+to `plan` (and to `resume` for that run), or set `SOC_VERIFIER_SOURCE_ACCOUNTING=true`.
+It defaults off and currently accepts only one bounded source chunk; larger
+inputs fail before inference. The analyst records conditions, constraints and
+exceptions with exact source quotations. Python resolves quotation locations,
+preserves those fields in the planner's requirements and exposes unaccounted text
+as unresolved. This adds no specialist role or separate extraction call.
+
+```bash
+uv run soc-verifier plan artifacts/packet.json --source-accounting \
+  --knowledge-catalog docs/knowledge/catalog.json --allow-proposed-knowledge
+uv run soc-verifier accounting <run-id> --revision 0
+uv run soc-verifier resume <run-id> --source-accounting
+```
+
+The local `accounting` command works after extraction, even if planning failed.
+Exports add a **Source accounting** sheet with quotations, structured facts,
+proposed dispositions and unaccounted text. Unknown quotations and stale input
+bindings fail validation. A quotation proves location, not correct interpretation
+or complete extraction; non-normative dispositions also require review. This
+trial has no engineering-quality approval. Historical runs retain their original
+analysis/plan formats and report accounting as unavailable.
+
 Monitor a run from another terminal with `uv run soc-verifier spend <run-id> --watch`.
 It refreshes every five seconds and stops when the run completes; Ctrl-C stops
 only the monitor. Omit `--watch` for a single snapshot. This command is local and

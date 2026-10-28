@@ -537,14 +537,23 @@ def knowledge_lookup(name, arguments):
     )
 
 
+@pytest.mark.parametrize("source_accounting", [False, True])
 def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
-    tmp_path, specification, analysis, verification_plan, clean_review, knowledge_snapshot
+    tmp_path,
+    specification,
+    analysis,
+    verification_plan,
+    clean_review,
+    knowledge_snapshot,
+    accounting_draft,
+    source_accounting,
 ):
     from soc_verifier.agents.knowledge import read_knowledge_accesses
     from soc_verifier.agents.tasks import ArtifactReference
 
     outputs = {
         "SpecAnalysis": analysis,
+        "AccountingDraft": accounting_draft,
         "VerificationPlan": verification_plan,
         "PlanReview": clean_review,
     }
@@ -582,14 +591,23 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         return completion({"content": outputs[name].model_dump_json()})
 
     api = API(respond)
-    agents, client, artifacts = runtime(tmp_path, specification, api)
+    agents, client, artifacts = runtime(
+        tmp_path, specification, api, source_accounting=source_accounting
+    )
     artifacts.write("knowledge.json", knowledge_snapshot)
     reference = ArtifactReference.capture(artifacts, "knowledge.json")
     with client:
-        workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
+        workflow = PlanningWorkflow(
+            agents, artifacts, max_revisions=0, source_accounting=source_accounting
+        )
         assert workflow.run()["status"] == "draft_ready"
         assert workflow.run()["status"] == "draft_ready"
         assert len(api.requests) == 9
+        if source_accounting:
+            report = artifacts.read("source-accounting.r000.json")
+            assert report["semantic_acceptance"] == "unreviewed"
+            assert report["unaccounted"] == []
+            assert "Conditions:" in artifacts.read("analysis.json")["requirements"][0]["statement"]
         accesses = read_knowledge_accesses(artifacts)
         assert len(accesses) == 6
         assert {a["role"] for a in accesses} == {"analyst", "planner", "reviewer"}
