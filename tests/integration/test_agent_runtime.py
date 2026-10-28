@@ -554,10 +554,19 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         assert {"search_knowledge", "get_knowledge_entries"} <= names
         messages = [m for m in payload["messages"] if m["role"] == "tool"]
         if not messages:
+            assert payload["tool_choice"] == {
+                "type": "function",
+                "function": {"name": "search_knowledge"},
+            }
             return knowledge_lookup("search_knowledge", {"query": "reset"})
         if len(messages) == 1:
+            assert payload["tool_choice"] == {
+                "type": "function",
+                "function": {"name": "get_knowledge_entries"},
+            }
             assert json.loads(messages[0]["content"])["items"][0]["status"] == "proposed"
             return knowledge_lookup("get_knowledge_entries", {"ids": ["K01"]})
+        assert payload["tool_choice"] == "auto"
         assert json.loads(messages[-1]["content"])["items"][0]["text"] == (
             knowledge_snapshot.entries[0].text
         )
@@ -604,6 +613,8 @@ def test_knowledge_cannot_be_silently_ignored(
         if mode != "skip" and not any(m["role"] == "tool" for m in payload["messages"]):
             query = "reset" if mode == "search_only" else "unmatched-topic"
             return knowledge_lookup("search_knowledge", {"query": query})
+        if mode == "no_matches":
+            assert payload["tool_choice"] == "auto"
         return completion({"content": analysis.model_dump_json()})
 
     api = API(respond)

@@ -40,7 +40,9 @@ The catalog hashes Markdown entries and records proposed/approved status;
 approved entries require a reviewer, and proposed entries require explicit trial
 opt-in. Search returns at most five matches per page; reads return at most four
 entries and 4,000 characters per entry, within the shared tool response bound.
-The runtime checks consultation before accepting output and records
+The runtime requires search, then a read when there are matches, through API tool
+choice; after consultation the model can choose further tools or finish. A final
+guard rejects providers that ignore required consultation. The runtime records
 `knowledge-access-v1` events by task/invocation, entry hash and character offset.
 These are access records, not per-item application claims. Guidance is untrusted
 methodology, never specification evidence or permission to execute tools.
@@ -130,7 +132,7 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 6 adds knowledge consultation; engine `openai-agents-v2` identifies
+version 7 adds enforced knowledge consultation; engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
 remain exportable with new metadata marked unavailable; `spend` and `tasks` read

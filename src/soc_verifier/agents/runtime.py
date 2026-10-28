@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -56,6 +57,7 @@ class AgentRuntime:
             configuration["knowledge"] = ArtifactReference.capture(
                 self.artifacts, "knowledge.json"
             ).model_dump()
+            configuration["knowledge_consultation"] = "required-search-read-v1"
         return configuration
 
     def _evidence(self, task: TaskEnvelope, accesses: list[dict[str, Any]]) -> EvidenceContext:
@@ -225,11 +227,29 @@ class AgentRuntime:
                 "reviewer": create_reviewer,
             }[role]
             agent = factory(model, instruction, schema)
+            agent.model_settings = ModelSettings(max_tokens=self.settings.max_output_tokens)
             accesses: list[dict[str, Any]] = []
             evidence = self._evidence(task, accesses)
             if evidence.knowledge is not None:
                 agent.tools.extend([search_knowledge, get_knowledge_entries])
-            agent.model_settings = ModelSettings(max_tokens=self.settings.max_output_tokens)
+                # Enforce consultation at the API boundary, not just in prose.
+                # The agent still chooses its query and the entries it reads.
+                agent.reset_tool_choice = False
+                agent.model_settings.tool_choice = "search_knowledge"
+                persist_access = evidence.knowledge_audit
+                assert persist_access is not None
+
+                def audit_and_route(record: dict[str, Any]) -> None:
+                    persist_access(record)
+                    has_matches = any(
+                        a["tool"] == "search_knowledge" and a["entry_ids"] for a in accesses
+                    )
+                    has_read = any(a["tool"] == "get_knowledge_entries" for a in accesses)
+                    agent.model_settings.tool_choice = (
+                        "get_knowledge_entries" if has_matches and not has_read else "auto"
+                    )
+
+                evidence = replace(evidence, knowledge_audit=audit_and_route)
             logger.info(
                 "agent_start role=%s task=%s tools=%s max_turns=%s",
                 role,

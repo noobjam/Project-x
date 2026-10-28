@@ -16,6 +16,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   implemented locally. Validation: 239 offline tests, Ruff check/format, mypy
   and source/wheel build passed. Connected live output remains. These edits are
   uncommitted and unpublished. The original $1 task ceiling remains in force.
+- **Live connection finding:** implementation 4c136b2 is published in draft
+  [PR #5](https://github.com/noobjam/Project-x/pull/5), stacked on PR #4. Its
+  baseline completed for $0.008634725; the KB candidate ignored available tools
+  and was rejected after one $0.002640825 call. No unsettled charges. This is a
+  failed KB diagnostic, not a completed candidate. A local follow-up now uses
+  API tool choice to require search/read before generation; prompt version 7.
+  Focused SDK tests pass; full validation and a new matched pair are pending.
 - **Live review trial:** in_review, limited SV-10A/B diagnostic on the frozen
   Management CPU reset packet. Baseline and provisional-guidance candidate both
   completed with needs_review. They produced six and four plan items respectively;
@@ -374,6 +381,20 @@ complete merely because its plan exists.
   CLI integration remain unfinished. No additional paid calls or publication.
 - Next: wire frozen knowledge into every specialist task, test the connection,
   run within the remaining original budget, and supply traceable actual output.
+
+### 2026-10-28: KB connector published; live consultation failure caught
+
+- Published 4c136b2 on feat/agent-knowledge-tools and verified the remote SHA;
+  opened draft PR #5 with PR #4 as its base. 239 offline tests, Ruff, mypy and
+  source/wheel build passed. Private sources, plans and AGENTS.md stay excluded.
+- The new baseline completed; the candidate returned without calling knowledge
+  tools. The final guard rejected it. Its $0.002640825 charge is retained alongside
+  the $0.008634725 baseline charge; cumulative task spending is $0.033133100,
+  with zero unsettled reservations. Artifacts: live-kb-review-2026-10-28-v1.
+- Added required API tool choice for search then read, returning to automatic
+  choice after consultation. Installed-SDK regression checks verify each request;
+  the configured endpoint advertises tool_choice support. Revalidate and pin a
+  fresh matched pair before claiming successful KB execution.
 
 ### 2026-10-26 SDK migration and architecture planning
 

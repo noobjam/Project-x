@@ -80,7 +80,8 @@ database, automatic web browsing or reference-answer retrieval. Knowledge suppli
 verification methods; the current specification supplies design facts.
 
 Each KB-enabled invocation must search and, when matches exist, read guidance
-before its output is accepted. The local `knowledge` command and the Excel
+before its output is accepted. API tool choice enforces those initial steps; the
+model chooses the search query and which entries to read. The local `knowledge` command and the Excel
 **Knowledge retrieval** sheet show actual accesses by role/task. These records
 show retrieval, not proof that guidance was correctly applied to each plan row.
 Changing the saved snapshot prevents resume; changing authoring files leaves
