@@ -13,7 +13,9 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   eval/agent-quality-baseline. The initial model screen and one focused prompt
   experiment are complete. The prompt experiment was rejected and reverted;
   engineering-quality acceptance and a successful correction remain pending.
-  The current outputs are not suitable for engineer handoff.
+  The current outputs are not suitable for engineer handoff. The source-free
+  protocol/results are published in draft
+  [PR #6](https://github.com/noobjam/Project-x/pull/6), stacked on PR #5.
 - **Measured result:** the unchanged KB-connected workflow on GPT-5 mini / Azure
   Sweden fully preserved 9/13 provisional obligations versus 2/13 for the saved
   Gemini condition. Fully adequate scenarios were 2/13 versus 0/13, with useful
@@ -55,9 +57,11 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 Checked on 2026-10-28:
 
 - Local branch: eval/agent-quality-baseline, based on published 90a2ce5 from
-  feat/agent-knowledge-tools. Protocol commit 54493b8 and experimental commit
-  a6c9755 are local; the restoration/report handoff is uncommitted and unpublished.
-  Runtime behavior is restored to the PR #5 baseline. Main remains 52d3241.
+  feat/agent-knowledge-tools. Protocol 54493b8, experiment a6c9755 and restoration/
+  results 10026da are pushed in draft PR #6. Remote 10026da was verified directly;
+  this publication handoff accompanies that branch. The final diff contains only
+  shared evaluation/roadmap/progress documents. Runtime matches the PR #5 baseline.
+  Main was verified remotely at 52d3241. No merge or private-artifact publication.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -682,8 +686,10 @@ complete merely because its plan exists.
   supported findings, with semantic grading separate from reference validation.
 - Current task total: $0.2526491055 reported plus $0.308158400 uncertain;
   $0.4391924945 remains under the original $1 ceiling. No engineering acceptance.
-  Final documentation/privacy/provenance checks passed; publication is pending
-  at this checkpoint.
+  Final documentation/privacy/provenance checks passed. Published restoration/
+  results at 10026da in draft PR #6 and verified the remote SHA directly. Push CI
+  passed for 10026da; its PR CI was still running when this handoff was written.
+  This publication-status update is the only follow-up change.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
