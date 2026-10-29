@@ -9,64 +9,57 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Calibration V1 result:** the first valid control failed passage-reference
-  validation after 3 calls at $0.00940995, with no unsettled charge. The auditor
-  used block IDs and raw output also made unsupported extraction-defect claims
-  from generic KB checklist gaps. All 8 cases remain in results (1 failed, 7 unrun).
-  Preserve this condition. Correct the output enum and extraction-audit scope
-  offline (322 tests, Ruff, strict mypy and build now pass), then freeze a separate
-  V2 condition within the existing calibration
-  allowance: at most $0.19 and 45 further calls. Combined limits stay below the
-  original $0.20 / 48-call calibration ceiling. No same-condition retry.
-- **Current work:** SV-10 source-audit calibration is in_progress on
-  eval/source-audit-calibration, based on published 87d8904. The user approved
-  proceeding with calibration and the bounded real-packet evaluation. The runner now
-  passes 318 offline tests (91% coverage), Ruff check/format, strict mypy (48 files)
-  and source/wheel build. Freeze the condition before inference. Allocate
-  at most $0.20 to the eight synthetic audits and $0.18 to one real development
-  packet extraction/audit, within the original $1 aggregate ceiling. No full plan,
-  full DOCX, automatic retry, model change or merge is included.
-- **Active milestone:** SV-05 V3 and the early SV-07 source audit are technically
-  complete and published at a51b67d on feat/source-obligation-accounting in
-  draft [PR #7](https://github.com/noobjam/Project-x/pull/7), pending review.
-  Passage dispositions now match evidence scope. One persisted correction can
-  change dispositions only; it cannot remove/rewrite requirements or gaps. The
-  existing reviewer audits extraction before planning, with evidence-bound
-  findings and proposed KB application records checked against actual task reads.
-- **Review behaviour:** the new audit is advisory. Findings reach planning/export
-  and keep `needs_review` visible; they do not repair facts or establish correctness.
-  `--analysis-only` stops after extraction/audit, before planner spending. The
-  default workflow, three roles, existing KB, old readers and budget remain intact.
-- **Prior V3 implementation validation:** all 301 offline tests passed (91% coverage), Ruff
-  check/format, strict mypy (47 source files), and source/wheel build. Real SDK
-  tests used a simulated endpoint with network access blocked. Normal role
-  instructions match the retained baseline; opt-in behavior is prompt 11.
-  All four code-head CI checks passed on Python 3.12/3.13. The following
-  handoff changes are documentation only.
-- **Quality still unestablished:** calibration V1 failed as recorded above. The two
-  previous accounting candidates failed before planning; the retained model
-  baseline extracted 9/13 provisional obligations and had 2/13 adequate scenarios.
-  Eight new synthetic auditor controls (three valid, five defective) are frozen
-  locally; one failed control has diagnostic findings, while full detection/false-alarm measurement remains pending.
-  See the [next evaluation protocol](../evals/source-audit-protocol.md).
-- **Task spending:** $0.3166832845 provider-reported plus $0.308158400
-  uncertain from an earlier HTTP 400. Combined commitment $0.6248416845;
-  $0.3751583155 remains under the original $1 ceiling. V1 is stopped. The corrected
-  calibration cap is $0.19; the conditional real-packet cap remains $0.18. No merge.
+- **Current milestone:** SV-10's bounded auditor calibration and real-packet
+  analysis-only comparison are complete on eval/source-audit-calibration.
+  The runner and corrective audit behavior are published at 7be4ecb in draft
+  [PR #8](https://github.com/noobjam/Project-x/pull/8), stacked on draft PR #7.
+  Parent tickets remain in_progress; technical completion has not met the
+  semantic quality gate. See the [results](../evals/source-audit-results-2026-10-29.md).
+- **Real result:** extraction/audit completed in 6 calls at $0.044623612. Full
+  provisional extraction remains 9/13, equal to the baseline: two previously
+  missed labels recovered and two previously covered labels lost. The auditor
+  detected none of the four incomplete labels. One extracted condition is
+  unsupported; the sole audit finding also overstates a possible inconsistency.
+  No plan was generated, so there is no new scenario-adequacy score.
+- **Calibration result:** V1 failed reference validation on its first case
+  (3 calls, $0.009409950; seven unrun). V2 completed all eight audits
+  (24 calls, $0.058390849): 4/5 seeded defects flagged, 3/5 with fully supported
+  corrective advice, and no false alarms on the three valid controls. It missed
+  a whole obligation and proposed an inadequate fix for an unsupported relation.
+  Frozen failures and references are retained; judgments remain agent_proposed.
+- **Runtime and validation:** V3 passage accounting, one disposition-only
+  correction and the pre-planning audit remain opt-in. The audit is advisory.
+  Audit references are constrained by the response schema; prompt 12 separates
+  extraction defects from optional specification elaboration. At code 7be4ecb,
+  322 offline tests passed
+  (91% coverage), Ruff check/format, strict mypy (48 files), source/wheel build
+  and all four Python 3.12/3.13 GitHub checks passed. This final handoff is docs only.
+- **Next correction:** SV-07 source-first omission review, including skipped
+  passages and lost qualifiers inside cited passages, with evidence-supported
+  correction requests. Scope and acceptance are recorded in the roadmap; the
+  correction is planned, not implemented. Full planning, separate-case expansion
+  and automatic semantic repair remain gated on better measured quality.
+- **Task spending:** this milestone cost $0.112424411 with no new reservations.
+  Aggregate provider-reported cost is $0.4196977455 plus $0.308158400 still
+  uncertain from an earlier HTTP 400. Combined commitment $0.7278561455 leaves
+  $0.2721438545 under the original $1 ceiling. Declared conditions are finished;
+  no further paid run is scheduled and unused balance does not renew an allocation.
 - **Knowledge and acceptance:** 48 proposed public KB entries remain in draft
-  PR #4, with the connector in PR #5. Application claims are now inspectable, but
-  correct application and benefit are unproven. The actual Management CPU DOCX
-  remains the acceptance workload; reference answers stay outside retrieval.
+  PR #4, with the connector in PR #5. Actual KB reads are confirmed, but inspected
+  applications include unsupported transfers and benefit is unmeasured. The actual
+  Management CPU DOCX remains the acceptance workload; references stay outside retrieval.
   Private inputs/outputs and control expectations stay ignored under artifacts/.
   AGENTS.md remains local-only. No model defaults or environment settings changed.
 
 ## Repository snapshot
 
-Prior code publication and remote CI checked on 2026-10-29; the new calibration
-runner at a9c482f is published in draft PR #8; the corrective audit candidate is
-local until its own validated checkpoint is committed and pushed:
+Code publication and remote CI checked on 2026-10-29. The results handoff changes
+documentation only; use Git for its final commit and the current branch tip:
 
 - Current branch: eval/source-audit-calibration, based on published 87d8904.
+  Runner a9c482f and correction 7be4ecbd3e04ef4ba114d37bcd1f8e8eb8e6d702 are
+  pushed in draft PR #8. The remote SHA was verified directly and all four checks
+  passed on the correction's code head. PR #8 targets feat/source-obligation-accounting.
   Previous branch: feat/source-obligation-accounting, based on published 784d03c
   from eval/agent-quality-baseline. Earlier commits 789b26d, 6e01efc and e638533
   are published in draft [PR #7](https://github.com/noobjam/Project-x/pull/7).
@@ -74,8 +67,8 @@ local until its own validated checkpoint is committed and pushed:
   a51b67de4a1c354c3deba5a8bc4d5d13e9a12627; the remote branch SHA was verified
   directly. All four checks passed at this code head. This final status update
   is documentation only; use Git for the current branch tip.
-- Open draft stack: PR #4 -> PR #5 -> PR #6 -> PR #7. None is merged. No prerequisite
-  merge is needed to work on this branch. Main was last verified remotely at
+- Open draft stack: PR #4 -> PR #5 -> PR #6 -> PR #7 -> PR #8. None is merged.
+  No prerequisite merge is needed to work on this branch. Main was last verified remotely at
   52d3241. Push destination: https://github.com/noobjam/Project-x.git.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
   PR #3 merged at 82db1c2. Frozen baseline 6c819bf and pilot 3e5d6da are unchanged.
@@ -94,7 +87,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Published at 82d401c in draft PR #4. Four engineering comments incorporated; 48 entries including 14 public examples. Documentation checks passed; entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
-| Actual KB diagnostic and quality screen | in_progress | KB connection works. One model screen improved extraction but not handoff quality; prompt-only correction regressed and was reverted. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
+| Actual KB diagnostic and quality screen | in_progress | Calibration and real extraction/audit now complete. Candidate ties baseline at 9/13 with two regressions; audit misses all four incomplete labels. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -109,24 +102,32 @@ complete merely because its plan exists.
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | done | Merged in PR #3 at 82db1c2: exact task/input bindings, atomic completions, per-call attribution and local task spending. |
 | [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | done | A merged in PR #1; limited B merged in PR #3. Task/run versions, exact inputs, stale-resume rejection and legacy readers are complete. Typed findings stay in SV-07. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
-| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | V3 passage accounting and one disposition-only correction pass offline/CI checks and are published at a51b67d in draft PR #7; review pending. Previous live candidates failed. Semantic comparison and interaction index remain open. |
+| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | V3 extraction now completes but remains 9/13 with two gains and two regressions. No quality promotion or full-document expansion; interaction index remains deferred. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
-| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Early advisory source audit, actual-read KB application records and analysis-only mode pass offline checks. Eight synthetic controls prepared; model misses/false alarms unmeasured. Full plan findings/local-to-global review remain planned. |
+| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Advisory auditor flags 4/5 synthetic defects, with 3/5 supported fixes and 0/3 valid-control false alarms. Misses four real incomplete labels. Next: source-first omission review and supported correction requests; full plan review remains planned. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Source audit/accounting CLI and Excel views delivered in the bounded slice. Full scenario-to-source review view remains planned. |
-| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Frozen model screen complete; prompt trial and both accounting conditions retained as failures. All 13 labels remain in failed-run scoring. No successful correction, separate-case run, KB-benefit result or engineering acceptance. |
+| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Runner, two calibration conditions and analysis-only real comparison recorded in draft PR #8. All cases/13 labels retained; quality gate not met. No new full plan, separate-case run, KB-benefit result or engineering acceptance. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
 
-- The first calibration condition is retained as failed. Continue the authorized
-  calibration with a separately versioned corrective candidate: passage/requirement
+- The 2026-10-29 calibration and real-packet conditions are finished. V2 supplied
+  usable outputs for a diagnostic real extraction/audit, not semantic approval.
+  The real result fails the quality gate: equal aggregate extraction hides two
+  regressions, and the auditor does not detect the incomplete labels. Keep the
+  baseline, feature opt-in and audit advisory. Record the next SV-07 correction
+  without starting another paid condition, changing models or merging the stack.
+  Final results/docs publication belongs to the already authorized PR #8 handoff.
+- After the first calibration failed, the authorized calibration continued with
+  a separately versioned corrective candidate: passage/requirement
   enums and a clear distinction between extraction defects and optional source
-  elaboration. Keep all frozen cases, labels, KB/model and generation limits.
-  Allocate $0.19 / 45 calls from the unspent calibration allowance, not a new
-  tranche; the previous 3 calls/$0.00940995 remain charged. Freeze/test before
-  execution, stop if this corrected condition fails, and keep the $0.18 real-packet
-  allocation conditional on usable calibration output. No automatic semantic gate.
+  elaboration. All frozen cases, labels, KB/model and generation limits were kept.
+  Its allocation was $0.19 / 45 calls from the unspent calibration allowance;
+  the previous 3 calls/$0.00940995 remain charged. The condition required offline
+  checks and freezing before inference, stopping on another execution failure,
+  and usable calibration output before the $0.18 real-packet allocation. Both
+  conditions are now finished as recorded above. No automatic semantic gate.
 - The user's latest “alright lets go for it” approves the stated next step:
   SV-10 runner plus measured auditor calibration, followed by bounded real-packet
   evaluation under the existing aggregate allowance. Declare $0.20 for eight
@@ -288,24 +289,25 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-05 / early SV-07 technical review:** review published a51b67d in draft
-   PR #7 against the updated acceptance criteria. Local checks and all four
-   code-head CI checks passed; the remote SHA was verified. Keep the stack unmerged
-   and the feature opt-in. No prerequisite merge is needed for calibration work.
-   Technical completion does not complete either parent ticket or prove quality.
-2. **SV-10 auditor calibration preparation:** follow the
-   [frozen protocol](../evals/source-audit-protocol.md). First build the small offline
-   runner for the eight supplied synthetic candidates, binding each exact source,
-   analysis/accounting and KB snapshot to the existing auditor task. Labels remain
-   outside all agent contexts. Validate failed/unfinished outcomes and cost capture.
-   No model call is permitted until its condition and allocation are recorded.
-3. **SV-10 quality comparison:** with passing review/checks and an applicable
-   declared allocation within the actual $0.3845682655 remaining, assess auditor
-   detection/false alarms and run the real development packet in analysis-only mode.
-   Keep the frozen 13-label denominator, baseline model/KB and old failed attempts.
-   Grade extraction separately from audit suggestions. Full planning and a separate
-   case follow only after improvement without new unsupported behaviour. Do not
-   enable automatic semantic blocking/repair based on software tests.
+1. **SV-07 omission-review correction:** on the next implementation continuation,
+   start with a bounded source-first audit design that does not trust the analyst's
+   chosen requirements or dispositions. Use the frozen whole-omission control and
+   four real incomplete labels as regressions, retaining valid controls and all
+   thirteen labels. Include lost facts inside cited passages. Require supporting
+   evidence for correction requests and conditional KB applicability. Use a focused
+   branch/PR; keep the existing reviewer role and audit advisory. Record any added
+   artifact/invocation contract before implementing it. No paid retry is implied.
+2. **SV-05 / SV-07 / SV-10 review:** review draft PR #7 and PR #8 with the
+   [measured results](../evals/source-audit-results-2026-10-29.md). Their technical
+   checks pass; the quality gate does not. Keep the stack unmerged and feature
+   opt-in. No prerequisite merge is needed to continue the focused correction.
+3. **SV-10 next comparison:** only after the correction passes offline review and
+   a new applicable condition/allocation is recorded, rerun the unchanged controls
+   and bounded real analysis. Preserve model/KB, full denominators, failed attempts
+   and the baseline. Report recovered/regressed labels, misses, false alarms and
+   supported advice separately. The $0.2721438545 aggregate remainder is not a
+   renewed experiment allowance. Full planning and a separate case require improved
+   extraction without new unsupported behavior; automatic semantic repair remains deferred.
 4. **Knowledge curation / SV-06:** use the
    [focused review guide](knowledge/REVISION_NOTES.md) for the existing proposed
    procedures/examples. Record entry-specific engineer decisions with the reviewed
@@ -321,6 +323,18 @@ complete merely because its plan exists.
 
 ## Validation and result references
 
+- 2026-10-29 calibration implementation at 7be4ecb: 322 offline tests passed
+  (91% coverage), Ruff check/format, strict mypy (48 source files) and source/wheel
+  build. Four GitHub checks passed on Python 3.12/3.13. New checks cover complete
+  input preflight, reference exclusion, shared budget/unknown charges, interruption
+  recovery without retry, and constrained audit references. Final result documents
+  do not change runtime; full local code checks were not repeated for them.
+- Paid evaluation and provisional assessments are summarized in the
+  [results](../evals/source-audit-results-2026-10-29.md). Calibration V1 failed;
+  V2 completed eight cases; the real run completed extraction/audit only. Private
+  assessments bind output/source/reference hashes and retain all cases/labels.
+  Aggregate ledgers were reconciled, excluding duplicated review copies. No
+  additional reservation, new plan, KB benefit claim or engineering acceptance.
 - 2026-10-29 V3/audit implementation: 301 offline tests, 91% coverage; Ruff
   check/format, strict mypy (47 files), source/wheel build passed. Tests cover mixed
   passages, immutable attempts/feedback, forbidden obligation changes, exhausted
@@ -829,6 +843,39 @@ complete merely because its plan exists.
   are documentation only. No merge or new paid run; charges/reservations unchanged.
   Next: technical review and offline calibration runner, then a declared capped
   condition before any inference. Model quality remains an open acceptance gate.
+
+### 2026-10-29: Auditor calibration and real extraction comparison
+
+- Implemented SV-10's frozen-candidate runner with offline preparation/status,
+  exact input/configuration bindings, one shared cost/call ledger and terminal
+  outcomes that do not silently retry after failure or interruption. The runtime
+  and runner share the same audit executor. Published a9c482f in draft PR #8.
+- First live condition failed on block IDs in passage references. Preserved its
+  rejected output and all eight outcomes. Corrected model-selected reference
+  enums and audit instructions in prompt 12, keeping source-audit-v1 fields and
+  historical readers. Published 7be4ecb after 322 offline tests, Ruff, strict mypy
+  and build passed; verified the remote SHA and all four code-head CI checks.
+- Separately froze and ran the correction inside the original calibration cap.
+  All eight cases completed: 4/5 defects flagged, 3/5 supported corrective actions,
+  0/3 valid-control false alarms. Whole-obligation omission remained undetected;
+  relabeling an unsupported relationship was not a safe correction. Judgments
+  remain agent_proposed and this development set is not a blind benchmark.
+- The real packet completed extraction/audit in analysis-only mode. Provisional
+  coverage is 9/13, matching baseline with two recoveries and two regressions;
+  audit detected none of four incomplete labels. Inspected all four KB applications,
+  finding both useful transfer and unsupported applicability. No planner ran.
+- This milestone used 33 calls/$0.112424411 with no new reservation. Aggregate
+  confirmed/uncertain totals and remaining original allowance are in Current state.
+  Private assessment hashes/paths and safe aggregate results are in the linked
+  results document. Source excerpts, reference answers and generated outputs remain
+  ignored. The public handoff is documentation only in PR #8; nothing merged.
+- Handoff checks passed: 31 local documentation links/anchors, whitespace checks,
+  credential-pattern scan and verification that AGENTS.md/private artifacts remain
+  ignored and untracked. Full local code checks were not repeated for these docs.
+- Recorded the next SV-07 correction and stage-specific SV-10 assessment boundary
+  in the roadmap. Keep audit advisory and the full-planning gate closed. Next:
+  source-first omission review and evidence-supported correction requests offline,
+  then a separately declared comparison only after checks and applicable allocation.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;

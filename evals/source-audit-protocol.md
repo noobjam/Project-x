@@ -6,6 +6,10 @@ They do not measure the auditor's ability to detect defects. The evaluation runn
 now uses the same source-audit executor as the planning workflow. Authorization
 and allocated limits are recorded separately in [progress](../docs/progress.md).
 
+The completed calibration and analysis-only comparison are recorded in
+[the 2026-10-29 results](source-audit-results-2026-10-29.md). Execution succeeded
+after the correction; the quality gate for downstream planning remains unmet.
+
 ## Frozen controls
 
 Eight synthetic inputs were prepared locally on 2026-10-29: three valid controls
