@@ -17,8 +17,8 @@ from soc_verifier.agents.tasks import (
     runtime_versions,
 )
 from soc_verifier.domain.knowledge import KnowledgeSnapshot
-from soc_verifier.domain.models import Contract, SpecAnalysis
-from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.models import Contract, SpecAnalysis, Specification
+from soc_verifier.domain.source_audit import bound_audit_schema
 from soc_verifier.evaluation.baseline import Digest
 from soc_verifier.evaluation.packets import require_ignored
 from soc_verifier.providers.budget import BudgetExceeded, read_spending
@@ -191,6 +191,7 @@ def run_audits(agents: AgentExecutor, artifacts: ArtifactStore) -> dict[str, Any
     cached_outcomes = {}
     for case in evaluation.cases:
         analysis = SpecAnalysis.model_validate(case.inputs["analysis"].read(artifacts))
+        spec = Specification.model_validate(case.inputs["source"].read(artifacts))
         task = Task.bind(
             artifacts,
             f"{case.id}.source-audit.json",
@@ -201,7 +202,7 @@ def run_audits(agents: AgentExecutor, artifacts: ArtifactStore) -> dict[str, Any
                 evidence={**case.inputs, "knowledge": evaluation.knowledge},
                 input_sha256=fingerprint(case),
                 instruction_sha256=fingerprint(prompts.AUDIT_SOURCE),
-                schema_sha256=fingerprint(SourceAudit.model_json_schema()),
+                schema_sha256=fingerprint(bound_audit_schema(spec, analysis).model_json_schema()),
                 versions=evaluation.versions,
                 configuration={"configuration": evaluation.configuration},
             ),

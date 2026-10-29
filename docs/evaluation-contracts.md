@@ -65,7 +65,7 @@ production checkpoint.
   legacy reservation/settlement amounts remain readable without inference.
 
 Run manifests/results use version 2.0 and engine `openai-agents-v2`; domain source,
-analysis, plan and review schemas remain 1.0. Prompt version 11 adds the opt-in
+analysis, plan and review schemas remain 1.0. Prompt version 11 introduced the opt-in
 passage accounting/feedback and source-audit behavior; separate draft/report
 formats use version 3.
 The report binds exact source, extraction and projected analysis artifact hashes.
@@ -96,6 +96,13 @@ and recorded reads do not constitute semantic acceptance. The frozen control pac
 and [evaluation protocol](../evals/source-audit-protocol.md) keep calibration labels
 outside agent input. `--analysis-only` stops after this audit; it does not alter
 task fingerprints or grant additional execution budget.
+
+Prompt version 12 constrains audit passage and requirement IDs in the model's
+output schema, including conflict comparisons and KB application references.
+It distinguishes facts lost from extraction from optional elaboration absent in
+the source itself. This changes audit behavior without changing the persisted
+source-audit-v1 fields. Historical audit readers remain available; new execution
+requires its own frozen condition and must not resume a prompt-11 task.
 
 The source-processing label `docx-v1` identifies the existing DOCX representation;
 its exact input bytes and runtime source hash are also pinned. This does not claim

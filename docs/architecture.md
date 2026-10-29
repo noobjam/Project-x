@@ -194,10 +194,14 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 7 added enforced knowledge consultation; version 11 adds passage
+version 7 added enforced knowledge consultation; version 11 introduced passage
 dispositions, mechanical feedback and the advisory source audit to the opt-in
 path. Normal specialist instructions remain unchanged. Opt-in planning appends
 explicit guidance for handling provisional audit findings.
+Version 12 adds source-specific audit ID enums and confines extraction defects
+to differences supported by the actual source. Missing optional checklist detail
+does not by itself establish an extraction defect. The audit remains fallible
+and advisory; calibration results are separate from these software constraints.
 Engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans

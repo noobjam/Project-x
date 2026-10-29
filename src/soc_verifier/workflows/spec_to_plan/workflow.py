@@ -24,7 +24,7 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import passage_accounting_schema
-from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.source_audit import bound_audit_schema
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import (
     extract_with_feedback,
@@ -254,7 +254,7 @@ def _run_workflow(
             state,
             "reviewer",
             prompts.AUDIT_SOURCE,
-            SourceAudit,
+            bound_audit_schema(specification, SpecAnalysis.model_validate(state["analysis"])),
             [r["id"] for r in state["analysis"]["requirements"]],
         )
         audit = execute_source_audit(agents, task)

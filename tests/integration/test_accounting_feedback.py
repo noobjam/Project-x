@@ -182,7 +182,7 @@ def test_invalid_audit_fails_before_planning(
     )
     agents = ScriptedAgents(passage_accounting_draft, audit)
     store = ArtifactStore(tmp_path)
-    with pytest.raises(ValueError, match="unknown"):
+    with pytest.raises(ValueError, match=r"unknown|Input should"):
         PlanningWorkflow(agents, store, 0, source_accounting=True).run(specification)
     assert [c["role"] for c in agents.calls] == ["analyst", "reviewer"]
     assert not store.exists("source-audit.r000.completed.json")
@@ -225,7 +225,7 @@ def test_batched_planners_receive_relevant_and_global_audit_findings(
         def run(self, *, role, instruction, context, schema, task):
             if role == "analyst":
                 return schema.model_validate(draft.model_dump())
-            if schema is SourceAudit:
+            if issubclass(schema, SourceAudit):
                 return audit
             if schema is VerificationPlan:
                 payload = json.loads(context)

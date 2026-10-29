@@ -99,3 +99,27 @@ unsettled reservations, this command is local and requires no key:
 uv run --locked python -m soc_verifier.evaluation audit-status \
   artifacts/evaluations/auditor-condition/run
 ```
+
+## Initial calibration failure and corrective condition
+
+The first condition at a9c482f stopped on its first valid control after three
+calls costing $0.00940995, with no uncertain charge. The model returned block IDs
+where passage IDs were required, so no audit was accepted. Raw diagnostics also
+treated optional specification elaboration suggested by KB checklists as missing
+extracted requirements. These are diagnostics, not an accepted eight-case score:
+one case failed and seven remain unrun in that condition.
+
+The corrective condition keeps the same eight candidates, reference inventory,
+model/endpoint, KB and generation limits. It constrains every selected audit
+passage/requirement reference in the output schema and changes the audit instructions
+to compare the candidate with the supplied source, distinguishing missing extracted
+facts from optional detail absent in both. Prompt version 12 records this behavior;
+the persisted source-audit-v1 fields and historical readers remain unchanged.
+
+The first failure remains charged. The corrected condition has a maximum of
+$0.19 and 45 model calls; combined with the first trial, these remain below the
+original $0.20 / 48-call calibration allocation. It is a separately frozen
+condition, not a retry or manual alteration of rejected output. Stop on a further
+execution failure. No finding may drive automatic semantic repair, and all
+assessment judgments remain provisional. One inspected development control informed
+this correction; the set cannot be described as a blind benchmark.

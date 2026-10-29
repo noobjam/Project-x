@@ -1,8 +1,9 @@
 """Evidence-bound, provisional extraction findings; no automated semantic approval."""
 
-from typing import Annotated, Literal, Self
+from enum import StrEnum
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, create_model, model_validator
 
 from soc_verifier.domain.accounting import source_units
 from soc_verifier.domain.models import Contract, NonEmpty, SpecAnalysis, Specification
@@ -49,6 +50,43 @@ class SourceAudit(Contract):
     judgment_state: Literal["agent_proposed"] = "agent_proposed"
     findings: list[SourceFinding]
     knowledge_applications: list[KnowledgeApplication]
+
+
+def bound_audit_schema(spec: Specification, analysis: SpecAnalysis) -> type[SourceAudit]:
+    """Prevent block IDs and invented targets in every model-selected reference."""
+    units = source_units(spec)
+    if not units:
+        raise ValueError("Source audit requires non-whitespace passages")
+    factory: Any = StrEnum
+    passage: Any = factory("AuditPassageID", {f"P{i}": u.id for i, u in enumerate(units)})
+    requirement: Any = factory(
+        "AuditRequirementID", {f"R{i}": r.id for i, r in enumerate(analysis.requirements)}
+    )
+    comparison: Any = create_model(
+        "BoundConflictComparison",
+        __base__=ConflictComparison,
+        left_evidence_ids=(list[passage], Field(min_length=1)),
+        right_evidence_ids=(list[passage], Field(min_length=1)),
+    )
+    finding: Any = create_model(
+        "BoundSourceFinding",
+        __base__=SourceFinding,
+        requirement_ids=(list[requirement], ...),
+        evidence_ids=(list[passage], Field(min_length=1)),
+        conflict=(comparison | None, ...),
+    )
+    application: Any = create_model(
+        "BoundKnowledgeApplication",
+        __base__=KnowledgeApplication,
+        requirement_ids=(list[requirement], ...),
+        evidence_ids=(list[passage], Field(min_length=1)),
+    )
+    return create_model(
+        "SourceAudit",
+        __base__=SourceAudit,
+        findings=(list[finding], ...),
+        knowledge_applications=(list[application], ...),
+    )
 
 
 def validate_source_audit(

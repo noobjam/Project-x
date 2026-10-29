@@ -8,22 +8,23 @@ from soc_verifier.agents.knowledge import read_knowledge_accesses
 from soc_verifier.agents.tasks import Task, TaskEnvelope
 from soc_verifier.domain.knowledge import KnowledgeSnapshot
 from soc_verifier.domain.models import SpecAnalysis, Specification
-from soc_verifier.domain.source_audit import SourceAudit, validate_source_audit
+from soc_verifier.domain.source_audit import SourceAudit, bound_audit_schema, validate_source_audit
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import source_context
 
 
 def execute_source_audit(agents: AgentExecutor, task: Task) -> SourceAudit:
     """Use the same audit task for workflow extraction and frozen calibration inputs."""
-    audit = task.load(SourceAudit)
+    inputs = task.envelope.inputs.evidence
+    spec = Specification.model_validate(inputs["source"].read(task.artifacts))
+    analysis = SpecAnalysis.model_validate(inputs["analysis"].read(task.artifacts))
+    schema = bound_audit_schema(spec, analysis)
+    audit = task.load(schema)
     if audit is None:
-        inputs = task.envelope.inputs.evidence
-        spec = Specification.model_validate(inputs["source"].read(task.artifacts))
-        analysis = SpecAnalysis.model_validate(inputs["analysis"].read(task.artifacts))
         audit = agents.run(
             role="reviewer",
             instruction=prompts.AUDIT_SOURCE,
-            schema=SourceAudit,
+            schema=schema,
             task=task.envelope,
             context=json.dumps(
                 {

@@ -9,6 +9,15 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
+- **Calibration V1 result:** the first valid control failed passage-reference
+  validation after 3 calls at $0.00940995, with no unsettled charge. The auditor
+  used block IDs and raw output also made unsupported extraction-defect claims
+  from generic KB checklist gaps. All 8 cases remain in results (1 failed, 7 unrun).
+  Preserve this condition. Correct the output enum and extraction-audit scope
+  offline (322 tests, Ruff, strict mypy and build now pass), then freeze a separate
+  V2 condition within the existing calibration
+  allowance: at most $0.19 and 45 further calls. Combined limits stay below the
+  original $0.20 / 48-call calibration ceiling. No same-condition retry.
 - **Current work:** SV-10 source-audit calibration is in_progress on
   eval/source-audit-calibration, based on published 87d8904. The user approved
   proceeding with calibration and the bounded real-packet evaluation. The runner now
@@ -34,16 +43,16 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   instructions match the retained baseline; opt-in behavior is prompt 11.
   All four code-head CI checks passed on Python 3.12/3.13. The following
   handoff changes are documentation only.
-- **Quality still unestablished:** no paid run was made this session. The two
+- **Quality still unestablished:** calibration V1 failed as recorded above. The two
   previous accounting candidates failed before planning; the retained model
   baseline extracted 9/13 provisional obligations and had 2/13 adequate scenarios.
   Eight new synthetic auditor controls (three valid, five defective) are frozen
-  locally; bindings validate, but model detection/false alarms are unmeasured.
+  locally; one failed control has diagnostic findings, while full detection/false-alarm measurement remains pending.
   See the [next evaluation protocol](../evals/source-audit-protocol.md).
-- **Task spending unchanged:** $0.3072733345 provider-reported plus $0.308158400
-  uncertain from an earlier HTTP 400. Combined commitment $0.6154317345;
-  $0.3845682655 remains under the original $1 ceiling. No calls are running or
-  scheduled at this checkpoint. The new allocations above total $0.38; no merge is authorized.
+- **Task spending:** $0.3166832845 provider-reported plus $0.308158400
+  uncertain from an earlier HTTP 400. Combined commitment $0.6248416845;
+  $0.3751583155 remains under the original $1 ceiling. V1 is stopped. The corrected
+  calibration cap is $0.19; the conditional real-packet cap remains $0.18. No merge.
 - **Knowledge and acceptance:** 48 proposed public KB entries remain in draft
   PR #4, with the connector in PR #5. Application claims are now inspectable, but
   correct application and benefit are unproven. The actual Management CPU DOCX
@@ -54,7 +63,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 ## Repository snapshot
 
 Prior code publication and remote CI checked on 2026-10-29; the new calibration
-branch is local/uncommitted until its implementation checkpoint is published:
+runner at a9c482f is published in draft PR #8; the corrective audit candidate is
+local until its own validated checkpoint is committed and pushed:
 
 - Current branch: eval/source-audit-calibration, based on published 87d8904.
   Previous branch: feat/source-obligation-accounting, based on published 784d03c
@@ -109,6 +119,14 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- The first calibration condition is retained as failed. Continue the authorized
+  calibration with a separately versioned corrective candidate: passage/requirement
+  enums and a clear distinction between extraction defects and optional source
+  elaboration. Keep all frozen cases, labels, KB/model and generation limits.
+  Allocate $0.19 / 45 calls from the unspent calibration allowance, not a new
+  tranche; the previous 3 calls/$0.00940995 remain charged. Freeze/test before
+  execution, stop if this corrected condition fails, and keep the $0.18 real-packet
+  allocation conditional on usable calibration output. No automatic semantic gate.
 - The user's latest “alright lets go for it” approves the stated next step:
   SV-10 runner plus measured auditor calibration, followed by bounded real-packet
   evaluation under the existing aggregate allowance. Declare $0.20 for eight
