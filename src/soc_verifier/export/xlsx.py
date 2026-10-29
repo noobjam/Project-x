@@ -10,7 +10,7 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.worksheet import Worksheet
 
-from soc_verifier.domain.accounting import SourceAccounting
+from soc_verifier.domain.accounting import SourceAccounting, source_units
 from soc_verifier.domain.models import (
     PlanReview,
     SpecAnalysis,
@@ -19,6 +19,8 @@ from soc_verifier.domain.models import (
     validate_sources,
     validate_traceability,
 )
+from soc_verifier.domain.passage_accounting import AccountedDisposition, PassageAccounting
+from soc_verifier.domain.source_audit import SourceAudit
 
 
 def export_plan(
@@ -30,7 +32,8 @@ def export_plan(
     review: PlanReview,
     task_metadata: str | None = None,
     knowledge_accesses: list[dict[str, Any]] | None = None,
-    source_accounting: SourceAccounting | None = None,
+    source_accounting: SourceAccounting | PassageAccounting | None = None,
+    source_audit: SourceAudit | None = None,
 ) -> None:
     validate_sources(analysis, specification)
     validate_traceability(plan, analysis)
@@ -164,16 +167,24 @@ def export_plan(
                     ],
                 )
         for disposition in source_accounting.dispositions:
-            for identifier in disposition.source_ids:
+            records = (
+                [
+                    (s.block_id, str(s.start), str(s.end), blocks[s.block_id].text[s.start : s.end])
+                    for s in disposition.evidence
+                ]
+                if isinstance(disposition, AccountedDisposition)
+                else [(key, "", "", blocks[key].text) for key in disposition.source_ids]
+            )
+            for identifier, start, end, text in records:
                 _row(
                     sheet,
                     [
                         "Proposed " + disposition.status,
                         "",
                         identifier,
-                        "",
-                        "",
-                        blocks[identifier].text,
+                        start,
+                        end,
+                        text,
                         "",
                         "",
                         "",
@@ -193,10 +204,78 @@ def export_plan(
                     "",
                     "",
                     "",
-                    "No quotation or disposition accounts for this text.",
+                    "No evidence or disposition accounts for this text.",
                 ],
             )
         _row(sheet, ["Quotations establish source location, not complete or correct extraction."])
+
+    if source_audit is not None:
+        sheet = workbook.create_sheet("Source audit")
+        _row(
+            sheet,
+            [
+                "ID",
+                "Kind",
+                "Requirements",
+                "Source passages",
+                "Evidence text",
+                "Finding",
+                "Recommended action",
+                "Conflict subject",
+                "Conditions",
+                "Left evidence",
+                "Right evidence",
+                "Incompatibility",
+                "Judgment",
+            ],
+        )
+        units = {u.id: u.text for u in source_units(specification)}
+        for source_finding in source_audit.findings:
+            comparison = source_finding.conflict
+            _row(
+                sheet,
+                [
+                    source_finding.id,
+                    source_finding.kind,
+                    "\n".join(source_finding.requirement_ids),
+                    "\n".join(source_finding.evidence_ids),
+                    "\n".join(units[k] for k in source_finding.evidence_ids),
+                    source_finding.description,
+                    source_finding.recommended_action,
+                    comparison.subject if comparison else "",
+                    comparison.conditions if comparison else "",
+                    "\n".join(comparison.left_evidence_ids) if comparison else "",
+                    "\n".join(comparison.right_evidence_ids) if comparison else "",
+                    comparison.incompatibility if comparison else "",
+                    "agent_proposed",
+                ],
+            )
+        _row(sheet, ["Advisory audit; empty findings do not establish semantic acceptance."])
+        sheet = workbook.create_sheet("Knowledge application")
+        _row(
+            sheet,
+            [
+                "KB entry",
+                "Requirements",
+                "Source passages",
+                "Applicability",
+                "Rationale",
+                "Judgment",
+            ],
+        )
+        for application in source_audit.knowledge_applications:
+            _row(
+                sheet,
+                [
+                    application.entry_id,
+                    "\n".join(application.requirement_ids),
+                    "\n".join(application.evidence_ids),
+                    application.assessment,
+                    application.rationale,
+                    "agent_proposed",
+                ],
+            )
+        _row(sheet, ["Application claims cite task-read entries; correctness remains unreviewed."])
 
     if knowledge_accesses:
         knowledge = workbook.create_sheet("Knowledge retrieval")

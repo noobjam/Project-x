@@ -6,6 +6,7 @@ from openpyxl import load_workbook
 from typer.testing import CliRunner
 
 from soc_verifier.cli import app
+from soc_verifier.domain.source_audit import SourceAudit
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
@@ -15,8 +16,8 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def accounting_draft(unit_accounting_draft):
-    return unit_accounting_draft
+def accounting_draft(passage_accounting_draft):
+    return passage_accounting_draft
 
 
 class Agents:
@@ -27,6 +28,8 @@ class Agents:
 
     def run(self, **kwargs):
         self.calls.append(kwargs)
+        if kwargs["schema"] is SourceAudit:
+            return SourceAudit(findings=[], knowledge_applications=[])
         response = next(self.responses)
         if isinstance(response, Exception):
             raise response
@@ -156,14 +159,20 @@ def test_offline_cli_inspection_export_and_legacy_unavailable(
     inspected = runner.invoke(app, ["accounting", run_id])
     assert inspected.exit_code == 0, inspected.output
     assert json.loads(inspected.output)["semantic_acceptance"] == "unreviewed"
+    audited = runner.invoke(app, ["audit", run_id])
+    assert audited.exit_code == 0, audited.output
+    assert json.loads(audited.output)["judgment_state"] == "agent_proposed"
     exported = runner.invoke(app, ["export", run_id, "-o", str(tmp_path / "plan.xlsx")])
     assert exported.exit_code == 0, exported.output
     with (tmp_path / "plan.xlsx").open("rb") as stream:
         workbook = load_workbook(stream)
         assert workbook["Source accounting"]["F2"].value == specification.blocks[0].text
         assert workbook["Source accounting"]["G2"].data_type == "s"
+        assert "Source audit" in workbook.sheetnames
         workbook.close()
     unavailable = runner.invoke(app, ["accounting", run_id, "--revision", "1"])
+    assert unavailable.exit_code == 0 and "unavailable" in unavailable.output
+    unavailable = runner.invoke(app, ["audit", run_id, "--revision", "1"])
     assert unavailable.exit_code == 0 and "unavailable" in unavailable.output
 
 
@@ -189,15 +198,20 @@ def test_cli_opt_in_is_persisted_and_required_on_resume(
     monkeypatch.setattr("soc_verifier.cli.AgentRuntime", runtime)
     source = ArtifactStore(tmp_path).write("source.json", specification)
     runner = CliRunner()
-    result = runner.invoke(app, ["plan", str(source), "--source-accounting"])
+    result = runner.invoke(app, ["plan", str(source), "--source-accounting", "--analysis-only"])
     assert result.exit_code == 0, result.output
+    assert "analysis_ready" in result.output
     run = next((settings.artifact_dir / "runs").iterdir())
+    assert not ArtifactStore(run).exists("result.json")
+    assert [c["role"] for c in agents.calls] == ["analyst", "reviewer"]
+    audited = runner.invoke(app, ["audit", run.name])
+    assert audited.exit_code == 0, audited.output
     assert ArtifactStore(run).read("manifest.json")["source_accounting"] is True
     denied = runner.invoke(app, ["resume", run.name])
     assert denied.exit_code == 1 and "configuration changed" in denied.output
     resumed = runner.invoke(app, ["resume", run.name, "--source-accounting"])
     assert resumed.exit_code == 0, resumed.output
-    assert len(agents.calls) == 3
+    assert len(agents.calls) == 4
 
 
 def test_revised_analysis_keeps_matching_accounting_and_originals(
@@ -221,6 +235,10 @@ def test_revised_analysis_keeps_matching_accounting_and_originals(
     result = artifacts.read("result.json")
     assert result["analysis_artifact"] == "analysis.r001.json"
     assert result["source_accounting_artifact"] == "source-accounting.r001.json"
+    assert result["source_audit_artifact"] == "source-audit.r001.json"
+    audit_inputs = artifacts.read("source-audit.r001.task.json")["inputs"]["evidence"]
+    assert audit_inputs["analysis"]["name"] == "analysis.r001.json"
+    assert audit_inputs["source_accounting"]["name"] == "source-accounting.r001.json"
     old = read_accounting(artifacts, "source-accounting.r000.json")
     new = read_accounting(artifacts, "source-accounting.r001.json")
     assert old.analysis_sha256 != new.analysis_sha256

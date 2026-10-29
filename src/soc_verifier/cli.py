@@ -29,6 +29,7 @@ from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.storage.readers import read_result
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
+from soc_verifier.workflows.spec_to_plan.source_audit import read_source_audit
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 app = typer.Typer(no_args_is_help=True, help="Traceable system-level verification workflows.")
@@ -77,6 +78,7 @@ def plan(
     source_accounting: Annotated[
         bool | None, typer.Option("--source-accounting/--no-source-accounting")
     ] = None,
+    analysis_only: Annotated[bool, typer.Option("--analysis-only")] = False,
 ) -> None:
     """Run the analyst, planner and reviewer agents on an extracted specification."""
     with _errors():
@@ -118,7 +120,7 @@ def plan(
             },
         )
         typer.echo(f"Run: {run_id}")
-        _execute(settings, artifacts, resuming=False)
+        _execute(settings, artifacts, resuming=False, analysis_only=analysis_only)
 
 
 @app.command()
@@ -131,6 +133,7 @@ def resume(
     source_accounting: Annotated[
         bool | None, typer.Option("--source-accounting/--no-source-accounting")
     ] = None,
+    analysis_only: Annotated[bool, typer.Option("--analysis-only")] = False,
 ) -> None:
     """Resume an interrupted run using its validated artifact checkpoints."""
     with _errors():
@@ -158,7 +161,7 @@ def resume(
             settings = settings.model_copy(update={"batch_workers": workers})
         if max_output_tokens is not None and max_output_tokens != settings.max_output_tokens:
             raise ValueError("Output-token limit changed; start a new run")
-        _execute(settings, artifacts, resuming=True)
+        _execute(settings, artifacts, resuming=True, analysis_only=analysis_only)
 
 
 @app.command()
@@ -258,6 +261,9 @@ def export_command(
             source_accounting=read_accounting(artifacts, result["source_accounting_artifact"])
             if "source_accounting_artifact" in result
             else None,
+            source_audit=read_source_audit(artifacts, result["source_audit_artifact"])
+            if "source_audit_artifact" in result
+            else None,
         )
         typer.echo(f"Exported draft verification plan to {output}")
 
@@ -278,6 +284,24 @@ def accounting(
             typer.echo("Source accounting unavailable for this analysis revision.")
             return
         typer.echo(read_accounting(artifacts, name).model_dump_json(indent=2))
+
+
+@app.command()
+def audit(
+    run_id: Annotated[str, typer.Argument()],
+    revision: Annotated[int, typer.Option("--revision", min=0)] = 0,
+) -> None:
+    """Inspect a provisional source audit before or after planning; no API calls."""
+    with _errors():
+        root = Settings().artifact_dir / "runs" / str(UUID(run_id))
+        if not root.is_dir():
+            raise ValueError("Unknown run ID")
+        artifacts = ArtifactStore(root)
+        name = f"source-audit.r{revision:03d}.json"
+        if not artifacts.exists(f"source-audit.r{revision:03d}.completed.json"):
+            typer.echo("Source audit unavailable for this analysis revision.")
+            return
+        typer.echo(read_source_audit(artifacts, name).model_dump_json(indent=2))
 
 
 @app.command()
@@ -304,6 +328,7 @@ def _execute(
     artifacts: ArtifactStore,
     *,
     resuming: bool,
+    analysis_only: bool = False,
 ) -> None:
     expected = artifacts.read("manifest.json").get("knowledge")
     actual = (
@@ -337,7 +362,7 @@ def _execute(
                 batch_workers=settings.batch_workers,
                 source_accounting=settings.source_accounting,
             )
-            result = workflow.run()
+            result = workflow.run(analysis_only=analysis_only)
             if completed:
                 typer.echo(f"Run already completed: {artifacts.root}")
             else:

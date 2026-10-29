@@ -64,17 +64,40 @@ class AccountingDraft(Contract):
         return self
 
 
-class SourceAccounting(Contract):
-    format: Literal["source-accounting-v1", "source-accounting-v2"] = "source-accounting-v1"
+class AccountingReportBase(Contract):
     specification_sha256: Digest
     analysis_artifact: NonEmpty
     analysis_sha256: Digest
     extraction_artifact: NonEmpty
     extraction_sha256: Digest
     obligations: list[AccountedObligation]
-    dispositions: list[SourceDisposition]
     unaccounted: list[SourceSpan]
     semantic_acceptance: Literal["unreviewed"] = "unreviewed"
+
+
+class SourceAccounting(AccountingReportBase):
+    format: Literal["source-accounting-v1", "source-accounting-v2"] = "source-accounting-v1"
+    dispositions: list[SourceDisposition]
+
+
+def project_obligation(obligation: AccountedObligation) -> Requirement:
+    statement = [obligation.statement]
+    for label, values in (
+        ("Conditions", obligation.conditions),
+        ("Constraints", obligation.constraints),
+        ("Exceptions", obligation.exceptions),
+    ):
+        if values:
+            statement.append(f"{label}: " + "; ".join(values))
+    return Requirement(
+        id=obligation.id,
+        statement="\n".join(statement),
+        feature=obligation.feature,
+        basis=obligation.basis,
+        source_ids=list(dict.fromkeys(s.block_id for s in obligation.evidence)),
+        rationale=obligation.rationale,
+        open_questions=obligation.open_questions,
+    )
 
 
 class SourceUnit(Contract):
@@ -212,25 +235,7 @@ def compile_accounting(
             spans[reference.block_id].append((start, end))
         facts = obligation.model_dump(exclude={"evidence"})
         obligations.append(AccountedObligation(**facts, evidence=evidence))
-        statement = [obligation.statement]
-        for label, values in (
-            ("Conditions", obligation.conditions),
-            ("Constraints", obligation.constraints),
-            ("Exceptions", obligation.exceptions),
-        ):
-            if values:
-                statement.append(f"{label}: " + "; ".join(values))
-        requirements.append(
-            Requirement(
-                id=obligation.id,
-                statement="\n".join(statement),
-                feature=obligation.feature,
-                basis=obligation.basis,
-                source_ids=list(dict.fromkeys(s.block_id for s in evidence)),
-                rationale=obligation.rationale,
-                open_questions=obligation.open_questions,
-            )
-        )
+        requirements.append(project_obligation(obligations[-1]))
     disposed: set[str] = set()
     gaps = list(draft.gaps)
     for disposition in draft.dispositions:

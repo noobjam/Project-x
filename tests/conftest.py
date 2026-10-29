@@ -24,6 +24,8 @@ from soc_verifier.domain.models import (
     VerificationItem,
     VerificationPlan,
 )
+from soc_verifier.domain.passage_accounting import PassageAccountingDraft
+from soc_verifier.domain.source_audit import SourceAudit
 
 
 @pytest.fixture(autouse=True)
@@ -106,6 +108,16 @@ def unit_accounting_draft(specification, analysis):
         dispositions=[],
         gaps=[],
     )
+
+
+@pytest.fixture
+def passage_accounting_draft(unit_accounting_draft):
+    return PassageAccountingDraft(**unit_accounting_draft.model_dump(exclude={"format"}))
+
+
+@pytest.fixture
+def clean_audit():
+    return SourceAudit(findings=[], knowledge_applications=[])
 
 
 @pytest.fixture

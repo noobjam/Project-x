@@ -52,6 +52,15 @@ do not establish completeness. Human editing time is reported only when measured
 
 ## What we borrow
 
+The [2026-10-29 Synopsys/Siemens comparison](agent-architecture-comparison.md)
+defines the next quality slice, authorized for implementation on 2026-10-29: passage-scoped accounting and
+one bounded correction of rejected extraction (SV-05), an evaluated source audit
+before planning (a narrow SV-07 prerequisite), and assessment of existing KB
+procedure application (SV-06/SV-10). Implementation status is in progress.md;
+authorization does not allocate a new paid run. General analysis repair still needs its
+own lineage contract; SV-08 remains plan-only. Preserve current acceptance gates
+and measure false alarms before relying on an automated semantic audit.
+
 | Reference | Applicable technique | Boundary |
 | --- | --- | --- |
 | [Spec2Plan](https://63dac.conference-program.com/presentation/?id=WIP3284&sess=sess307) | Evaluate source coverage separately; use verification techniques and integration scenarios. | Our staged workflow already exists. Its abstract does not establish reproducible performance for our workload. |
@@ -87,6 +96,8 @@ do not establish completeness. Human editing time is reported only when measured
 8. Automatic repair is optional. Its first form replaces existing plan items with
    source, analysis and partition frozen. Analysis additions/deletions/splits,
    scenario additions and general dependency repair are outside that experiment.
+   SV-05 additionally permits one mechanical correction of passage dispositions
+   before extraction acceptance, with obligation facts and evidence frozen.
 
 ## Ticket backlog
 
@@ -231,6 +242,16 @@ relationships or increases cost/review effort without a measured benefit.
 
 Edit points: analyst instructions, batched analysis and small typed local indexes.
 
+**Current bounded substep (authorized 2026-10-29):** draft/report V3 uses passage
+IDs for dispositions as well as evidence. A mixed paragraph can retain a behavioral
+passage while classifying a separate informative passage. Unknown IDs fail; duplicate
+or evidence-overlapping dispositions produce structured feedback and at most one
+correction. The correction must preserve all obligations, their IDs, facts/evidence
+and gaps. It is not semantic analysis repair. Persist both attempts and feedback
+with exact input bindings so resume cannot renew the correction allowance. Keep
+V1/V2 readers and exports. Add mixed-content, failure, tampering and interruption
+checks before any new evaluation.
+
 ### SV-06 Evaluate check adequacy before expanding planner schemas
 
 Priority: P2. Dependencies: SV-01 and SV-10B evidence of weak scenarios.
@@ -278,6 +299,20 @@ Acceptance:
 
 Edit points: domain finding contract, reviewer instructions, reviewing.py and
 batched_roles.py.
+
+**Early source-audit substep (authorized 2026-10-29):** reuse the reviewer role
+before planning on the bounded SV-05 extraction. Version a separate source audit
+with typed omissions, lost qualifiers, unsupported claims, source conflicts and
+unresolved context. Findings bind existing requirement/passage IDs; omissions may
+lack a requirement. Conflicts require both source statements, subject, conditions
+and an incompatibility explanation. Knowledge application records bind frozen KB
+entries actually read by the task and remain proposed judgments. They never serve
+as specification evidence. Initially the audit is advisory and keeps findings
+visible in planning/export; it does not repair facts or confer acceptance. Add an
+analysis-only run mode for assessing the auditor before downstream spending.
+Synthetic defect and valid-control fixtures validate contracts/routing offline;
+real missed-defect and false-alarm measurements remain SV-10 work. Do not activate
+automatic semantic blocking/repair on the strength of mocked tests.
 
 ### SV-08 Trial one bounded plan-only repair
 

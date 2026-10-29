@@ -209,6 +209,9 @@ def plan_batches(
         for start in range(0, len(analysis.requirements), batch_size)
     ]
     index = requirement_directory(analysis)
+    instruction = prompts.PLAN_BATCH + (
+        prompts.SOURCE_AUDIT_GUIDANCE if "source_audit" in task.envelope.inputs.evidence else ""
+    )
 
     def plan(number: int) -> VerificationPlan:
         name = f"plan.r{revision:03d}.batch{number:04d}.json"
@@ -234,10 +237,25 @@ def plan_batches(
                 "review": review,
             }
             known = {item.id for item in requirements}
+            if reference := task.envelope.inputs.evidence.get("source_audit"):
+                audit = reference.read(artifacts)
+                context["source_audit"] = {
+                    **audit,
+                    "findings": [
+                        f
+                        for f in audit["findings"]
+                        if not f["requirement_ids"] or known.intersection(f["requirement_ids"])
+                    ],
+                    "knowledge_applications": [
+                        a
+                        for a in audit["knowledge_applications"]
+                        if not a["requirement_ids"] or known.intersection(a["requirement_ids"])
+                    ],
+                }
             for correction in range(2):
                 result = agents.run(
                     role="planner",
-                    instruction=prompts.PLAN_BATCH,
+                    instruction=instruction,
                     context=json.dumps(context),
                     schema=VerificationPlan,
                     task=attempt_task.envelope,
@@ -287,7 +305,7 @@ def plan_batches(
                 stage="plan.batch",
                 assigned_ids=[r.id for r in groups[number]],
                 data=groups[number],
-                instruction=prompts.PLAN_BATCH,
+                instruction=instruction,
                 schema=VerificationPlan,
                 extra_inputs=[previous]
                 if revision
