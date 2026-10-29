@@ -10,7 +10,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 ## Current state
 
 - **Active milestone:** SV-05 V3 and the early SV-07 source audit are technically
-  complete locally on feat/source-obligation-accounting, ready for draft PR #7.
+  complete and published at a51b67d on feat/source-obligation-accounting in
+  draft [PR #7](https://github.com/noobjam/Project-x/pull/7), pending review.
   Passage dispositions now match evidence scope. One persisted correction can
   change dispositions only; it cannot remove/rewrite requirements or gaps. The
   existing reviewer audits extraction before planning, with evidence-bound
@@ -23,7 +24,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   check/format, strict mypy (47 source files), and source/wheel build. Real SDK
   tests used a simulated endpoint with network access blocked. Normal role
   instructions match the retained baseline; opt-in behavior is prompt 11.
-  Publication and remote CI verification are the remaining implementation actions.
+  All four code-head CI checks passed on Python 3.12/3.13. The following
+  handoff changes are documentation only.
 - **Quality still unestablished:** no paid run was made this session. The two
   previous accounting candidates failed before planning; the retained model
   baseline extracted 9/13 provisional obligations and had 2/13 adequate scenarios.
@@ -43,13 +45,15 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Repository snapshot
 
-Checked locally on 2026-10-29; new implementation publication is pending:
+Code publication and remote CI checked on 2026-10-29:
 
 - Local branch: feat/source-obligation-accounting, based on published 784d03c
   from eval/agent-quality-baseline. Earlier commits 789b26d, 6e01efc and e638533
   are published in draft [PR #7](https://github.com/noobjam/Project-x/pull/7).
-  Current HEAD is e638533; the V3/audit implementation and comparison/tracking
-  documents are local/uncommitted until the publication action below.
+  V3/audit code, tests, research comparison and documentation are published at
+  a51b67de4a1c354c3deba5a8bc4d5d13e9a12627; the remote branch SHA was verified
+  directly. All four checks passed at this code head. This final status update
+  is documentation only; use Git for the current branch tip.
 - Open draft stack: PR #4 -> PR #5 -> PR #6 -> PR #7. None is merged. No prerequisite
   merge is needed to work on this branch. Main was last verified remotely at
   52d3241. Push destination: https://github.com/noobjam/Project-x.git.
@@ -85,7 +89,7 @@ complete merely because its plan exists.
 | [SV-02](agent-roadmap.md#sv-02-bind-agent-work-to-input-snapshots-and-spending) | done | Merged in PR #3 at 82db1c2: exact task/input bindings, atomic completions, per-call attribution and local task spending. |
 | [SV-03](agent-roadmap.md#sv-03-establish-minimal-evidence-and-compatibility-contracts) | done | A merged in PR #1; limited B merged in PR #3. Task/run versions, exact inputs, stale-resume rejection and legacy readers are complete. Typed findings stay in SV-07. |
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
-| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | V3 passage accounting and one disposition-only correction pass offline checks; publication/review in PR #7 pending. Previous live candidates failed. Semantic comparison and interaction index remain open. |
+| [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | V3 passage accounting and one disposition-only correction pass offline/CI checks and are published at a51b67d in draft PR #7; review pending. Previous live candidates failed. Semantic comparison and interaction index remain open. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
 | [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Early advisory source audit, actual-read KB application records and analysis-only mode pass offline checks. Eight synthetic controls prepared; model misses/false alarms unmeasured. Full plan findings/local-to-global review remain planned. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
@@ -247,11 +251,11 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-05 / early SV-07 publication and review:** commit the validated V3/audit
-   implementation and supporting docs to the current branch, push draft PR #7,
-   verify the remote SHA and exact-head CI, and record publication below. This is
-   authorized. Keep the stack unmerged and the feature opt-in. Technical completion
-   does not complete either parent ticket or permit engineer-quality claims.
+1. **SV-05 / early SV-07 technical review:** review published a51b67d in draft
+   PR #7 against the updated acceptance criteria. Local checks and all four
+   code-head CI checks passed; the remote SHA was verified. Keep the stack unmerged
+   and the feature opt-in. No prerequisite merge is needed for calibration work.
+   Technical completion does not complete either parent ticket or prove quality.
 2. **SV-10 auditor calibration preparation:** follow the
    [frozen protocol](../evals/source-audit-protocol.md). First build the small offline
    runner for the eight supplied synthetic candidates, binding each exact source,
@@ -284,7 +288,9 @@ complete merely because its plan exists.
   check/format, strict mypy (47 files), source/wheel build passed. Tests cover mixed
   passages, immutable attempts/feedback, forbidden obligation changes, exhausted
   corrections/budgets across resume, audit/KB reference validation, batch propagation,
-  CLI analysis-only/resume and legacy/current exports. No paid execution occurred.
+  CLI analysis-only/resume and legacy/current exports. All four code-head CI
+  checks passed at a51b67d. Verified 39 local documentation links/anchors, committed
+  paths, wheel contents and credential/local-only exclusions. No paid execution occurred.
 - Eight synthetic source-audit controls are frozen under
   artifacts/evaluations/source-audit-controls-2026-10-29-v1/. Manifest SHA-256:
   8ff807b195c5f8212535496d73066768afb6a565f5ee55c8571a3e684a67e1cb.
@@ -780,10 +786,12 @@ complete merely because its plan exists.
   and source/wheel build. Verified normal specialist instructions unchanged. Eight
   synthetic controls and isolated expectations were frozen and hash-checked locally.
   Model quality, knowledge benefit and engineering acceptance remain unmeasured.
-- Implementation, research comparison and docs remain local pending publication
-  to draft PR #7. No merge or new paid run; task charges/reservations are unchanged.
-  Next: publish/review, then finish calibration execution plumbing and declare a
-  bounded evaluation condition before any inference.
+- Published implementation, research comparison and docs at a51b67d in draft
+  PR #7, verified its remote SHA directly and confirmed all four code-head CI
+  checks passed. Updated the PR title/body to the final scope. Final handoff edits
+  are documentation only. No merge or new paid run; charges/reservations unchanged.
+  Next: technical review and offline calibration runner, then a declared capped
+  condition before any inference. Model quality remains an open acceptance gate.
 
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;

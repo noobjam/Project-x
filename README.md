@@ -138,8 +138,8 @@ does not require an API key or make paid requests. It separates provider-reporte
 charges from outstanding reservations for in-flight or unknown charges, and shows
 the remaining run budget and attempted-call count. Available budget must cover the
 next full reservation before another request can start. An interrupted or
-analysis-only run's monitor keeps watching until stopped. Older runs without a ledger require their
-`events.log` instead. Account-wide spending and per-key filters are available in
+analysis-only run's monitor keeps watching until stopped. Older runs without a
+ledger require their `events.log` instead. Account-wide spending and per-key filters are available in
 [OpenRouter Activity](https://openrouter.ai/activity); an API key's spending cap is
 separate from the account's credit balance and this application's per-run cap.
 
