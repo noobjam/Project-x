@@ -9,6 +9,14 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
+- **Current work:** SV-10 source-audit calibration is in_progress on
+  eval/source-audit-calibration, based on published 87d8904. The user approved
+  proceeding with calibration and the bounded real-packet evaluation. The runner now
+  passes 318 offline tests (91% coverage), Ruff check/format, strict mypy (48 files)
+  and source/wheel build. Freeze the condition before inference. Allocate
+  at most $0.20 to the eight synthetic audits and $0.18 to one real development
+  packet extraction/audit, within the original $1 aggregate ceiling. No full plan,
+  full DOCX, automatic retry, model change or merge is included.
 - **Active milestone:** SV-05 V3 and the early SV-07 source audit are technically
   complete and published at a51b67d on feat/source-obligation-accounting in
   draft [PR #7](https://github.com/noobjam/Project-x/pull/7), pending review.
@@ -20,7 +28,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   and keep `needs_review` visible; they do not repair facts or establish correctness.
   `--analysis-only` stops after extraction/audit, before planner spending. The
   default workflow, three roles, existing KB, old readers and budget remain intact.
-- **Validation this session:** all 301 offline tests passed (91% coverage), Ruff
+- **Prior V3 implementation validation:** all 301 offline tests passed (91% coverage), Ruff
   check/format, strict mypy (47 source files), and source/wheel build. Real SDK
   tests used a simulated endpoint with network access blocked. Normal role
   instructions match the retained baseline; opt-in behavior is prompt 11.
@@ -35,7 +43,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Task spending unchanged:** $0.3072733345 provider-reported plus $0.308158400
   uncertain from an earlier HTTP 400. Combined commitment $0.6154317345;
   $0.3845682655 remains under the original $1 ceiling. No calls are running or
-  scheduled, and no next-condition allocation or merge is authorized.
+  scheduled at this checkpoint. The new allocations above total $0.38; no merge is authorized.
 - **Knowledge and acceptance:** 48 proposed public KB entries remain in draft
   PR #4, with the connector in PR #5. Application claims are now inspectable, but
   correct application and benefit are unproven. The actual Management CPU DOCX
@@ -45,9 +53,11 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Repository snapshot
 
-Code publication and remote CI checked on 2026-10-29:
+Prior code publication and remote CI checked on 2026-10-29; the new calibration
+branch is local/uncommitted until its implementation checkpoint is published:
 
-- Local branch: feat/source-obligation-accounting, based on published 784d03c
+- Current branch: eval/source-audit-calibration, based on published 87d8904.
+  Previous branch: feat/source-obligation-accounting, based on published 784d03c
   from eval/agent-quality-baseline. Earlier commits 789b26d, 6e01efc and e638533
   are published in draft [PR #7](https://github.com/noobjam/Project-x/pull/7).
   V3/audit code, tests, research comparison and documentation are published at
@@ -99,6 +109,15 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- The user's latest “alright lets go for it” approves the stated next step:
+  SV-10 runner plus measured auditor calibration, followed by bounded real-packet
+  evaluation under the existing aggregate allowance. Declare $0.20 for eight
+  synthetic candidates and $0.18 for one analysis-only real-packet condition
+  (sum $0.38 <= $0.3845682655 remaining). Preserve the uncertain old reservation.
+  Use GPT-5 mini / Azure Sweden and the frozen KB. Calibration caps each output
+  at 4,000 tokens; the real packet retains 12,000. Freeze all effective limits,
+  source/KB hashes and code before inference. No silent retry or larger allocation.
+  Implement, validate and publish on eval/source-audit-calibration; no merge.
 - On 2026-10-29 the user approved ticket updates and implementation of the
   researched next slice. The roadmap now specifies V3 passage dispositions,
   structured feedback with one disposition-only correction, an advisory source

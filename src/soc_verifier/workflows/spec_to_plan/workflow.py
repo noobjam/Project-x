@@ -38,7 +38,7 @@ from soc_verifier.workflows.spec_to_plan.batched_roles import (
 )
 from soc_verifier.workflows.spec_to_plan.batching import split_specification
 from soc_verifier.workflows.spec_to_plan.reviewing import generate_review, validate_review
-from soc_verifier.workflows.spec_to_plan.source_audit import validate_audit_task
+from soc_verifier.workflows.spec_to_plan.source_audit import execute_source_audit
 
 
 class PlanState(TypedDict, total=False):
@@ -257,23 +257,7 @@ def _run_workflow(
             SourceAudit,
             [r["id"] for r in state["analysis"]["requirements"]],
         )
-        audit = task.load(SourceAudit)
-        if audit is None:
-            audit = agents.run(
-                role="reviewer",
-                instruction=prompts.AUDIT_SOURCE,
-                schema=SourceAudit,
-                task=task.envelope,
-                context=json.dumps(
-                    {
-                        "specification": source_context(specification),
-                        "analysis": state["analysis"],
-                        "accounting": artifacts.read(state["source_accounting_artifact"]),
-                    }
-                ),
-            )
-        validate_audit_task(audit, task)
-        task.save(audit)
+        audit = execute_source_audit(agents, task)
         return {"source_audit_artifact": name, "source_audit": audit.model_dump(mode="json")}
 
     def plan(state: PlanState) -> PlanState:

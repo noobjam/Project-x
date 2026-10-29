@@ -11,7 +11,9 @@ Testbench generation, simulation, semantic retrieval and coverage closure are fu
 
 Offline snapshots, source packets and evaluation scoring are documented in
 [evals/README.md](evals/README.md). They preserve source/reference separation and
-do not call a model. Current implementation status is in [docs/progress.md](docs/progress.md).
+do not call a model. The separate [source-audit calibration runner](evals/source-audit-protocol.md)
+has an explicitly paid execution command with a shared budget across frozen cases.
+Current implementation status is in [docs/progress.md](docs/progress.md).
 
 Engineers can review proposed knowledge entries, source evidence and testbench
 subchecklists in the [knowledge curation pack](docs/knowledge/README.md). These

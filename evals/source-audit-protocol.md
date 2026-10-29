@@ -2,8 +2,9 @@
 
 SV-05 V3 and the early SV-07 audit are implemented for one bounded packet.
 Software checks establish persistence, reference validation and budget behaviour.
-They do not measure the auditor's ability to detect defects. This protocol declares
-the next evaluation sequence; it does not allocate paid execution.
+They do not measure the auditor's ability to detect defects. The evaluation runner
+now uses the same source-audit executor as the planning workflow. Authorization
+and allocated limits are recorded separately in [progress](../docs/progress.md).
 
 ## Frozen controls
 
@@ -25,9 +26,9 @@ artifacts are evaluation inputs, not prior completed agent tasks or accepted pla
 ## Execution and assessment
 
 1. Review the implementation and freeze code/prompt, model/endpoint, KB, generation
-   limits and a concrete allocation within the remaining task ceiling. Build the
-   small evaluation runner that binds each supplied candidate to the existing
-   source-audit task; the `audit` CLI currently inspects saved output only.
+   limits and a concrete allocation within the remaining task ceiling. Use
+   `prepare-audits` below to bind the supplied candidates to the existing audit
+   task. The planning CLI's `audit` command only inspects saved output.
 2. Run the auditor on frozen candidates without re-extracting or repairing them.
    Count every call, failure and reservation. Keep labels unchanged after observing
    outputs. Do not count schema-valid mock responses as detection results.
@@ -50,3 +51,51 @@ The controls are small development probes, not a held-out benchmark or proof of
 generalisation. The combined V3 path changes extraction mechanics, feedback and
 audit behaviour; do not attribute improvement to one component without a separate
 comparison. Full-plan adequacy and KB benefit remain separate SV-06/SV-10 questions.
+
+## Runner and recovery
+
+Preparation is offline and requires the expected pack manifest hash, a frozen KB
+snapshot and explicit model/provider and total cost/call limits. It validates every
+candidate before creating an ignored output directory. Only the four allowlisted
+input files per case and the KB are copied; reference files are never opened by
+the runner. Original bytes and accounting metadata remain intact. Case-prefixed
+copies allow all tasks to use one ledger; task bindings locate each exact input.
+
+```sh
+uv run --locked python -m soc_verifier.evaluation prepare-audits \
+  --bundle artifacts/evaluations/source-audit-controls-2026-10-29-v1 \
+  --manifest-sha256 8ff807b195c5f8212535496d73066768afb6a565f5ee55c8571a3e684a67e1cb \
+  --knowledge-snapshot artifacts/frozen-knowledge.json \
+  --output artifacts/evaluations/auditor-condition/run \
+  --model openai/gpt-5-mini --provider azure/swedencentral \
+  --max-cost-usd 0.20 --max-model-calls 48 \
+  --max-output-tokens 4000 --agent-max-turns 6
+```
+
+The KB argument must point to the exact snapshot declared for the condition; the
+path above is an example. Preparation saves `source-audit-evaluation-v1`, a hash
+binding, effective settings, code/dependency versions and all source references.
+Output directories cannot be overwritten. The next command incurs model charges:
+
+```sh
+uv run --locked python -m soc_verifier.evaluation run-audits \
+  artifacts/evaluations/auditor-condition/run
+```
+
+All cases share the configured budget. No analysis or planning is regenerated.
+Each case gets at most one invocation with its declared turn limit. The first
+failure, interruption or exhausted budget ends execution; remaining cases are
+reported `not_run`, retaining the full denominator. Completed tasks can be recovered
+without inference. Failed or interrupted cases never retry implicitly, including
+after restarting the command. A process killed after sending a request can leave
+an unknown charge reserved; restarting cannot release it or repeat that case.
+
+`source-audit-case-result-v1` binds each terminal outcome to its task and any
+completed audit. `source-audit-evaluation-result-v1` records all cases and spending
+at completion; it does not assign semantic scores. For current task spending and
+unsettled reservations, this command is local and requires no key:
+
+```sh
+uv run --locked python -m soc_verifier.evaluation audit-status \
+  artifacts/evaluations/auditor-condition/run
+```

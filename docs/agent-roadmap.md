@@ -411,6 +411,15 @@ Acceptance:
 
 Edit points: evals comparison runner, result schemas and local reports.
 
+**Current bounded calibration:** prepare the existing eight source-audit controls
+without changing labels or generating new analyses. Reuse the workflow auditor,
+freeze the KB/settings/code, and enforce one shared cost/call allowance. Separate
+offline preparation/status from paid execution. Retain completed, failed,
+interrupted, budget-exhausted and unrun cases; restarting cannot silently repeat
+a failed or interrupted invocation. Assess findings against isolated reference
+judgments, reporting misses and false alarms separately. Then run the real
+development packet in analysis-only mode under its separately declared cap.
+
 ### SV-11 Check model feasibility early and route later
 
 Priority: P2 for routing. Early compatibility check is part of SV-10A.
