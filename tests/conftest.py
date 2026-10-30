@@ -26,6 +26,31 @@ from soc_verifier.domain.models import (
 )
 from soc_verifier.domain.passage_accounting import PassageAccountingDraft
 from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.source_inventory import PassageReading, SourceInventory
+
+
+def inventory_response(context):
+    """Synthetic transport output; this helper does not evaluate model understanding."""
+    source = json.loads(context)["specification"]
+    return SourceInventory(
+        readings=[
+            PassageReading(
+                evidence_id=unit["id"],
+                classification="behavior",
+                facts=[unit["text"]],
+                reason="Synthetic fixture fact",
+            )
+            for block in source["blocks"]
+            for unit in block["units"]
+        ]
+    )
+
+
+@pytest.fixture
+def source_inventory(specification):
+    from soc_verifier.workflows.spec_to_plan.accounting import source_context
+
+    return inventory_response(json.dumps({"specification": source_context(specification)}))
 
 
 @pytest.fixture(autouse=True)

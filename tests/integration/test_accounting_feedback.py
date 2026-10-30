@@ -1,9 +1,11 @@
 import json
 
 import pytest
+from tests.conftest import inventory_response
 
 from soc_verifier.domain.passage_accounting import AccountingValidationError, PassageDisposition
 from soc_verifier.domain.source_audit import SourceFinding
+from soc_verifier.domain.source_inventory import SourceInventory
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.source_audit import read_source_audit
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
@@ -19,6 +21,8 @@ class ScriptedAgents:
 
     def run(self, **kwargs):
         self.calls.append(kwargs)
+        if issubclass(kwargs["schema"], SourceInventory):
+            return inventory_response(kwargs["context"])
         output = next(self.responses)
         if isinstance(output, Exception):
             raise output
@@ -54,7 +58,7 @@ def test_feedback_correction_and_analysis_only_resume(
     second = ScriptedAgents(passage_accounting_draft, clean_audit)
     result = PlanningWorkflow(second, store, 0, source_accounting=True).run(analysis_only=True)
     assert result["status"] == "analysis_ready" and not store.exists("result.json")
-    assert [c["role"] for c in second.calls] == ["analyst", "reviewer"]
+    assert [c["role"] for c in second.calls] == ["analyst", "reviewer", "reviewer"]
     feedback = json.loads(second.calls[0]["context"])["validation_feedback"]
     assert feedback["issues"][0]["code"] == "non_normative_evidence"
     assert "extra:obligations.r000.attempt0.json" in second.calls[0]["task"].inputs.evidence
@@ -156,7 +160,7 @@ def test_advisory_audit_is_visible_to_planner_and_cannot_be_erased_by_clean_plan
     store = ArtifactStore(tmp_path)
     result = PlanningWorkflow(agents, store, 0, source_accounting=True).run(specification)
     assert (
-        json.loads(agents.calls[2]["context"])["source_audit"]["judgment_state"] == "agent_proposed"
+        json.loads(agents.calls[3]["context"])["source_audit"]["judgment_state"] == "agent_proposed"
     )
     assert result["status"] == "needs_review"
     assert store.read("result.json")["human_approved"] is False
@@ -184,7 +188,7 @@ def test_invalid_audit_fails_before_planning(
     store = ArtifactStore(tmp_path)
     with pytest.raises(ValueError, match=r"unknown|Input should"):
         PlanningWorkflow(agents, store, 0, source_accounting=True).run(specification)
-    assert [c["role"] for c in agents.calls] == ["analyst", "reviewer"]
+    assert [c["role"] for c in agents.calls] == ["analyst", "reviewer", "reviewer"]
     assert not store.exists("source-audit.r000.completed.json")
     assert not store.exists("plan.r000.json")
 
@@ -223,6 +227,8 @@ def test_batched_planners_receive_relevant_and_global_audit_findings(
             return {}
 
         def run(self, *, role, instruction, context, schema, task):
+            if issubclass(schema, SourceInventory):
+                return inventory_response(context)
             if role == "analyst":
                 return schema.model_validate(draft.model_dump())
             if issubclass(schema, SourceAudit):

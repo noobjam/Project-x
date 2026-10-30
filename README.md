@@ -101,7 +101,9 @@ one correction opportunity; every obligation and gap must stay unchanged.
 Both attempts and validation feedback are saved, so resume does not renew this
 allowance. All model requests use the existing run budget.
 
-The existing reviewer then audits extraction before planning, citing source
+The existing reviewer first records an independent inventory of every source
+passage, with no access to candidate requirements or dispositions. A second
+invocation compares that inventory, the original source and the extraction, citing source
 passages for omissions, lost qualifiers, unsupported claims and contradictions.
 Findings remain advisory and visible in planning/export. The auditor can record
 why a KB entry applies only if it actually read that entry during its task.
@@ -120,8 +122,11 @@ uv run soc-verifier resume <run-id> --source-accounting
 before paying for planning. It reports `analysis_ready` and creates no plan or
 `result.json`. Resume without that flag to continue under the same configuration
 and remaining budget. Omit the flag initially to run the complete workflow.
-An extraction revision has two specialist tasks before planning, plus at most
-one disposition correction; each task can make multiple model/tool calls.
+An extraction revision has three specialist invocations before planning (analyst,
+independent inventory, comparison), plus at most one disposition correction.
+Each invocation can make multiple model/tool calls, all under the existing budget.
+The inventory and comparison are saved with their own input bindings and reused on
+resume. The inventory accounts for passages; its facts still need semantic review.
 
 The local `accounting` and `audit` commands inspect completed artifacts without
 inference. Plan exports add **Source accounting**, **Source audit** and

@@ -4,9 +4,11 @@ from hashlib import sha256
 import httpx
 import pytest
 from pydantic import SecretStr
+from tests.conftest import inventory_response
 from tests.integration.test_agent_runtime import API, completion, knowledge_lookup
 
 from soc_verifier.agents.runtime import AgentRuntime
+from soc_verifier.domain.source_inventory import SourceInventory
 from soc_verifier.evaluation.__main__ import main
 from soc_verifier.evaluation.source_audit import (
     INPUT_FILES,
@@ -78,6 +80,8 @@ class Agents:
         self.calls.append(kwargs)
         assert "SECRET_CONTROL_ANSWER" not in kwargs["context"]
         assert "reference/" not in kwargs["context"]
+        if issubclass(kwargs["schema"], SourceInventory):
+            return inventory_response(kwargs["context"])
         response = next(self.responses)
         if isinstance(response, BaseException):
             raise response
@@ -96,9 +100,12 @@ def test_prepare_excludes_answers_and_execution_reuses_every_completed_task(
     assert result["status"] == "completed"
     assert result["semantic_acceptance"] == "unreviewed"
     assert [c["task"].inputs.stage for c in agents.calls] == [
-        "audit-control.C01",
-        "audit-control.C02",
-        "audit-control.C03",
+        "audit-control.C01.inventory",
+        "audit-control.C01.comparison",
+        "audit-control.C02.inventory",
+        "audit-control.C02.comparison",
+        "audit-control.C03.inventory",
+        "audit-control.C03.comparison",
     ]
     assert run_audits(Agents(evaluation, []), store) == result
 
@@ -116,7 +123,7 @@ def test_failure_retains_all_cases_and_cannot_retry_implicitly(
         "interrupted" if isinstance(failure, KeyboardInterrupt) else "failed",
         "not_run",
     ]
-    assert len(agents.calls) == 2
+    assert len(agents.calls) == 4
     assert run_audits(Agents(evaluation, []), store) == result
 
 
@@ -176,9 +183,9 @@ def test_bad_pack_fails_before_creating_executable_output(evaluation_repo, contr
 
 
 def test_real_sdk_cases_share_one_budget_and_keep_unknown_charges(
-    evaluation_repo, control_pack, clean_audit
+    evaluation_repo, control_pack, clean_audit, source_inventory
 ):
-    store, evaluation = prepared(control_pack, evaluation_repo, max_model_calls=4)
+    store, evaluation = prepared(control_pack, evaluation_repo, max_model_calls=7)
 
     def respond(payload):
         messages = [m for m in payload["messages"] if m["role"] == "tool"]
@@ -186,7 +193,9 @@ def test_real_sdk_cases_share_one_budget_and_keep_unknown_charges(
             return knowledge_lookup("search_knowledge", {"query": "reset"})
         if len(messages) == 1:
             return knowledge_lookup("get_knowledge_entries", {"ids": ["K01"]})
-        return completion({"content": clean_audit.model_dump_json()})
+        name = payload["response_format"]["json_schema"]["schema"]["title"]
+        output = source_inventory if name == "SourceInventory" else clean_audit
+        return completion({"content": output.model_dump_json()})
 
     api = API(respond)
     settings = Settings(
@@ -196,11 +205,11 @@ def test_real_sdk_cases_share_one_budget_and_keep_unknown_charges(
         runtime = AgentRuntime(settings, client, artifacts=store)
         result = run_audits(runtime, store)
     assert [c["status"] for c in result["cases"]] == ["completed", "budget_exhausted", "not_run"]
-    assert len(api.requests) == 4 and read_spending(store).attempts == 4
+    assert len(api.requests) == 7 and read_spending(store).attempts == 7
     with httpx.Client(transport=httpx.MockTransport(api)) as client:
         assert run_audits(AgentRuntime(settings, client, artifacts=store), store) == result
-    assert len(api.requests) == 4
-    assert result["spending_at_completion"]["reported_usd"] == "0.0004"
+    assert len(api.requests) == 7
+    assert result["spending_at_completion"]["reported_usd"] == "0.0007"
 
 
 def test_sdk_network_failure_keeps_reservation_and_remaining_denominator(

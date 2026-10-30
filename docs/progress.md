@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-29.
+Last updated: 2026-10-30.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -9,6 +9,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
+- **Active implementation:** SV-07 source-first omission review is in_progress on
+  feat/source-first-audit, based on published 91e3e93. The user authorized the
+  safeguards, reviewed merges and continuing toward an engineer demo. PR #9 and
+  #4 are merged; #5/#6 are being updated and checked in dependency order.
+  Implement a separately persisted source inventory with no candidate-analysis
+  access, followed by comparison through the existing reviewer. Keep the audit
+  advisory and source-audit-v1 exports readable. No new paid allocation yet.
 - **Current milestone:** SV-10's bounded auditor calibration and real-packet
   analysis-only comparison are complete on eval/source-audit-calibration.
   The runner and corrective audit behavior are published at 7be4ecb in draft

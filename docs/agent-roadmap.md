@@ -314,13 +314,22 @@ Synthetic defect and valid-control fixtures validate contracts/routing offline;
 real missed-defect and false-alarm measurements remain SV-10 work. Do not activate
 automatic semantic blocking/repair on the strength of mocked tests.
 
-**Next corrective substep (planned after the 2026-10-29 evaluation):** make the
+**Corrective substep (authorized 2026-10-30):** make the
 source the starting point for omission review, independently of the analyst's
 selected requirements and non-normative/unresolved dispositions. Compare a bounded
 source obligation inventory with the candidate; include skipped passages and lost
 qualifiers within cited passages. Reuse the reviewer role and declare any added
 invocation/output cost before evaluation; do not add an agent or silently expand
 persisted contracts. Proposed correction requests must cite the supporting source.
+
+Implementation boundary: one additional bounded reviewer invocation produces a
+versioned source-inventory-v1 before seeing candidate requirements or dispositions.
+Every supplied passage gets one classification and its explicit facts or an
+unresolved reason. Python validates the inventory's IDs and complete passage
+accounting, not its semantic completeness. A separate comparison invocation binds
+the exact inventory and candidate. Persist both task receipts and validate their
+lineage when projecting/reading the existing source-audit-v1 output; historical
+audits retain their old reader. No added agent role or automatic semantic repair.
 
 Acceptance for this substep:
 

@@ -97,12 +97,23 @@ and [evaluation protocol](../evals/source-audit-protocol.md) keep calibration la
 outside agent input. `--analysis-only` stops after this audit; it does not alter
 task fingerprints or grant additional execution budget.
 
-Prompt version 12 constrains audit passage and requirement IDs in the model's
+Prompt version 12 constrained audit passage and requirement IDs in the model's
 output schema, including conflict comparisons and KB application references.
 It distinguishes facts lost from extraction from optional elaboration absent in
 the source itself. This changes audit behavior without changing the persisted
 source-audit-v1 fields. Historical audit readers remain available; new execution
-requires its own frozen condition and must not resume a prompt-11 task.
+requires its own frozen condition and must not resume a different-prompt task.
+
+Prompt 13 adds the `source-first-v1` audit mode. A `source-inventory-v1` task sees
+only source/optional KB and classifies every passage exactly once, retaining
+explicit facts and qualifiers. Its receipt does not inherit candidate references.
+A child comparison task binds the original analysis/accounting plus the inventory
+hash and projects its result into unchanged source-audit-v1 fields. Reading that
+projection validates both receipts, exact bindings and comparison-task KB reads;
+inventory reads cannot substantiate the comparison's application claims. Earlier
+audit receipts use their original validation path. New executions freeze the added
+invocation within their declared call/cost cap. This is advisory evidence, not
+semantic repair, reference truth or a demonstrated quality improvement.
 
 The source-processing label `docx-v1` identifies the existing DOCX representation;
 its exact input bytes and runtime source hash are also pinned. This does not claim

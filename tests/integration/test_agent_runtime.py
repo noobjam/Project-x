@@ -582,6 +582,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
     passage_accounting_draft,
     source_accounting,
     clean_audit,
+    source_inventory,
 ):
     from soc_verifier.agents.knowledge import read_knowledge_accesses
     from soc_verifier.agents.tasks import ArtifactReference
@@ -605,6 +606,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         "SpecAnalysis": analysis,
         "PassageAccountingDraft": passage_accounting_draft,
         "SourceAudit": audit,
+        "SourceInventory": source_inventory,
         "VerificationPlan": verification_plan,
         "PlanReview": clean_review,
     }
@@ -653,7 +655,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         )
         assert workflow.run()["status"] == "draft_ready"
         assert workflow.run()["status"] == "draft_ready"
-        assert len(api.requests) == (12 if source_accounting else 9)
+        assert len(api.requests) == (15 if source_accounting else 9)
         if source_accounting:
             report = artifacts.read("source-accounting.r000.json")
             assert report["semantic_acceptance"] == "unreviewed"
@@ -663,7 +665,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
                 audit.knowledge_applications[0].model_dump()
             ]
         accesses = read_knowledge_accesses(artifacts)
-        assert len(accesses) == (8 if source_accounting else 6)
+        assert len(accesses) == (10 if source_accounting else 6)
         assert {a["role"] for a in accesses} == {"analyst", "planner", "reviewer"}
         assert {a["tool"] for a in accesses} == {"search_knowledge", "get_knowledge_entries"}
         assert {a["snapshot_sha256"] for a in accesses} == {reference.sha256}
@@ -678,7 +680,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
             )
         if source_accounting:
             # Reads by the other specialists cannot substantiate this auditor's claims.
-            audit_id = artifacts.read("source-audit.r000.task.json")["task_id"]
+            audit_id = artifacts.read("source-audit.r000.comparison.task.json")["task_id"]
             records = {
                 path: path.read_bytes()
                 for path in artifacts.root.glob("knowledge-access.*.json")
@@ -688,15 +690,15 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
                 path.unlink()
             with pytest.raises(ValueError, match="actually read"):
                 workflow.run()
-            assert len(api.requests) == 12
+            assert len(api.requests) == 15
             for path, content in records.items():
                 path.write_bytes(content)
         # Editing or deleting the frozen snapshot cannot silently reuse completed work.
         artifacts.path("knowledge.json").write_text("{}")
         with pytest.raises(ValueError, match="inputs or versions changed"):
             workflow.run()
-        assert len(api.requests) == (12 if source_accounting else 9)
-    assert read_spending(artifacts).reported == Decimal("0.0012" if source_accounting else "0.0009")
+        assert len(api.requests) == (15 if source_accounting else 9)
+    assert read_spending(artifacts).reported == Decimal("0.0015" if source_accounting else "0.0009")
     assert read_spending(artifacts).unsettled_calls == 0
 
 
