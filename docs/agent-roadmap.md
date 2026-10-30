@@ -196,6 +196,11 @@ Edit points: agents/tools.py, ingestion/docx.py and workflow batching/context.
 Priority: P2. Dependencies: SV-01/04 and an SV-10B result showing remaining
 extraction or cross-section failures. First release: deferred.
 
+Bounded exception admitted after the connected diagnostic: when the complete small
+packet was demonstrably supplied and a model screen still misses explicit facts,
+an instructions-only coverage trial may precede SV-04. It adds no extraction
+schema or interaction index and must be compared before expansion.
+
 Test independently reviewable behavioral obligations and a small source-linked
 interaction index for identified failures. Preserve parameterized register/interrupt
 families when the source supports uniform behavior. Use compact source dispositions;
