@@ -65,6 +65,10 @@ class PlanningWorkflow:
             "chunk_max_characters": self.chunk_max_characters,
             "plan_batch_size": self.plan_batch_size,
         }
+        if self.artifacts.exists("knowledge.json"):
+            execution["knowledge"] = ArtifactReference.capture(
+                self.artifacts, "knowledge.json"
+            ).model_dump()
         if self.artifacts.exists("execution.json"):
             if self.artifacts.read("execution.json") != execution:
                 raise ValueError("Run inputs or versions changed; start a new run")
@@ -108,6 +112,8 @@ def _run_workflow(
         assigned_ids: list[str],
     ) -> Task:
         names = {"source": "specification.json"}
+        if "knowledge" in execution:
+            names["knowledge"] = "knowledge.json"
         if "analysis" in state:
             names["analysis"] = _analysis_artifact(state["analysis_revision"])
         if "plan" in state:

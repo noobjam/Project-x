@@ -17,8 +17,9 @@ from pydantic import ValidationError
 
 from soc_verifier.agents.base import ModelResponseError
 from soc_verifier.agents.instructions import PROMPT_VERSION
+from soc_verifier.agents.knowledge import load_knowledge, read_knowledge_accesses
 from soc_verifier.agents.runtime import AgentRuntime
-from soc_verifier.agents.tasks import ENGINE_VERSION, runtime_versions
+from soc_verifier.agents.tasks import ENGINE_VERSION, ArtifactReference, runtime_versions
 from soc_verifier.domain.models import PlanReview, SpecAnalysis, Specification, VerificationPlan
 from soc_verifier.export.xlsx import export_plan
 from soc_verifier.ingestion.docx import ingest_docx
@@ -68,15 +69,28 @@ def ingest(
 @app.command()
 def plan(
     specification: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
+    knowledge_catalog: Annotated[
+        Path | None, typer.Option("--knowledge-catalog", exists=True, dir_okay=False)
+    ] = None,
+    allow_proposed_knowledge: Annotated[bool, typer.Option("--allow-proposed-knowledge")] = False,
 ) -> None:
     """Run the analyst, planner and reviewer agents on an extracted specification."""
     with _errors():
+        if allow_proposed_knowledge and knowledge_catalog is None:
+            raise ValueError("--allow-proposed-knowledge requires --knowledge-catalog")
+        knowledge = (
+            load_knowledge(knowledge_catalog, allow_proposed=allow_proposed_knowledge)
+            if knowledge_catalog is not None
+            else None
+        )
         settings = Settings()
         settings.require_agents()
         spec = Specification.model_validate_json(specification.read_text(encoding="utf-8"))
         run_id = str(uuid4())
         artifacts = ArtifactStore(settings.artifact_dir / "runs" / run_id)
         artifacts.write("specification.json", spec)
+        if knowledge is not None:
+            artifacts.write("knowledge.json", knowledge)
         artifacts.write(
             "manifest.json",
             {
@@ -85,6 +99,15 @@ def plan(
                 "created_at": datetime.now(UTC).isoformat(),
                 "specification_sha256": spec.sha256,
                 "prompt_version": PROMPT_VERSION,
+                **(
+                    {
+                        "knowledge": ArtifactReference.capture(
+                            artifacts, "knowledge.json"
+                        ).model_dump()
+                    }
+                    if knowledge is not None
+                    else {}
+                ),
                 **_run_configuration(settings),
             },
         )
@@ -220,8 +243,19 @@ def export_command(
             task_metadata="available"
             if result.get("schema_version") == "2.0"
             else "unavailable (legacy run)",
+            knowledge_accesses=read_knowledge_accesses(artifacts),
         )
         typer.echo(f"Exported draft verification plan to {output}")
+
+
+@app.command()
+def knowledge(run_id: Annotated[str, typer.Argument()]) -> None:
+    """Show the run's recorded knowledge retrieval locally, without model calls."""
+    with _errors():
+        root = Settings().artifact_dir / "runs" / str(UUID(run_id))
+        if not root.is_dir():
+            raise ValueError("Unknown run ID")
+        typer.echo(json.dumps(read_knowledge_accesses(ArtifactStore(root)), indent=2))
 
 
 def _run_configuration(settings: Settings) -> dict[str, Any]:
@@ -239,6 +273,14 @@ def _execute(
     *,
     resuming: bool,
 ) -> None:
+    expected = artifacts.read("manifest.json").get("knowledge")
+    actual = (
+        ArtifactReference.capture(artifacts, "knowledge.json").model_dump()
+        if artifacts.exists("knowledge.json")
+        else None
+    )
+    if expected != actual:
+        raise ValueError("Run knowledge snapshot changed; start a new run")
     handler = logging.FileHandler(artifacts.path("events.log"), encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger = logging.getLogger("soc_verifier")

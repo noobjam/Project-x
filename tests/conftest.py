@@ -1,9 +1,12 @@
 """Synthetic fixtures only. No proprietary source files or live network calls."""
 
+import hashlib
+import json
 import socket
 
 import pytest
 
+from soc_verifier.domain.knowledge import KnowledgeEntry, KnowledgeSnapshot
 from soc_verifier.domain.models import (
     PlanReview,
     Requirement,
@@ -84,3 +87,49 @@ def verification_plan():
 @pytest.fixture
 def clean_review():
     return PlanReview(findings=[])
+
+
+@pytest.fixture
+def knowledge_snapshot():
+    text = (
+        "## K01 — Reset methodology\nCheck reset exclusions; derive timing from the specification."
+    )
+    return KnowledgeSnapshot(
+        allow_proposed=True,
+        entries=[
+            KnowledgeEntry(
+                id="K01",
+                title="Reset methodology",
+                status="proposed",
+                source_path="patterns.md",
+                text=text,
+                sha256=hashlib.sha256(text.encode()).hexdigest(),
+            )
+        ],
+    )
+
+
+@pytest.fixture
+def knowledge_catalog(tmp_path, knowledge_snapshot):
+    root = tmp_path / "knowledge"
+    root.mkdir()
+    entry = knowledge_snapshot.entries[0]
+    (root / entry.source_path).write_text(entry.text + "\n", encoding="utf-8")
+    catalog = root / "catalog.json"
+    catalog.write_text(
+        json.dumps(
+            {
+                "format": "knowledge-catalog-v1",
+                "entries": [
+                    {
+                        "id": entry.id,
+                        "file": entry.source_path,
+                        "status": entry.status,
+                        "reviewer": "",
+                        "sha256": entry.sha256,
+                    }
+                ],
+            }
+        )
+    )
+    return catalog

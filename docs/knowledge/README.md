@@ -2,7 +2,7 @@
 
 Help us curate reusable knowledge for an agent that reads chip specifications and drafts verification plans.
 
-**Status: revision 2, 48 proposed entries, zero engineering-approved entries.** Four engineering comments have been incorporated into proposed revisions; the edited entries need confirmation. These documents are review material; they are not connected to runtime retrieval. Approval concerns the suitability of selected knowledge entries, not agent quality or testbench readiness.
+**Status: revision 2, 48 proposed entries, zero engineering-approved entries.** Four engineering comments have been incorporated into proposed revisions; the edited entries need confirmation. These documents can now supply an explicitly selected runtime trial; proposed entries are excluded by default. Approval concerns the suitability of selected knowledge entries, not agent quality or testbench readiness.
 
 ## Start reviewing
 
@@ -34,6 +34,8 @@ This public edition preserves existing entry IDs from the local 40-entry v1 hand
 
 For each selected entry, confirm the corrected wording, source interpretation, applicability and unresolved limitations. Record your name or reviewer ID and the revision reviewed. Blank or untouched entries remain unreviewed; a GitHub merge alone does not confer engineering approval.
 
-We will reconcile the decisions into versioned knowledge entries. Before runtime integration, select separate evaluation cases and keep their engineer-written answers hidden from the agent. Examples supplied as knowledge cannot also serve as independent tests of the knowledge's benefit. Public material may already be familiar to the model.
+We will reconcile the decisions into versioned knowledge entries. The [catalog](catalog.json) binds each entry's exact Markdown content to its review status and reviewer. Changed entry text invalidates its hash; review the changes before updating the catalog, and retain proposed status unless approval covers that exact wording. The current trial uses a separate Management CPU source packet; its human answers remain excluded. Examples supplied as knowledge cannot also serve as independent tests of the knowledge's benefit. Public material may already be familiar to the model.
 
-The next implementation ticket and execution boundaries remain in [project progress](../progress.md) and the [roadmap](../agent-roadmap.md). This review does not implement retrieval, change agent behavior or run paid evaluations.
+Agents access only a frozen run snapshot through bounded search/read tools; they do not load the whole collection into every prompt. The [usage instructions](../../README.md#generate-a-plan) describe opt-in and retrieval reporting. Entry retrieval is not evidence of correct application or improved plan quality.
+
+The implementation status, evaluation evidence and execution boundaries remain in [project progress](../progress.md) and the [roadmap](../agent-roadmap.md). Curation approval alone does not authorize paid runs or a merge.

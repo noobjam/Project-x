@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
@@ -27,6 +28,7 @@ def export_plan(
     plan: VerificationPlan,
     review: PlanReview,
     task_metadata: str | None = None,
+    knowledge_accesses: list[dict[str, Any]] | None = None,
 ) -> None:
     validate_sources(analysis, specification)
     validate_traceability(plan, analysis)
@@ -122,6 +124,23 @@ def export_plan(
         metadata = workbook.create_sheet("Run metadata")
         _row(metadata, ["Field", "Availability"])
         _row(metadata, ["Task input and spending attribution", task_metadata])
+
+    if knowledge_accesses:
+        knowledge = workbook.create_sheet("Knowledge retrieval")
+        _row(knowledge, ["Role", "Task", "Action", "Entry IDs", "Snapshot SHA-256", "Offset"])
+        for access in knowledge_accesses:
+            _row(
+                knowledge,
+                [
+                    access["role"],
+                    access["task_id"],
+                    access["tool"],
+                    "\n".join(access["entry_ids"]),
+                    access["snapshot_sha256"],
+                    str(access["offset"]),
+                ],
+            )
+        _row(knowledge, ["Retrieved guidance is not proof of correct application."])
 
     for worksheet in workbook.worksheets:
         worksheet.freeze_panes = "C2"

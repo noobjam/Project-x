@@ -177,6 +177,12 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             "zdr": True,
         }
         payload["max_tokens"] = self.settings.max_output_tokens
+        choice = payload.get("tool_choice")
+        if choice == "required" or (isinstance(choice, dict) and choice.get("type") == "function"):
+            # A forced function turn returns arguments under the tool schema, not
+            # a final artifact. Combining both output modes is rejected by some
+            # providers. Keep the final schema on subsequent auto/none turns.
+            payload.pop("response_format", None)
         output = payload.get("response_format", {}).get("json_schema")
         if output:
             output["schema"] = _strict_schema(output["schema"])
@@ -310,11 +316,17 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                     "reasoning_fields": fields,
                 }
             )
-        # Return a buffered response for the OpenAI SDK's typed parser. No retries
-        # are performed here; every new network attempt must reserve its own cost.
+        # HTTPX has already decoded response.content. Rebuild entity headers so
+        # the SDK does not decompress those bytes again or inherit wire framing.
+        headers = [
+            (key, value)
+            for key, value in response.headers.multi_items()
+            if key.lower() not in {"content-encoding", "content-length", "transfer-encoding"}
+        ]
+        # No retries: every new network attempt must reserve its own cost.
         return httpx.Response(
             response.status_code,
-            headers=response.headers,
+            headers=headers,
             content=response.content,
             request=request,
         )

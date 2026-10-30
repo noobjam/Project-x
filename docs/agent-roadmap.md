@@ -323,6 +323,16 @@ using unchanged cases, model/provider, generation settings and declared limits.
 Use offline checks first; group inseparable changes as an explicit condition.
 Prior baseline outputs may be reused only when all effective inputs match.
 
+The user-requested KB diagnostic adds a bounded connector before the broader
+SV-04 source-retrieval work: versioned public-entry catalog, frozen per-run
+snapshot, specialist search/read tools and role/task access records. Default to
+approved entries; proposed material requires explicit trial opt-in. Validate
+snapshot changes, retrieval limits, source/knowledge separation and legacy reads
+offline before generating a source-only/KB-connected pair on the separate
+Management CPU packet. Keep human reference answers outside retrieval. Report
+actual reads separately from correct application; this does not complete SV-04,
+SV-06 or semantic acceptance. Preserve the existing task budget across failures.
+
 C: test repair only after SV-08 is admitted. Measure corrected defects, introduced
 defects and added cost against no repair. A single-agent/two-stage comparison is
 optional when testing stage value, not a prerequisite for fixing retrieval.

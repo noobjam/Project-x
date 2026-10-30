@@ -9,63 +9,71 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
 
-- **Active milestone:** knowledge curation revision 2, in_review on
-  docs/knowledge-curation-review for draft PR #4. Published at 82d401c and verified
-  against the remote branch. The [focused review guide](knowledge/REVISION_NOTES.md)
-  maps all four comments from 5a1aah to the changes and remaining decisions.
-  No entries are engineering-approved or connected to runtime retrieval.
-- **Active delivery:** safeguards merged in [PR #9](https://github.com/noobjam/Project-x/pull/9)
-  at 4458169 after all three required CI checks passed. Main protection is active
-  and verified, including administrator enforcement. The user authorized merging
-  reviewed #4–#6 in order and continuing the omission-review correction. PR #4 is
-  updated with main on docs/knowledge-curation-review for required CI. The latest
-  agent experiments remain in draft PR #8; no new paid allocation is inferred.
-- **Merge policy:** require current-base CI and resolved review threads; reject
-  private files/common keys and unversioned prompt changes. Push protection is
-  already enabled. Only the owner has write access, so mandatory human approval
-  stays disabled. The previous main-only snapshot below predates the draft stack.
-- **Phase:** the baseline foundation is merged through
-  [PR #3](https://github.com/noobjam/Project-x/pull/3) at 82db1c2. SV-02 and the
-  limited SV-03 scope are done: exact task/input bindings, per-call spending,
-  compatible readers and OpenRouter reasoning replay. Engineering acceptance is pending.
-- **Current working plan:** a smaller first release focused on source retrieval,
-  structured findings, agent task/cost reporting and reviewable output, evaluated
-  against the real Management CPU DOCX.
-- **Implemented baseline:** OpenAI Agents SDK analyst/planner/reviewer agents,
-  bounded evidence tools, OpenRouter transport, Python orchestration, immutable
-  artifacts and Excel export. LangGraph/LangChain were removed.
-- **Next implementation milestone:** SV-04 retrieval and bounded source context. Implementation
-  has not started. PR #3 passed all four push/PR CI checks at final head 95ae453
-  on Python 3.12/3.13; its implementation validation included 202 offline tests,
-  Ruff, mypy and source/wheel build. The merge session verified those results.
-- **No new paid evaluation:** the migrated runtime has not yet had a paid live
-  engineering evaluation. Quality and savings remain unmeasured.
-- **Original knowledge handoff:** the ignored v1 HTML/ZIP pack is an unchanged
-  historical snapshot with 40 draft entries: 12 planning questions,
-  seven testbench groups (21 subchecks), 12 source-backed patterns and nine worked
-  examples. Sources span OpenHW, Accellera, PULP and OpenTitan, plus private
-  examples; a source inventory records versions, hashes and original files.
-  Comparable-system source usage is documented separately. No entries have been
-  approved or integrated into the runtime; canonical evaluation files are intact.
-- **Curation review scope:** revision 2 has 48 proposed public entries: 15
-  patterns, 12 planning questions, seven testbench groups (21 subchecks) and 14
-  examples across OpenTitan, PULP AXI, CV32E40P and CORE-V MCU. K13–K15 adapt
-  the engineer's proposals; C10 and TB06/K03 address completion and evidence.
-  E10–E18 add transferable cases, pinned sources and an explicit reset-value
-  conflict in E14. The four private examples and original CPU material remain
-  excluded. [PR #4](https://github.com/noobjam/Project-x/pull/4) remains draft and
-  unmerged; revision 2 is published and awaits focused engineering confirmation.
-- **Local instructions:** AGENTS.md stays on the Mac and is excluded from Git.
-  The roadmap, council review and this progress tracker remain shared documents.
+- **2026-10-30 delivery:** safeguard PR #9 merged at 4458169 and public KB PR #4
+  at e78e2ea. PR #5 is updated with protected main for mandatory CI after focused
+  code review found no blocking regression. All knowledge remains proposed.
+  Next: merge #5, then #6, and implement the source-first audit correction.
+- **Current evaluation context:** later experiments remain in draft PR #8;
+  extraction is 9/13 and its auditor misses the four incomplete labels. The
+  aggregate task ledger is $0.4196977455 reported plus $0.308158400 uncertain.
+  No new paid allocation. The diagnostic details below describe the older PR #5
+  milestone, not additional evaluations or the current aggregate spending.
+- **Merge safeguards:** main requires current-base repository-policy and Python
+  3.12/3.13 quality checks, resolved review threads and PRs; no admin bypass,
+  force pushes or deletion. Mandatory reviewer count stays zero for one maintainer.
+
+- **Active milestone:** SV-10B actual KB diagnostic, in_review on
+  feat/agent-knowledge-tools. The connected candidate completed with needs_review:
+  six requirements, five plan items and five automated findings. All three
+  specialists searched and read guidance: six accesses, eight distinct entries,
+  nine model calls, $0.0192188975 reported. All selected entries were fully returned.
+  The private engineer package is ready at
+  artifacts/evaluations/live-kb-review-2026-10-28-v4/review/START_REVIEW.md.
+- **Comparison outcome:** the matched source-only workflow failed traceability
+  because its planner omitted an extracted requirement on the initial attempt
+  and one resume. It has no accepted final plan. The connected candidate also
+  has preliminary quality issues requiring engineering review; no KB benefit or
+  comparative quality gain is established.
+- **Task spending:** $0.0697225375 provider-reported across all retained attempts,
+  plus a separate $0.308158400 uncertain reservation from an earlier HTTP 400.
+  Combined commitment $0.3778809375 remains within the original $1 ceiling.
+  No further paid execution is scheduled; do not reset the task allocation.
+- **Implemented connector:** public Markdown/catalog -> frozen per-run JSON ->
+  bounded SDK search/read tools. Required consultation, content hashes, task/batch
+  binding, local retrieval reporting and Excel records are implemented. Final
+  code 7ee24a4 is pushed in draft [PR #5](https://github.com/noobjam/Project-x/pull/5),
+  stacked on PR #4; neither is merged. The remote SHA was verified directly.
+- **Software validation:** 244 offline tests, Ruff check/format, strict mypy and
+  source/wheel build passed. All four GitHub push/PR CI checks passed for 7ee24a4
+  on Python 3.12/3.13. These checks do not establish engineering quality.
+- **Live limitations:** retained failures exposed skipped tool calls, provider
+  output-mode incompatibility, an invalid KB read request and an unknown source
+  citation. The first three have implementation fixes; citation correctness and
+  plan completeness remain validation/quality concerns. An earlier HTTP 400 still
+  has a $0.308158400 uncertain reservation. Do not count it as confirmed spending
+  or settle it to zero without provider evidence. The original $1 task cap holds.
+- **Knowledge curation:** revision 2 remains in_review in draft
+  [PR #4](https://github.com/noobjam/Project-x/pull/4). All 48 public entries remain
+  proposed; the diagnostic explicitly opts into provisional material. Sources
+  span OpenHW, Accellera, PULP and OpenTitan. No engineering approvals are inferred.
+- **Baseline foundation:** merged through PR #3; SV-01, SV-02 and limited SV-03
+  technical scopes are done. Runtime uses OpenAI Agents SDK analyst/planner/reviewer,
+  OpenRouter and Python orchestration. SV-04 source retrieval remains planned.
+- **Acceptance:** the actual Management CPU DOCX remains the acceptance workload.
+  This run uses a small reset packet; human answers remain outside retrieval.
+  Neither KB benefit nor full-document quality is established. Earlier manual
+  guidance trials are historical and did not exercise KB tools.
+- **Local material:** source, generated plans, feedback and run ledgers stay ignored
+  under artifacts/. AGENTS.md remains local-only and absent from publication.
 
 ## Repository snapshot
 
 Checked on 2026-10-28:
 
-- Local branch: docs/knowledge-curation-review; revision 2 content committed and
-  published at 82d401c, directly verified remotely before this handoff update.
-  main remains at 52d3241 (verified remotely). The revision changes only nine
-  review/progress Markdown files. AGENTS.md remains local-only and ignored.
+- Local branch: feat/agent-knowledge-tools. Code head 7ee24a4 is pushed and its
+  remote SHA verified. PR #5 targets docs/knowledge-curation-review (PR #4).
+  Main remains 52d3241. The progress handoff accompanies this review branch;
+  private artifacts and AGENTS.md stay ignored.
 - Migration commit: 5d15c10; preserved pre-migration prototype: 10f5bad.
 - Push destination: https://github.com/noobjam/Project-x.git. GitHub reports PR #3
   merged at 82db1c2; implementation 373ed26 and reviewed head 95ae453 remain in
@@ -85,6 +93,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Published at 82d401c in draft PR #4. Four engineering comments incorporated; 48 entries including 14 public examples. Documentation checks passed; entry-specific engineering confirmation pending. This does not complete SV-04 or SV-06. |
+| Actual KB diagnostic | in_review | Connected candidate and 65-file private review package complete; all specialists used search/read tools. Matched baseline failed traceability twice. PR #5 is draft, 244 tests and code-head CI pass; engineering acceptance and KB benefit remain pending. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -104,10 +113,28 @@ complete merely because its plan exists.
 | [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | planned | Typed source/requirement/item findings and local-to-global review; no graph/pattern prerequisite. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Extend CLI/Excel with findings, evidence, limitations and task costs. |
-| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | planned | A baseline, B incremental comparisons, C optional repair experiment, D full-DOCX acceptance. Preparation may proceed offline. |
+| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Connected candidate/package complete; matched baseline failed traceability twice. Retrieval is recorded separately from correct application. Engineering judgments, a successful paired comparison and full-DOCX acceptance remain pending. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
+
+- On 2026-10-28 the user explicitly rejected testing without connecting the KB.
+  Implement bounded search/read tools over a frozen per-run knowledge snapshot,
+  record retrieval by role/task, validate offline, then generate actual connected
+  output for engineering review within the remaining original $1 task ceiling.
+  Proposed entries require an explicit trial opt-in; no engineering approvals
+  are inferred. Retrieval is not proof of correct application or better quality.
+  Source-only retrieval fixes remain SV-04; no broad schema/agent redesign or merge.
+
+- On 2026-10-28 the user requested actual live output for the engineer. This
+  supersedes the earlier documentation-only scope for a bounded local diagnostic.
+  The task ceiling was $1; after the first call failed at $0.002845425, two fresh
+  workflows each received a $0.49 ceiling. Both used the configured Gemini
+  3.1 Flash Lite/Google EU endpoint, identical source and limits, with no repair
+  loop. The candidate added only provisional planner guidance. The successful
+  executions cost $0.009802925 and $0.009209200; no allocation is silently renewed.
+  This is not acceptance of the separate proposed $5 pilot or publication of
+  private plans. The needed transport fix is isolated for review; no merge.
 
 - On 2026-10-28 the user said to keep moving after the proposed revision of
   PR #4. Revise and publish the knowledge review documents: K13–K15, broader
@@ -183,7 +210,17 @@ complete merely because its plan exists.
 
 ## Next moves
 
-0. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
+0. **SV-10B engineering review:** open
+   artifacts/evaluations/live-kb-review-2026-10-28-v4/review/START_REVIEW.md and
+   candidate-plan.xlsx. RETRIEVAL.md records actual reads; PRELIMINARY_NOTES.md
+   identifies source-backed issues for adjudication; FEEDBACK.md captures decisions.
+   Keep this source/plan package private. The code is in draft PR #5, stacked on
+   PR #4, and is not merged. Confirm omitted obligations, unsupported expectations
+   and checklist application before another paid comparison. Preserve the failed
+   source-only comparison and all earlier failures in any quality assessment.
+   The earlier manual-guidance pack is historical, not a KB-retrieval test.
+
+1. **Knowledge curation:** revision 2 is published in draft PR #4. Use the
    [focused review guide](knowledge/REVISION_NOTES.md)
    for K13–K15, C10, TB06/K03 and E10–E18. Record entry-specific engineering
    decisions with the reviewed commit; resolve or retain the E14 reset conflict.
@@ -194,21 +231,33 @@ complete merely because its plan exists.
    C10's reliable gap-to-row links belong to SV-07/SV-09; this review does not
    implement them or replace SV-04.
 
-1. **Next implementation: SV-04.** On the next implementation instruction, create
+2. **Next planned implementation: SV-04.** On the next implementation instruction, create
    a focused branch from current main. First add offline counterexamples for matches
    beyond character 1,000, Unicode coordinates and more than 12 search hits; fix
    match-centered excerpts and stable pagination against the exact task snapshot.
-2. **Complete bounded source context.** Add bounded section/neighbor access and
+3. **Complete bounded source context.** Add bounded section/neighbor access and
    consistent table-header context in prompts/tools, with explicit warnings when
    support is unavailable. Preserve reference validation, tool permissions and both
    frozen evaluation inventories. No broader roles or general repair are in scope.
-3. **Before paid SV-10A evaluation, resolve its allocation and authorization.** The
+4. **Before further paid SV-10 evaluation, resolve its allocation and authorization.** The
    proposed $5 tranche is still unapproved. Check the selected endpoint's tools,
    structured output and reasoning round trips where applicable before comparisons.
    Record reasoning replay as a separate behavior condition. Identify an engineering
    reviewer before semantic-acceptance claims; offline work can continue independently.
 
 ## Validation and result references
+
+- Live diagnostic: original packet verification passed (41 blocks). Both outputs
+  pass application schemas, source/requirement/item reference checks and workbook
+  row/ID checks; exported cells contain text rather than formulas. Both used
+  identical source bytes. The local summaries and ledgers reconcile seven total
+  attempts including the failed call, with $0.021857550 reported and zero reserved.
+  Frozen source/reference inventories were not changed. Review questions are
+  provisional observations, not human quality labels. No complete-spec claim.
+- Transport fix: gzip/deflate regression tests reproduced DecodingError before
+  changing headers. Final 206-test suite, Ruff check/format, mypy (40 source files)
+  and sdist/wheel build passed. Compressed SDK integration covers all three roles,
+  tool follow-ups, replay without extra calls and unchanged charge accounting.
 
 - Knowledge revision 2: checked 48 unique entry IDs, 14 public examples, 21
   testbench subchecks, local links/anchors, six new pinned source-file hashes
@@ -301,6 +350,29 @@ complete merely because its plan exists.
   synchronized working tree at that checkpoint. No force push was used.
 
 ## Milestone history
+
+### 2026-10-28: Actual KB integration started
+
+- User clarified that the desired experiment must exercise runtime KB retrieval.
+  Started feat/agent-knowledge-tools from the local tested transport fix; initial
+  catalog/snapshot and bounded tool edits are local and unvalidated. Runtime and
+  CLI integration remain unfinished. No additional paid calls or publication.
+- Next: wire frozen knowledge into every specialist task, test the connection,
+  run within the remaining original budget, and supply traceable actual output.
+
+### 2026-10-28: KB connector published; live consultation failure caught
+
+- Published 4c136b2 on feat/agent-knowledge-tools and verified the remote SHA;
+  opened draft PR #5 with PR #4 as its base. 239 offline tests, Ruff, mypy and
+  source/wheel build passed. Private sources, plans and AGENTS.md stay excluded.
+- The new baseline completed; the candidate returned without calling knowledge
+  tools. The final guard rejected it. Its $0.002640825 charge is retained alongside
+  the $0.008634725 baseline charge; cumulative task spending is $0.033133100,
+  with zero unsettled reservations. Artifacts: live-kb-review-2026-10-28-v1.
+- Added required API tool choice for search then read, returning to automatic
+  choice after consultation. Installed-SDK regression checks verify each request;
+  the configured endpoint advertises tool_choice support. Revalidate and pin a
+  fresh matched pair before claiming successful KB execution.
 
 ### 2026-10-26 SDK migration and architecture planning
 
@@ -510,6 +582,60 @@ complete merely because its plan exists.
   SV-04 is still planned; runtime knowledge integration requires a separately
   defined evaluation split.
 
+### 2026-10-28: Live reset-packet review trial and transport fix
+
+- User requested actual generated outputs. First run
+  70491ac9-5373-4cd7-b0ae-e216755ba448 failed after one paid response; retained its
+  $0.002845425 charge and artifacts. Reproduced double decompression offline and
+  committed the narrow header fix with regression tests as be849b6. No model or
+  provider switch, permanent prompt change or schema change was needed.
+- Fresh baseline cd1e9727-8e07-4213-925b-9fccab50de9f and candidate
+  6b05182f-bf2d-4de0-8219-d0a199e46f7e completed with needs_review. Both contain
+  seven extracted requirements, but different obligations; the candidate has
+  four plan items versus six baseline items. Counts are not quality scores.
+- Provisional guidance was injected only into candidate planner instructions by
+  an ignored local runner. Exact instructions, guidance, source hashes, code
+  commit, task bindings and charge ledgers are preserved. Independent extraction
+  and model variability limit this comparison. Previously inspected development
+  evidence is not held-out gold, and no engineer answers were supplied.
+- Prepared two Excel plans, exact JSON artifacts, source text, a review guide and
+  a separate feedback form under the ignored live-review-2026-10-28-v2 directory.
+  Final charge $0.021857550 including failure; no unsettled charges. The engineer
+  should assess the outputs before further knowledge expansion or larger runs.
+- Offline fix validation passed 206 tests plus lint, formatting, types and build;
+  live outputs passed structural/workbook checks. Branch publication remains the
+  delivery step; merging and engineering acceptance remain pending.
+
+### 2026-10-28: Actual KB execution and private engineering package
+
+- Final implementation 7ee24a4 is pushed in draft PR #5 and directly verified on
+  origin. PR #5 depends on the curation branch in PR #4; neither is merged.
+  All 244 offline tests, lint/format, mypy and build passed; all four code-head
+  GitHub checks passed on Python 3.12/3.13. Final handoff edits are documentation only.
+- Live failures were retained: prompt-only consultation was skipped; forced tool
+  calls with a final-output schema were rejected by the provider; an invalid read
+  violated tool bounds; one analysis cited an unknown source ID. Required tool
+  choice, separate tool/final-output schemas, declared read bounds and safe SDK
+  error handling address integration failures. They do not guarantee good plans.
+- Candidate 1101a7f7-8012-439f-8387-a00c134f924f completed with needs_review and
+  actual search/read access by analyst, planner and reviewer. It used eight public
+  proposed entries, with full selected-entry text returned, and cost $0.0192188975.
+  Source-only comparison ffc6a8a4-d2db-4a72-94e9-926e05103455 failed missing-requirement
+  validation twice, including one resume, and cost $0.00923494. No accepted baseline
+  plan or comparative quality improvement is claimed.
+- Prepared an ignored 65-file engineer package with the candidate workbook, exact
+  source and frozen KB, retrieval/task/charge records, failed-comparison evidence,
+  provisional observations and blank feedback form. Workbook rows/IDs, formula
+  safety, matching source/code/settings, ZIP integrity and all file hashes passed.
+  Artifact root: artifacts/evaluations/live-kb-review-2026-10-28-v4/.
+- Aggregate provider-reported cost is $0.0697225375; the earlier HTTP 400 retains
+  a separate $0.308158400 uncertain reservation. All remain within the original
+  $1 task ceiling. No further paid runs, engineering approval or merge.
+- Next: engineer review of the actual candidate and selected KB entries, then
+  a focused fix to adjudicated omissions/application errors and another bounded
+  comparison under an explicitly recorded allocation. SV-10 remains in_progress;
+  the broader SV-04 source-retrieval ticket remains planned.
+
 <!-- At each milestone/handoff, update the current sections and append an entry:
 Date and milestone; ticket/substep status; changes and safe evidence links;
 checks actually run and outcomes; decisions/authorization; blockers and scope;
@@ -541,3 +667,14 @@ ordered next action. Include commit/PR references only when they exist.
   proposed changes and remain pending engineering confirmation. Only public review
   documents are introduced. Updated this branch by merge, preserving frozen history.
 - Next: merge #4 after final-head CI, then update/review/merge #5 and #6 in order.
+
+### 2026-10-30: Curation merged; connector merge review
+
+- PR #4 merged at e78e2ea after all three required final-head checks passed.
+  The engineering comments are reflected in revision notes; entries remain proposed.
+- Reviewed PR #5's frozen KB bindings, source/knowledge separation, forced tool
+  consultation, OpenRouter response handling, legacy paths and regression tests.
+  No blocking finding. Known guidance applicability/quality limits remain visible.
+- Merged protected main into the connector branch. Only progress history required
+  conflict resolution; no runtime content was changed by the merge. Next: final-head
+  CI and merge #5, then documentation-only #6.

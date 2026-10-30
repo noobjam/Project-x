@@ -15,7 +15,8 @@ do not call a model. Current implementation status is in [docs/progress.md](docs
 
 Engineers can review proposed knowledge entries, source evidence and testbench
 subchecklists in the [knowledge curation pack](docs/knowledge/README.md). These
-documents are unapproved review material and are not used by the running agents.
+documents remain unapproved. Agents can consult them only when an explicit
+knowledge catalog is selected; provisional entries also require a trial opt-in.
 
 ## Development
 
@@ -61,6 +62,30 @@ uv run soc-verifier resume <run-id> --workers 1  # Resume sequentially
 uv run soc-verifier tasks <run-id> --json
 uv run soc-verifier export <run-id> --output artifacts/verification_plan.xlsx
 ```
+
+To run an explicit trial with the proposed public knowledge collection:
+
+```bash
+uv run soc-verifier plan artifacts/specification.json \
+  --knowledge-catalog docs/knowledge/catalog.json --allow-proposed-knowledge
+uv run soc-verifier knowledge <run-id>
+```
+
+The KB is Markdown plus a JSON catalog of entry IDs, content hashes and review
+status. Without the provisional flag, only approved entries with a recorded
+reviewer are eligible; the current catalog has none. Each run freezes its selected
+entries in `knowledge.json`. All three specialists can search that snapshot by
+keywords and read selected entries through bounded tools. There is no vector
+database, automatic web browsing or reference-answer retrieval. Knowledge supplies
+verification methods; the current specification supplies design facts.
+
+Each KB-enabled invocation must search and, when matches exist, read guidance
+before its output is accepted. API tool choice enforces those initial steps; the
+model chooses the search query and which entries to read. The local `knowledge` command and the Excel
+**Knowledge retrieval** sheet show actual accesses by role/task. These records
+show retrieval, not proof that guidance was correctly applied to each plan row.
+Changing the saved snapshot prevents resume; changing authoring files leaves
+existing snapshots intact. Tool follow-ups consume the same run budget.
 
 Monitor a run from another terminal with `uv run soc-verifier spend <run-id> --watch`.
 It refreshes every five seconds and stops when the run completes; Ctrl-C stops
@@ -235,6 +260,10 @@ an invocation, including ordered encrypted/signed metadata. Histories that canno
 be matched safely are rejected before another paid request. This adapter behavior
 is a separately versioned comparison condition; it is not proof of compatibility
 with every live model/provider. Model routing and caching optimization remain deferred.
+
+The transport passes already-decoded response bytes to the SDK with rebuilt
+encoding/length headers. Compressed provider replies are decoded once; their
+usage is accounted before local validation, including failed generations.
 
 The OpenAI client SDK supplies API calls and the Agents SDK supplies the tool loop;
 OpenRouter still supplies inference and billing. The model and provider remain
