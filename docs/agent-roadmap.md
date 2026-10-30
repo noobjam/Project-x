@@ -314,6 +314,29 @@ Synthetic defect and valid-control fixtures validate contracts/routing offline;
 real missed-defect and false-alarm measurements remain SV-10 work. Do not activate
 automatic semantic blocking/repair on the strength of mocked tests.
 
+**Next corrective substep (planned after the 2026-10-29 evaluation):** make the
+source the starting point for omission review, independently of the analyst's
+selected requirements and non-normative/unresolved dispositions. Compare a bounded
+source obligation inventory with the candidate; include skipped passages and lost
+qualifiers within cited passages. Reuse the reviewer role and declare any added
+invocation/output cost before evaluation; do not add an agent or silently expand
+persisted contracts. Proposed correction requests must cite the supporting source.
+
+Acceptance for this substep:
+
+- A complete omission cannot be excused by the analyst's non-normative disposition.
+- A cited passage is not considered covered merely because its ID is present.
+- Unsupported relationships remain unresolved; relabeling them as derived is not
+  a sufficient correction. Different mechanisms are not inherently inconsistent.
+- Optional specification detail and conditional KB advice are not extraction
+  defects or new design requirements. Check applicability against the target source.
+- Evaluate the frozen omission/qualifier controls and all thirteen real-packet
+  labels, preserving prior gains and reporting false alarms and advice quality.
+  Offline contract tests and a source inventory do not prove semantic completeness.
+- Keep the audit advisory until measured quality supports a separately recorded
+  decision. A new paid condition needs a declared applicable allocation; the
+  completed calibration's unused balance does not authorize automatic retries.
+
 ### SV-08 Trial one bounded plan-only repair
 
 Priority: P2. Dependencies: SV-02/03/07, usable repairable findings and an
@@ -410,6 +433,20 @@ Acceptance:
   acceptance. Public and private development cases do not prove generalization.
 
 Edit points: evals comparison runner, result schemas and local reports.
+
+**Current bounded calibration:** prepare the existing eight source-audit controls
+without changing labels or generating new analyses. Reuse the workflow auditor,
+freeze the KB/settings/code, and enforce one shared cost/call allowance. Separate
+offline preparation/status from paid execution. Retain completed, failed,
+interrupted, budget-exhausted and unrun cases; restarting cannot silently repeat
+a failed or interrupted invocation. Assess findings against isolated reference
+judgments, reporting misses and false alarms separately. Then run the real
+development packet in analysis-only mode under its separately declared cap.
+
+Analysis-only assessment must retain every frozen obligation and report downstream
+scenario adequacy as not evaluated. It must not label a run without a plan/review
+as a completed full workflow. Report recovered and regressed labels alongside the
+aggregate extraction count, and grade the audit independently of the extraction.
 
 ### SV-11 Check model feasibility early and route later
 

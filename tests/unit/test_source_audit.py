@@ -4,9 +4,47 @@ from pydantic import ValidationError
 from soc_verifier.domain.source_audit import (
     ConflictComparison,
     KnowledgeApplication,
+    SourceAudit,
     SourceFinding,
+    bound_audit_schema,
     validate_source_audit,
 )
+
+
+@pytest.mark.parametrize("bad_field", ["finding", "requirement", "application", "conflict"])
+def test_model_schema_constrains_every_reference_to_current_inputs(
+    specification, analysis, bad_field
+):
+    schema = bound_audit_schema(specification, analysis)
+    item = finding()
+    application = KnowledgeApplication(
+        entry_id="K01",
+        requirement_ids=[analysis.requirements[0].id],
+        evidence_ids=["P00001:U00000"],
+        assessment="applicable",
+        rationale="Synthetic guidance",
+    )
+    data = SourceAudit(findings=[item], knowledge_applications=[application]).model_dump()
+    assert schema.model_validate(data).model_dump() == data
+    if bad_field == "finding":
+        data["findings"][0]["evidence_ids"] = ["P00001"]
+    elif bad_field == "requirement":
+        data["findings"][0]["requirement_ids"] = ["invented"]
+    elif bad_field == "application":
+        data["knowledge_applications"][0]["evidence_ids"] = ["P00001"]
+    else:
+        data["findings"][0].update(
+            kind="source_conflict",
+            conflict={
+                "subject": "counter",
+                "conditions": "reset",
+                "left_evidence_ids": ["P00001:U00000"],
+                "right_evidence_ids": ["P00001"],
+                "incompatibility": "clear versus retain",
+            },
+        )
+    with pytest.raises(ValidationError):
+        schema.model_validate(data)
 
 
 def finding(**changes):

@@ -28,7 +28,7 @@ class Agents:
 
     def run(self, **kwargs):
         self.calls.append(kwargs)
-        if kwargs["schema"] is SourceAudit:
+        if issubclass(kwargs["schema"], SourceAudit):
             return SourceAudit(findings=[], knowledge_applications=[])
         response = next(self.responses)
         if isinstance(response, Exception):

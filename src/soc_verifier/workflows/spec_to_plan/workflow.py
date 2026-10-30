@@ -24,7 +24,7 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import passage_accounting_schema
-from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.source_audit import bound_audit_schema
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import (
     extract_with_feedback,
@@ -38,7 +38,7 @@ from soc_verifier.workflows.spec_to_plan.batched_roles import (
 )
 from soc_verifier.workflows.spec_to_plan.batching import split_specification
 from soc_verifier.workflows.spec_to_plan.reviewing import generate_review, validate_review
-from soc_verifier.workflows.spec_to_plan.source_audit import validate_audit_task
+from soc_verifier.workflows.spec_to_plan.source_audit import execute_source_audit
 
 
 class PlanState(TypedDict, total=False):
@@ -254,26 +254,10 @@ def _run_workflow(
             state,
             "reviewer",
             prompts.AUDIT_SOURCE,
-            SourceAudit,
+            bound_audit_schema(specification, SpecAnalysis.model_validate(state["analysis"])),
             [r["id"] for r in state["analysis"]["requirements"]],
         )
-        audit = task.load(SourceAudit)
-        if audit is None:
-            audit = agents.run(
-                role="reviewer",
-                instruction=prompts.AUDIT_SOURCE,
-                schema=SourceAudit,
-                task=task.envelope,
-                context=json.dumps(
-                    {
-                        "specification": source_context(specification),
-                        "analysis": state["analysis"],
-                        "accounting": artifacts.read(state["source_accounting_artifact"]),
-                    }
-                ),
-            )
-        validate_audit_task(audit, task)
-        task.save(audit)
+        audit = execute_source_audit(agents, task)
         return {"source_audit_artifact": name, "source_audit": audit.model_dump(mode="json")}
 
     def plan(state: PlanState) -> PlanState:
