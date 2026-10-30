@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-28.
+Last updated: 2026-10-30.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -14,6 +14,16 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   against the remote branch. The [focused review guide](knowledge/REVISION_NOTES.md)
   maps all four comments from 5a1aah to the changes and remaining decisions.
   No entries are engineering-approved or connected to runtime retrieval.
+- **Active delivery:** safeguards merged in [PR #9](https://github.com/noobjam/Project-x/pull/9)
+  at 4458169 after all three required CI checks passed. Main protection is active
+  and verified, including administrator enforcement. The user authorized merging
+  reviewed #4–#6 in order and continuing the omission-review correction. PR #4 is
+  updated with main on docs/knowledge-curation-review for required CI. The latest
+  agent experiments remain in draft PR #8; no new paid allocation is inferred.
+- **Merge policy:** require current-base CI and resolved review threads; reject
+  private files/common keys and unversioned prompt changes. Push protection is
+  already enabled. Only the owner has write access, so mandatory human approval
+  stays disabled. The previous main-only snapshot below predates the draft stack.
 - **Phase:** the baseline foundation is merged through
   [PR #3](https://github.com/noobjam/Project-x/pull/3) at 82db1c2. SV-02 and the
   limited SV-03 scope are done: exact task/input bindings, per-call spending,
@@ -505,3 +515,29 @@ Date and milestone; ticket/substep status; changes and safe evidence links;
 checks actually run and outcomes; decisions/authorization; blockers and scope;
 ordered next action. Include commit/PR references only when they exist.
 -->
+
+### 2026-10-30: Merge safeguards prepared
+
+- Added a required-ready repository-policy job, tracked-file/credential checks,
+  prompt-version comparison and PR evidence template. PR/main CI replaces
+  duplicate push/PR runs, with superseded runs cancelled. No application behavior
+  changed; normal checks stay offline.
+- Passed 215 offline tests (13 new policy regressions, 90% application coverage),
+  Ruff check/format, strict mypy (40 source files), source/wheel build, index-policy
+  and whitespace checks. Regressions reject private paths, redact credentials,
+  avoid following symlinks/reading untracked files, and detect unversioned prompts.
+- Next: publish/review this PR, require its three successful checks on main with
+  resolved conversations and no force push/deletion, then merge reviewed #4–#6
+  in order. No additional paid execution. The source-first audit correction follows
+  on its own branch; #7/#8 remain draft.
+
+### 2026-10-30: Safeguards merged; curation merge review
+
+- PR #9 merged at 4458169; remote main SHA verified. Required checks are bound to
+  GitHub Actions: repository-policy and quality on Python 3.12/3.13. Main requires
+  the current base, PRs and resolved review threads; admin bypass, force pushes
+  and deletion are disabled. Approval count is zero for the single maintainer.
+- Reviewed PR #4's four engineering comments against revision notes; all map to
+  proposed changes and remain pending engineering confirmation. Only public review
+  documents are introduced. Updated this branch by merge, preserving frozen history.
+- Next: merge #4 after final-head CI, then update/review/merge #5 and #6 in order.
