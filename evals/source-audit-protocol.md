@@ -103,7 +103,9 @@ uv run --locked python -m soc_verifier.evaluation run-audits \
 ```
 
 All cases share the configured budget. No analysis or planning is regenerated.
-Each case gets at most one invocation with its declared turn limit. The first
+Source-first conditions allow one inventory invocation and one comparison
+invocation per case, each with the declared turn limit; the historical path used
+one comparison invocation. The first
 failure, interruption or exhausted budget ends execution; remaining cases are
 reported `not_run`, retaining the full denominator. Completed tasks can be recovered
 without inference. Failed or interrupted cases never retry implicitly, including
