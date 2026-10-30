@@ -537,14 +537,74 @@ def knowledge_lookup(name, arguments):
     )
 
 
+def test_accounting_correction_uses_shared_budget_across_resume(
+    tmp_path, specification, passage_accounting_draft
+):
+    from soc_verifier.domain.passage_accounting import PassageDisposition
+
+    bad = passage_accounting_draft.model_copy(
+        update={
+            "dispositions": [
+                PassageDisposition(
+                    evidence_ids=["P00001:U00000"],
+                    status="non_normative",
+                    reason="Inline reference",
+                )
+            ]
+        }
+    )
+    api = API(lambda _: completion({"content": bad.model_dump_json()}))
+    agents, client, artifacts = runtime(
+        tmp_path, specification, api, source_accounting=True, max_model_calls=1
+    )
+    with client, pytest.raises(BudgetExceeded):
+        PlanningWorkflow(agents, artifacts, 0, source_accounting=True).run(analysis_only=True)
+    assert artifacts.exists("obligations.r000.attempt0.feedback.json")
+    assert not artifacts.exists("obligations.r000.completed.json")
+    resumed, client, artifacts = runtime(
+        tmp_path, specification, api, source_accounting=True, max_model_calls=1
+    )
+    with client, pytest.raises(BudgetExceeded):
+        PlanningWorkflow(resumed, artifacts, 0, source_accounting=True).run(analysis_only=True)
+    assert len(api.requests) == 1
+    assert read_spending(artifacts).attempts == 1
+    assert read_spending(artifacts).reported == Decimal("0.0001")
+
+
+@pytest.mark.parametrize("source_accounting", [False, True])
 def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
-    tmp_path, specification, analysis, verification_plan, clean_review, knowledge_snapshot
+    tmp_path,
+    specification,
+    analysis,
+    verification_plan,
+    clean_review,
+    knowledge_snapshot,
+    passage_accounting_draft,
+    source_accounting,
+    clean_audit,
 ):
     from soc_verifier.agents.knowledge import read_knowledge_accesses
     from soc_verifier.agents.tasks import ArtifactReference
+    from soc_verifier.domain.source_audit import KnowledgeApplication
+
+    audit = clean_audit.model_copy(
+        update={
+            "knowledge_applications": [
+                KnowledgeApplication(
+                    entry_id="K01",
+                    requirement_ids=[analysis.requirements[0].id],
+                    evidence_ids=["P00001:U00000"],
+                    assessment="applicable",
+                    rationale="Check reset scope without inventing a timing constraint.",
+                )
+            ]
+        }
+    )
 
     outputs = {
         "SpecAnalysis": analysis,
+        "PassageAccountingDraft": passage_accounting_draft,
+        "SourceAudit": audit,
         "VerificationPlan": verification_plan,
         "PlanReview": clean_review,
     }
@@ -582,16 +642,28 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         return completion({"content": outputs[name].model_dump_json()})
 
     api = API(respond)
-    agents, client, artifacts = runtime(tmp_path, specification, api)
+    agents, client, artifacts = runtime(
+        tmp_path, specification, api, source_accounting=source_accounting
+    )
     artifacts.write("knowledge.json", knowledge_snapshot)
     reference = ArtifactReference.capture(artifacts, "knowledge.json")
     with client:
-        workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
+        workflow = PlanningWorkflow(
+            agents, artifacts, max_revisions=0, source_accounting=source_accounting
+        )
         assert workflow.run()["status"] == "draft_ready"
         assert workflow.run()["status"] == "draft_ready"
-        assert len(api.requests) == 9
+        assert len(api.requests) == (12 if source_accounting else 9)
+        if source_accounting:
+            report = artifacts.read("source-accounting.r000.json")
+            assert report["semantic_acceptance"] == "unreviewed"
+            assert report["unaccounted"] == []
+            assert "Conditions:" in artifacts.read("analysis.json")["requirements"][0]["statement"]
+            assert artifacts.read("source-audit.r000.json")["knowledge_applications"] == [
+                audit.knowledge_applications[0].model_dump()
+            ]
         accesses = read_knowledge_accesses(artifacts)
-        assert len(accesses) == 6
+        assert len(accesses) == (8 if source_accounting else 6)
         assert {a["role"] for a in accesses} == {"analyst", "planner", "reviewer"}
         assert {a["tool"] for a in accesses} == {"search_knowledge", "get_knowledge_entries"}
         assert {a["snapshot_sha256"] for a in accesses} == {reference.sha256}
@@ -604,12 +676,27 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
                 artifacts.read(path.name)["inputs"]["evidence"]["knowledge"]
                 == reference.model_dump()
             )
+        if source_accounting:
+            # Reads by the other specialists cannot substantiate this auditor's claims.
+            audit_id = artifacts.read("source-audit.r000.task.json")["task_id"]
+            records = {
+                path: path.read_bytes()
+                for path in artifacts.root.glob("knowledge-access.*.json")
+                if artifacts.read(path.name)["task_id"] == audit_id
+            }
+            for path in records:
+                path.unlink()
+            with pytest.raises(ValueError, match="actually read"):
+                workflow.run()
+            assert len(api.requests) == 12
+            for path, content in records.items():
+                path.write_bytes(content)
         # Editing or deleting the frozen snapshot cannot silently reuse completed work.
         artifacts.path("knowledge.json").write_text("{}")
         with pytest.raises(ValueError, match="inputs or versions changed"):
             workflow.run()
-        assert len(api.requests) == 9
-    assert read_spending(artifacts).reported == Decimal("0.0009")
+        assert len(api.requests) == (12 if source_accounting else 9)
+    assert read_spending(artifacts).reported == Decimal("0.0012" if source_accounting else "0.0009")
     assert read_spending(artifacts).unsettled_calls == 0
 
 

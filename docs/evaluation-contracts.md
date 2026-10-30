@@ -65,10 +65,37 @@ production checkpoint.
   legacy reservation/settlement amounts remain readable without inference.
 
 Run manifests/results use version 2.0 and engine `openai-agents-v2`; domain source,
-analysis, plan and review schemas remain 1.0 and PROMPT_VERSION remains 5. Unknown
+analysis, plan and review schemas remain 1.0. Prompt version 11 adds the opt-in
+passage accounting/feedback and source-audit behavior; separate draft/report
+formats use version 3.
+The report binds exact source, extraction and projected analysis artifact hashes.
+Source-passage IDs are computed from exact persisted text and constrained by the
+output schema for both obligations and dispositions; Python supplies their Unicode
+spans/quotations. Earlier V1 quote-based and V2 block-disposition drafts/reports
+remain readable. V1 validates exact occurrence matches.
+Missing references and normalized/paraphrased V1 quotations fail. Unselected text without
+a disposition stays unaccounted. Location validity and model-proposed dispositions
+never establish semantic coverage or engineering approval. Unknown
 versions and stale fingerprints fail explicitly. Legacy runs can export and report
 spending with task metadata unavailable, but cannot resume under the new engine.
 No immutable legacy artifacts are migrated or rewritten.
+
+V3 extraction saves unaccepted `attempt0`/`attempt1` task completions separately
+from the accepted canonical extraction. `source-accounting-feedback-v1` binds
+the rejected draft and precise issues. Only disposition conflicts/duplicates
+permit one correction; obligations and gaps are frozen. Replaying saved attempts
+cannot renew this allowance. Unknown references and exhausted attempts fail.
+
+`source-audit-v1` is a separate reviewer task bound to source, analysis, accounting
+and optional KB snapshots. Findings cite exact passage/requirement IDs. Conflict
+comparisons require two distinct cited source passages. Knowledge application
+claims require entries actually read by this task. Its completion preserves the
+same immutable receipt rules; CLI/export revalidate source and access bindings.
+The judgments remain `agent_proposed` and advisory. Empty findings, valid references
+and recorded reads do not constitute semantic acceptance. The frozen control pack
+and [evaluation protocol](../evals/source-audit-protocol.md) keep calibration labels
+outside agent input. `--analysis-only` stops after this audit; it does not alter
+task fingerprints or grant additional execution budget.
 
 The source-processing label `docx-v1` identifies the existing DOCX representation;
 its exact input bytes and runtime source hash are also pinned. This does not claim

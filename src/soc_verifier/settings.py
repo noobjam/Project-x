@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     chunk_max_characters: int = Field(default=24_000, ge=1000, le=100_000)
     plan_batch_size: int = Field(default=8, ge=1, le=32)
     batch_workers: int = Field(default=1, ge=1, le=8)
+    source_accounting: bool = False
     max_model_calls: int = Field(default=200, ge=1, le=2000)
     max_cost_usd: float = Field(default=2.0, gt=0, le=1000)
 

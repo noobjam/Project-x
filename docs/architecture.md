@@ -123,6 +123,66 @@ For C source chunks and B planning batches, a large run starts `2*C + B + 2` age
 tasks before corrections/revisions. Each task may make several model requests.
 Small inputs start three tasks. All follow-up requests use the same cost/call ledger.
 
+### Bounded source-accounting experiment
+
+SV-05 is opt-in through `source_accounting`. It currently rejects multi-chunk
+source packets before inference; planner and reviewer batching still work.
+The analyst returns `source-accounting-draft-v3`: obligations with conditions,
+constraints, exceptions and selected passage IDs, plus grouped proposed
+non-normative/unresolved passage dispositions. Python precomputes exact sentence/line
+passages (whole table rows) and constrains evidence choices to those IDs in the
+output schema. These mechanical boundaries do not classify normative behavior.
+Python copies the corresponding quotations and Unicode code-point spans with
+complete block-text hashes and computes unaccounted passages. Evidence and
+dispositions use the same scope, including when a paragraph mixes requirements
+and informative references. Nonexistent evidence fails; duplicate dispositions
+or classifying an evidence passage as non-normative produces structured feedback.
+It does not infer whether the quoted text semantically supports the requirement.
+
+`obligations.rNNN.attempt0.json` checkpoints a returned draft before domain
+acceptance. A repairable disposition error writes versioned feedback and permits
+one `attempt1`, bound to the rejected draft and feedback. Every obligation, its
+ID/facts/evidence, and every gap must remain unchanged. Both attempts persist and
+are replayed on resume; exhausted correction cannot renew itself. A task interrupted
+before returning still follows the existing unfinished-task restart rules and budget.
+Only domain-valid output reaches the canonical `obligations.rNNN.json` completion.
+Python projects all structured facts into V1 requirement statements without a
+second model pass. `source-accounting.rNNN.json` binds the exact specification,
+raw extraction and projected analysis bytes using `source-accounting-v3`. Its
+status remains unreviewed. Earlier V1 quote-based and V2 block-disposition reports
+remain readable without mutation.
+Unaccounted/unresolved source adds visible analysis gaps; the opt-in batched
+planner/reviewer also receives those gaps. Downstream tasks bind the accounting
+snapshot, and interrupted projections are recreated from validated completions
+without recharging extraction. The local CLI and Excel export verify the same
+bindings. Existing source, analysis, plan and review schemas remain unchanged.
+
+The reviewer role runs a separate `source-audit-v1` task after each extraction
+revision and before planning. Its findings identify source passages and affected
+requirements; an omission can lack a requirement ID. A conflict requires two
+distinct cited passages, subject, conditions and an incompatibility explanation.
+Known IDs prove location only. Python cannot establish whether the statements
+actually conflict or an omitted obligation is real.
+
+KB application records identify requirements/passages, applicability and rationale.
+Their entry IDs must exist in the frozen snapshot and in that audit task's actual
+read records. This validates access, not the correctness of the claimed application.
+All findings and application judgments remain `agent_proposed`. Invalid references
+halt before planning; semantic findings are initially advisory. They enter planner
+context, filtered by assigned requirement IDs for batches, with global omissions
+retained. Planner guidance requires source checks and visible uncertainty. Any
+finding or uncertain application keeps the final result at `needs_review`, even
+if the later plan review is clean. The audit does not repair extracted facts.
+
+`--analysis-only` stops after extraction/audit with `analysis_ready` and no plan
+or `result.json`. It is a stopping point, not a changed task input: a later resume
+can continue planning with the same artifacts and budget. This opt-in path starts
+two tasks in analysis-only mode or at least four for a complete small run, plus
+one possible disposition correction. Each task may require several tool turns.
+The CLI `audit` command and Excel sheets expose the findings without inference.
+See the [calibration protocol](../evals/source-audit-protocol.md) before interpreting
+these artifacts as evidence of quality.
+
 ## Spending and migration compatibility
 
 Reservations use advertised endpoint context capacity and output ceiling at pinned
@@ -134,7 +194,11 @@ These controls do not replace an account-level credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
-version 7 adds enforced knowledge consultation; engine `openai-agents-v2` identifies
+version 7 added enforced knowledge consultation; version 11 adds passage
+dispositions, mechanical feedback and the advisory source audit to the opt-in
+path. Normal specialist instructions remain unchanged. Opt-in planning appends
+explicit guidance for handling provisional audit findings.
+Engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
 remain exportable with new metadata marked unavailable; `spend` and `tasks` read

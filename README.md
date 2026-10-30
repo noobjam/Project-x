@@ -87,15 +87,59 @@ show retrieval, not proof that guidance was correctly applied to each plan row.
 Changing the saved snapshot prevents resume; changing authoring files leaves
 existing snapshots intact. Tool follow-ups consume the same run budget.
 
+For the experimental SV-05 source-accounting workflow, add `--source-accounting`
+to `plan` (and to `resume` for that run), or set `SOC_VERIFIER_SOURCE_ACCOUNTING=true`.
+It defaults off and currently accepts only one bounded source chunk; larger
+inputs fail before inference. The analyst records conditions, constraints and
+exceptions and selects from precomputed source-passage IDs. Python copies exact
+source quotations and locations from those IDs, preserves those fields in the
+planner's requirements and exposes unaccounted text as unresolved. Dispositions
+use the same passage IDs. Invalid overlapping or duplicate dispositions receive
+one correction opportunity; every obligation and gap must stay unchanged.
+Both attempts and validation feedback are saved, so resume does not renew this
+allowance. All model requests use the existing run budget.
+
+The existing reviewer then audits extraction before planning, citing source
+passages for omissions, lost qualifiers, unsupported claims and contradictions.
+Findings remain advisory and visible in planning/export. The auditor can record
+why a KB entry applies only if it actually read that entry during its task.
+These judgments require review; an empty audit does not establish correctness.
+
+```bash
+uv run soc-verifier plan artifacts/packet.json --source-accounting \
+  --knowledge-catalog docs/knowledge/catalog.json --allow-proposed-knowledge \
+  --analysis-only
+uv run soc-verifier accounting <run-id> --revision 0
+uv run soc-verifier audit <run-id> --revision 0
+uv run soc-verifier resume <run-id> --source-accounting
+```
+
+`--analysis-only` requires source accounting and stops after extraction/audit,
+before paying for planning. It reports `analysis_ready` and creates no plan or
+`result.json`. Resume without that flag to continue under the same configuration
+and remaining budget. Omit the flag initially to run the complete workflow.
+An extraction revision has two specialist tasks before planning, plus at most
+one disposition correction; each task can make multiple model/tool calls.
+
+The local `accounting` and `audit` commands inspect completed artifacts without
+inference. Plan exports add **Source accounting**, **Source audit** and
+**Knowledge application** sheets. Unknown IDs and stale bindings fail validation.
+Passage boundaries are mechanical sentence/line splits; table rows stay whole.
+Quotations prove location, not correct interpretation or complete extraction;
+non-normative dispositions and audit findings require review. Historical V1/V2
+accounting remains readable; runs without these artifacts report them unavailable.
+The [auditor evaluation protocol](evals/source-audit-protocol.md) separates these
+software checks from the outstanding quality measurements.
+
 Monitor a run from another terminal with `uv run soc-verifier spend <run-id> --watch`.
 It refreshes every five seconds and stops when the run completes; Ctrl-C stops
 only the monitor. Omit `--watch` for a single snapshot. This command is local and
 does not require an API key or make paid requests. It separates provider-reported
 charges from outstanding reservations for in-flight or unknown charges, and shows
 the remaining run budget and attempted-call count. Available budget must cover the
-next full reservation before another request can start. An interrupted run's
-monitor keeps watching until stopped. Older runs without a ledger require their
-`events.log` instead. Account-wide spending and per-key filters are available in
+next full reservation before another request can start. An interrupted or
+analysis-only run's monitor keeps watching until stopped. Older runs without a
+ledger require their `events.log` instead. Account-wide spending and per-key filters are available in
 [OpenRouter Activity](https://openrouter.ai/activity); an API key's spending cap is
 separate from the account's credit balance and this application's per-run cap.
 
