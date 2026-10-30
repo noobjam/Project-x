@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-28.
+Last updated: 2026-10-30.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -8,6 +8,19 @@ are in [the roadmap](agent-roadmap.md); design rationale is in
 AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
+
+- **2026-10-30 delivery:** safeguard PR #9 merged at 4458169 and public KB PR #4
+  at e78e2ea. PR #5 is updated with protected main for mandatory CI after focused
+  code review found no blocking regression. All knowledge remains proposed.
+  Next: merge #5, then #6, and implement the source-first audit correction.
+- **Current evaluation context:** later experiments remain in draft PR #8;
+  extraction is 9/13 and its auditor misses the four incomplete labels. The
+  aggregate task ledger is $0.4196977455 reported plus $0.308158400 uncertain.
+  No new paid allocation. The diagnostic details below describe the older PR #5
+  milestone, not additional evaluations or the current aggregate spending.
+- **Merge safeguards:** main requires current-base repository-policy and Python
+  3.12/3.13 quality checks, resolved review threads and PRs; no admin bypass,
+  force pushes or deletion. Mandatory reviewer count stays zero for one maintainer.
 
 - **Active milestone:** SV-10B actual KB diagnostic, in_review on
   feat/agent-knowledge-tools. The connected candidate completed with needs_review:
@@ -628,3 +641,40 @@ Date and milestone; ticket/substep status; changes and safe evidence links;
 checks actually run and outcomes; decisions/authorization; blockers and scope;
 ordered next action. Include commit/PR references only when they exist.
 -->
+
+### 2026-10-30: Merge safeguards prepared
+
+- Added a required-ready repository-policy job, tracked-file/credential checks,
+  prompt-version comparison and PR evidence template. PR/main CI replaces
+  duplicate push/PR runs, with superseded runs cancelled. No application behavior
+  changed; normal checks stay offline.
+- Passed 215 offline tests (13 new policy regressions, 90% application coverage),
+  Ruff check/format, strict mypy (40 source files), source/wheel build, index-policy
+  and whitespace checks. Regressions reject private paths, redact credentials,
+  avoid following symlinks/reading untracked files, and detect unversioned prompts.
+- Next: publish/review this PR, require its three successful checks on main with
+  resolved conversations and no force push/deletion, then merge reviewed #4–#6
+  in order. No additional paid execution. The source-first audit correction follows
+  on its own branch; #7/#8 remain draft.
+
+### 2026-10-30: Safeguards merged; curation merge review
+
+- PR #9 merged at 4458169; remote main SHA verified. Required checks are bound to
+  GitHub Actions: repository-policy and quality on Python 3.12/3.13. Main requires
+  the current base, PRs and resolved review threads; admin bypass, force pushes
+  and deletion are disabled. Approval count is zero for the single maintainer.
+- Reviewed PR #4's four engineering comments against revision notes; all map to
+  proposed changes and remain pending engineering confirmation. Only public review
+  documents are introduced. Updated this branch by merge, preserving frozen history.
+- Next: merge #4 after final-head CI, then update/review/merge #5 and #6 in order.
+
+### 2026-10-30: Curation merged; connector merge review
+
+- PR #4 merged at e78e2ea after all three required final-head checks passed.
+  The engineering comments are reflected in revision notes; entries remain proposed.
+- Reviewed PR #5's frozen KB bindings, source/knowledge separation, forced tool
+  consultation, OpenRouter response handling, legacy paths and regression tests.
+  No blocking finding. Known guidance applicability/quality limits remain visible.
+- Merged protected main into the connector branch. Only progress history required
+  conflict resolution; no runtime content was changed by the merge. Next: final-head
+  CI and merge #5, then documentation-only #6.
