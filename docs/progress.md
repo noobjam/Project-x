@@ -71,8 +71,9 @@ Checked against GitHub on 2026-10-30:
 - Current branch: feat/source-first-audit in draft PR #10, targeting #8.
   Published code/docs head 97376febbee17309428d6f2e3c65cc38b5c5a2d4 was verified
   remotely and all three CI checks passed. Implementation 0e345be and integration
-  f847788 are included. The current results handoff is documentation only and initially local;
-  publication/remote verification follows. Use Git for the final SHA. Local main was fast-forwarded to the same 9447b33 as remote main.
+  f847788 are included. Results and recovery handoff are published at c95c7088cb41de7cc4c2a5165141b0fec020269f;
+  remote SHA verified. This final checkpoint changes documentation only; use Git
+  for its final SHA and current CI status. Local main was fast-forwarded to the same 9447b33 as remote main.
   Historical experiment commits were preserved with merge commits, not rewritten.
 - Migration commit 5d15c10, pre-migration prototype 10f5bad, PR #3 merge 82db1c2,
   frozen baseline 6c819bf and pilot 3e5d6da remain unchanged.
@@ -319,7 +320,9 @@ complete merely because its plan exists.
    ask again once approved. Preserve interrupted V1 and its unsettled reservation.
 2. **SV-10 real comparison, if recovery is approved:** verify the V2 condition
    hash below, unchanged runtime/source/KB and at least 512 MiB available space
-   plus a write/fsync probe. Run analysis-only once and record all costs/outcomes.
+   plus a write/fsync probe. Record approval in the V2 authorization receipt, then
+   run its ignored `execute.py` once from the repository root. It verifies the
+   original budgets/condition/assessment and writes a terminal outcome. Record all costs.
    Assess every one of the thirteen frozen labels, inventory fidelity, audit
    misses/false findings and KB applicability. No planner or automatic repair.
 3. **SV-07 next correction, after the measured comparison:** prevent confusing
@@ -1051,5 +1054,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Prepared recovery V2 with the same inputs/runtime, capped at $0.24 / 24 calls.
   Including the full uncertain reservation, it fits the previously approved $0.49
   comparison/$1.25 aggregate ceilings. Requested explicit reallocation/retry
-  approval; it remains pending. Safe results and next actions are ready to publish
-  in PR #10; no fresh real score or engineering-ready plan is claimed.
+  approval; it remains pending. Safe results and next actions are published in
+  PR #10 at c95c708; remote SHA verified. The recovery entrypoint is retained
+  locally outside model inputs with a fresh storage check and space reserved for
+  a terminal record. No fresh real score or engineering-ready plan is claimed.
