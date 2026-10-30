@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-10-29.
+Last updated: 2026-10-30.
 
 This is the live status and session handoff. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md); design rationale is in
@@ -8,6 +8,12 @@ are in [the roadmap](agent-roadmap.md); design rationale is in
 AGENTS.md instruction file; it is intentionally absent from the published tree.
 
 ## Current state
+
+- **2026-10-30 integration:** PR #9 safeguards and #4/#5/#6 are merged; main is
+  9447b33 with required current-base CI, PRs and resolved conversations. #7 and
+  this PR #8 remain experimental drafts. The source-first correction is active
+  on feat/source-first-audit. The earlier calibration results below are unchanged;
+  no new paid allocation or engineering acceptance has been inferred.
 
 - **Current milestone:** SV-10's bounded auditor calibration and real-packet
   analysis-only comparison are complete on eval/source-audit-calibration.
@@ -882,3 +888,65 @@ Date and milestone; ticket/substep status; changes and safe evidence links;
 checks actually run and outcomes; decisions/authorization; blockers and scope;
 ordered next action. Include commit/PR references only when they exist.
 -->
+
+### 2026-10-30: Merge safeguards prepared
+
+- Added a required-ready repository-policy job, tracked-file/credential checks,
+  prompt-version comparison and PR evidence template. PR/main CI replaces
+  duplicate push/PR runs, with superseded runs cancelled. No application behavior
+  changed; normal checks stay offline.
+- Passed 215 offline tests (13 new policy regressions, 90% application coverage),
+  Ruff check/format, strict mypy (40 source files), source/wheel build, index-policy
+  and whitespace checks. Regressions reject private paths, redact credentials,
+  avoid following symlinks/reading untracked files, and detect unversioned prompts.
+- Next: publish/review this PR, require its three successful checks on main with
+  resolved conversations and no force push/deletion, then merge reviewed #4–#6
+  in order. No additional paid execution. The source-first audit correction follows
+  on its own branch; #7/#8 remain draft.
+
+### 2026-10-30: Safeguards merged; curation merge review
+
+- PR #9 merged at 4458169; remote main SHA verified. Required checks are bound to
+  GitHub Actions: repository-policy and quality on Python 3.12/3.13. Main requires
+  the current base, PRs and resolved review threads; admin bypass, force pushes
+  and deletion are disabled. Approval count is zero for the single maintainer.
+- Reviewed PR #4's four engineering comments against revision notes; all map to
+  proposed changes and remain pending engineering confirmation. Only public review
+  documents are introduced. Updated this branch by merge, preserving frozen history.
+- Next: merge #4 after final-head CI, then update/review/merge #5 and #6 in order.
+
+### 2026-10-30: Curation merged; connector merge review
+
+- PR #4 merged at e78e2ea after all three required final-head checks passed.
+  The engineering comments are reflected in revision notes; entries remain proposed.
+- Reviewed PR #5's frozen KB bindings, source/knowledge separation, forced tool
+  consultation, OpenRouter response handling, legacy paths and regression tests.
+  No blocking finding. Known guidance applicability/quality limits remain visible.
+- Merged protected main into the connector branch. Only progress history required
+  conflict resolution; no runtime content was changed by the merge. Next: final-head
+  CI and merge #5, then documentation-only #6.
+
+### 2026-10-30: Connector merged; evaluation record merge review
+
+- PR #5 merged at 69ac52d after all three protected checks passed on 3024648.
+  KB use is explicit/opt-in for proposed entries; no content became engineer-approved.
+- Verified PR #6 has no source, test or dependency delta from its PR #5 base. Its
+  rejected prompt trial remains reverted. Merged current main into this branch;
+  only progress required conflict resolution. Next: merge #6 after required CI, then
+  continue the source-first audit correction with historical evidence preserved.
+
+### 2026-10-30: Foundation merges complete
+
+- PR #6 merged at 9447b33 after required CI passed on 02c551b. Remote main verified.
+  #4/#5/#6 are merged; #7/#8 remain experimental drafts. Carried safeguards and the
+  merged foundation into #7 without rewriting history or altering its runtime.
+- Next: propagate this base through #8 and finish/test the independent source-first
+  inventory/comparison correction on feat/source-first-audit. No paid run started.
+
+### 2026-10-30: Calibration branch aligned with protected main
+
+- Propagated the merged foundation and CI safeguards through draft #7 and #8 with
+  merge commits, preserving frozen code provenance and paid-result evidence.
+  All four authorized merges (#9, #4, #5, #6) passed their exact-head required checks.
+- Next: complete and publish source-first audit correction on feat/source-first-audit.
+  Detailed experimental results remain unchanged; no new paid inference.
