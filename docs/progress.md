@@ -16,34 +16,37 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   9447b33. Required current-base CI and resolved conversations are enforced;
   force push/deletion and administrator bypass are disabled. The single
   maintainer has no mandatory external-approval count.
-- **Active milestone:** SV-07 source-first omission review is implemented on
-  feat/source-first-audit in draft [PR #10](https://github.com/noobjam/Project-x/pull/10).
-  Prompt 13 inventories every source passage before the
-  reviewer sees the candidate analysis/dispositions, then separately compares the
-  inventory with the candidate. Both stages persist exact bindings and reuse
-  completed work on resume. Audit output remains source-audit-v1 and advisory;
-  the feature remains opt-in. Added inference is one bounded invocation per audit.
-- **Software validation:** at integrated code f847788, 347 offline tests passed
-  (91% coverage), Ruff check/format, strict mypy (49 source files), source/wheel
-  build and index policy passed. Tests cover isolation, missing/duplicate IDs,
-  changed artifacts, restart recovery, old audit readers and shared budgets.
-  No semantic improvement is established by these checks.
-- **Latest measured quality is unchanged:** prompt 12's real extraction remains
-  9/13, equal to the baseline, with two gains and two regressions. Its audit missed
-  all four incomplete labels. Calibration flagged 4/5 seeded defects, supplied
-  fully supported advice on 3/5, and raised no false alarms on three valid controls.
-  See the [complete results](../evals/source-audit-results-2026-10-29.md).
-  Full planning, automatic semantic repair and a broader rollout remain gated.
-- **Next measured condition:** the unchanged eight controls and one analysis-only
-  real packet are frozen offline at 73d1ff3 / prompt 13. Allocation approval is
-  pending: $0.25 calibration plus $0.24 real-packet cap, with the aggregate ceiling
-  proposed at $1.25. No inference has started; preceding allocations are finished. Demo scope assumes one useful
-  real slice first; the requested deadline/scope clarification is still pending.
-- **Task spending:** no model calls this session. Aggregate provider-reported
-  cost remains $0.4196977455 plus $0.308158400 uncertain from an earlier HTTP 400.
-  Combined commitment $0.7278561455 leaves $0.2721438545 under the original $1
-  ceiling. Preserve the uncertain reservation; unused balance is not a renewed
-  condition allocation.
+- **Active milestone:** SV-10 source-first comparison on feat/source-first-audit
+  / draft [PR #10](https://github.com/noobjam/Project-x/pull/10). Calibration
+  completed; the real attempt was interrupted by local disk exhaustion before
+  analysis. A fresh recovery condition is prepared, pending explicit reallocation
+  approval. Parent tickets remain in_progress; no real quality promotion.
+- **New measured result:** 5/5 synthetic defects detected (previously 4/5), four
+  fully supported primary corrections, and 0/3 valid-control false alarms. Also
+  count three unsupported extra findings and one duplicate. All eight controls,
+  twelve source readings and nine findings were inspected. See the
+  [results](../evals/source-first-results-2026-10-30.md).
+- **Real quality remains unmeasured for prompt 13:** the interrupted run accepted
+  no analysis/plan; all thirteen labels remain unassessed. The last completed
+  real extraction is still 9/13 and its auditor missed four incomplete labels.
+  Full planning, automatic semantic repair and broader rollout remain gated.
+- **Recovery:** rebuildable caches were removed; free space recovered above 4 GiB
+  and a write/fsync probe passed. Original artifacts and reservations are intact.
+  Recovery V2 keeps code 73d1ff3 / prompt 13, model/KB/source and generation settings
+  unchanged, capped at $0.24 / 24 calls. It uses unused calibration allowance and
+  needs explicit approval for this one retry; both approved total ceilings remain
+  unchanged. Recheck free space immediately before inference.
+- **Spending:** this comparison has $0.104132215 provider-reported plus
+  $0.136400000 unsettled after interruption. Aggregate reported charge is
+  $0.5238299605; total uncertain reservation is $0.444558400 including the older
+  $0.308158400. Combined $0.9683883605 leaves $0.2816116395 under the approved
+  $1.25 ceiling. A proposed $0.24 recovery keeps this comparison's commitment at
+  most $0.480532215, below its $0.49 cap. No uncertain charge has been released.
+- **Validation:** frozen hashes/settings, completed calibration receipts, complete
+  finding/label inventories, storage writeability and ledgers were checked locally.
+  A read-only analytics lookup returned 403, so the missing response's charge
+  remains reserved. The previous 347 tests, Ruff, mypy, build and CI passed; they
+  were not rerun for this results-only milestone. Runtime source is unchanged.
 - **Knowledge and acceptance:** 48 proposed public KB entries and their connector
   are now on main; merge does not confer engineering approval. Actual KB reads
   were measured, but benefit remains unestablished and some applications were
@@ -66,10 +69,10 @@ Checked against GitHub on 2026-10-30:
   all three checks passed on these exact heads. Their measured quality limits
   remain visible and the experimental stack is unmerged.
 - Current branch: feat/source-first-audit in draft PR #10, targeting #8.
-  Published code/docs head 73d1ff3a42e66115c73fd863685ee4d761710509 was verified
+  Published code/docs head 97376febbee17309428d6f2e3c65cc38b5c5a2d4 was verified
   remotely and all three CI checks passed. Implementation 0e345be and integration
-  f847788 are included. This handoff changes documentation only; use Git for its
-  final SHA. Local main was fast-forwarded to the same 9447b33 as remote main.
+  f847788 are included. The current results handoff is documentation only and initially local;
+  publication/remote verification follows. Use Git for the final SHA. Local main was fast-forwarded to the same 9447b33 as remote main.
   Historical experiment commits were preserved with merge commits, not rewritten.
 - Migration commit 5d15c10, pre-migration prototype 10f5bad, PR #3 merge 82db1c2,
   frozen baseline 6c819bf and pilot 3e5d6da remain unchanged.
@@ -88,8 +91,8 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Merged through PR #4 at e78e2ea. Four engineering comments incorporated; 48 entries including 14 public examples remain proposed. Entry-specific engineering confirmation is pending; merging does not complete SV-04 or SV-06. |
-| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Eight controls and one real analysis-only condition are frozen; paid allocation and measured quality remain pending. |
-| Actual KB diagnostic and quality screen | in_progress | Calibration and real extraction/audit now complete. Candidate ties baseline at 9/13 with two regressions; audit misses all four incomplete labels. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
+| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Calibration detects 5/5 defects but emits three extra unsupported findings. Real attempt interrupted by disk exhaustion; recovery prepared, allocation decision pending. Semantic acceptance remains unmet. |
+| Actual KB diagnostic and quality screen | in_progress | Latest calibration is assessed; prompt-13 real attempt was interrupted before analysis. Previous real result remains 9/13 with two regressions. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
@@ -106,14 +109,21 @@ complete merely because its plan exists.
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
 | [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | V3 extraction now completes but remains 9/13 with two gains and two regressions. No quality promotion or full-document expansion; interaction index remains deferred. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
-| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Advisory auditor flags 4/5 synthetic defects, with 3/5 supported fixes and 0/3 valid-control false alarms. Misses four real incomplete labels. Source-first inventory/comparison implemented and offline checks pass; measured correction quality is pending. Full plan review remains planned. |
+| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Source-first auditor detects 5/5 control defects, with four supported primary corrections, three unsupported extras and one duplicate; 0/3 valid-control false alarms. Real correction quality remains unmeasured after disk interruption. Full plan review remains planned. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Source audit/accounting CLI and Excel views delivered in the bounded slice. Full scenario-to-source review view remains planned. |
-| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Prior conditions recorded in draft PR #8; source-first comparison is frozen offline, pending allocation approval. All cases/13 labels retained; quality gate not met. No new full plan, separate-case run, KB-benefit result or engineering acceptance. |
+| [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | New calibration assessed in PR #10; real attempt interrupted by disk exhaustion and retained. All eight controls/thirteen real labels remain in scope; recovery V2 prepared pending explicit reallocation. No new full plan or engineering acceptance. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
 ## Decisions and execution boundaries
 
+- The approved 2026-10-30 calibration completed; the real V1 condition was
+  interrupted by observed ENOSPC and exit 120 before analysis. Do not restart it
+  silently or release the missing response's reservation. Recovery V2 is prepared
+  with unchanged runtime/inputs and a $0.24 cap, using unused calibration allowance
+  while retaining both the $0.49 comparison and $1.25 aggregate ceilings. Explicit
+  approval for this reallocation/retry is pending; the original approval remains
+  recorded below. No request for a larger total budget is needed.
 - On 2026-10-30 the user authorized CI/merge enhancements, merging eligible work
   and continuing toward an engineer demo with Synopsys as a reference. PR #9 and
   reviewed foundation PRs #4/#5/#6 are merged. This supersedes earlier no-merge
@@ -121,12 +131,12 @@ complete merely because its plan exists.
   drafts while quality is unproven. The authorization covers implementation,
   offline validation and publication; no fresh paid allocation was specified.
   The optional deadline/demo-scope clarification remains unanswered.
-- Proposed new allocation (not approved): $0.25 / 96 calls for all eight source-first
+- Approved on 2026-10-30 by the user's “go for it” after the explicit budget request: $0.25 / 96 calls for all eight source-first
   controls, then $0.24 / 24 calls for one real analysis-only condition if controls
   complete and their assessment supports a diagnostic run. Raising the aggregate
   ceiling to $1.25 covers $0.7278561455 already committed plus $0.49 new caps
-  ($1.2178561455 total). No uncertain reservation is released. The explicit
-  approval question is pending; elapsed time is not approval.
+  ($1.2178561455 total). No uncertain reservation is released. Immutable local
+  authorization records bind each frozen condition; do not ask for this scope again.
 - The 2026-10-29 calibration and real-packet conditions are finished. V2 supplied
   usable outputs for a diagnostic real extraction/audit, not semantic approval.
   The real result fails the quality gate: equal aggregate extraction hides two
@@ -304,23 +314,19 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-10 allocation:** await the explicit pending $0.49 comparison / $1.25
-   aggregate-ceiling decision. The code is published in draft PR #10 and all
-   three CI checks pass; no implementation or merge prerequisite remains for the
-   proposed test. Do not repeat approval if the user grants this specific scope.
-2. **SV-10 measured comparison, once approved:** verify the frozen condition
-   hashes below and unchanged runtime/input/KB bindings, record authorization,
-   then run the calibration using `python -m soc_verifier.evaluation run-audits`
-   on its `run/` directory. Assess all eight controls and inventory fidelity.
-   If execution completes and findings are usable for diagnosis, run the prepared
-   real condition in analysis-only mode at its declared cap. Compare all thirteen
-   labels, source inventory, supported corrections, false alarms and KB applicability.
-   Stop on failure/exhaustion; no implicit retry, cap increase or planning stage.
-3. **SV-05 / SV-07 / SV-10 quality decision:** compare recovered/regressed real
-   labels and unsupported claims against the retained baseline. A better audit
-   does not repair extraction. Full planning or a separate case needs improved
-   extraction without new unsupported behavior; any semantic repair needs its
-   own explicit contract and evaluation. Keep experimental PRs draft meanwhile.
+1. **SV-10 recovery decision:** await the pending approval for one recovery
+   attempt under $0.24 / 24 calls using the unused comparison allowance. Do not
+   ask again once approved. Preserve interrupted V1 and its unsettled reservation.
+2. **SV-10 real comparison, if recovery is approved:** verify the V2 condition
+   hash below, unchanged runtime/source/KB and at least 512 MiB available space
+   plus a write/fsync probe. Run analysis-only once and record all costs/outcomes.
+   Assess every one of the thirteen frozen labels, inventory fidelity, audit
+   misses/false findings and KB applicability. No planner or automatic repair.
+3. **SV-07 next correction, after the measured comparison:** prevent confusing
+   valid analysis block IDs with audit passage IDs; separate optional source
+   elaboration from extraction defects; require complete source support for
+   proposed repairs and suppress duplicate reports. Keep the current code frozen
+   for the pending comparison. Parent quality acceptance/full planning is unmet.
 4. **Knowledge curation / SV-06:** use the
    [focused review guide](knowledge/REVISION_NOTES.md) to collect entry-specific
    engineer decisions and assess actual application. Preserve reference separation.
@@ -342,10 +348,10 @@ complete merely because its plan exists.
 - CI safeguards/foundation merges: all three checks passed on PR #9 head 247e389,
   #4 head 8434065, #5 head 3024648 and #6 head 02c551b before each merge. Updated
   drafts #7 eff6d84 and #8 d342406 also pass all three checks.
-- Source-first PR #10: remote 73d1ff3 verified and all three CI checks passed.
+- Source-first PR #10: remote 97376fe verified and all three CI checks passed.
   Historical compatibility smoke check read all nine prior audits plus their
   original spend ledgers without model calls. Final handoff changes docs only.
-- Frozen source-first conditions (ignored local artifacts; not executed):
+- Original frozen source-first conditions (ignored local artifacts; now executed):
   `artifacts/evaluations/source-first-calibration-2026-10-30-v1/condition.json`,
   SHA-256 `26529fcdb0a85865eda26ca3e0e044da7d95b18fda33d9ff1d0b15a343e87486`;
   `artifacts/evaluations/source-first-real-2026-10-30-v1/condition.json`, SHA-256
@@ -353,8 +359,14 @@ complete merely because its plan exists.
   Both bind code 73d1ff3, prompt 13, GPT-5 mini / Azure Sweden, the unchanged
   KB/source/reference hashes and six turns per invocation. Calibration allows
   4,000 output tokens and the real packet 12,000. Real run ID is
-  `27614aea-b0f3-4dff-98aa-d5ec17b73f57`; only source/KB/manifest are prepared.
-  Provider metadata was checked read-only; zero calls/reservations in both ledgers.
+  `27614aea-b0f3-4dff-98aa-d5ec17b73f57`; this attempt is interrupted before analysis.
+  Calibration has 47 calls/$0.102234715 and zero reservations; real V1 has two
+  attempts/$0.001897500 reported plus $0.136400000 unsettled. All receipts remain.
+- Recovery V2 (prepared, approval pending):
+  `artifacts/evaluations/source-first-real-2026-10-30-v2/condition.json`, SHA-256
+  `19b40390b40607acd2112b102e4bef0535cd4c6ae2556d47058ebecefb704bea`;
+  run `89fd1d82-7569-4c63-8ace-b6bba33face3`. Same runtime and inputs; zero calls.
+  Storage probe passed with over 4 GiB free; repeat it immediately before a run.
 - 2026-10-29 calibration implementation at 7be4ecb: 322 offline tests passed
   (91% coverage), Ruff check/format, strict mypy (48 source files) and source/wheel
   build. Four GitHub checks passed on Python 3.12/3.13. New checks cover complete
@@ -997,3 +1009,47 @@ ordered next action. Include commit/PR references only when they exist.
 - Requested explicit approval for the $0.25 + $0.24 caps and $1.25 aggregate ceiling;
   approval is pending. Next: run/assess the controls only after that decision, then
   the real diagnostic if usable. Prior quality results and uncertain charges remain intact.
+
+### 2026-10-30: Source-first comparison authorized and started
+
+- User approved the prepared $0.49 comparison and $1.25 aggregate ceiling.
+  Recorded separate immutable authorization receipts outside agent inputs.
+- Rechecked both condition hashes, unchanged runtime/source/KB bindings, zero
+  initial ledger calls and final-head CI on 97376fe. No offline code tests rerun;
+  this milestone executes the already validated frozen candidate on the same branch.
+- Calibration is active first; assess it before the conditional real run. Keep
+  controls/labels fixed, prior failures charged and old uncertain reservation intact.
+
+### 2026-10-30: Source-first calibration assessed; real diagnostic started
+
+- Eight controls completed in 47 calls for $0.102234715, with zero unsettled
+  reservations. Every seeded defect was detected (5/5, previously 4/5); four have
+  a fully supported primary correction and one has mixed advice. Three valid
+  controls remain free of false alarms. Count the three unsupported extra findings
+  and one duplicate separately; this is not an automatic acceptance/repair gate.
+- The independent readings retained the twelve control passages' explicit facts.
+  Some inventory reasoning still invents a need for optional elaboration. Findings
+  also confuse valid block references with passage IDs; retain this defect evidence.
+- Provisional private assessment is at source-first-calibration-2026-10-30-v1/
+  reference/assessment.v001.json (under ignored artifacts/evaluations), SHA-256
+  0741896d0b34f6e65063a8b6800b4c898ece4a460d0908a75b0fa4a41f75d8c1.
+  It permits only the already approved diagnostic real extraction/audit condition.
+- Next: complete that condition under $0.24 / 24 calls and assess all thirteen
+  labels plus every audit finding. No planner, code edit or automatic repair.
+
+### 2026-10-30: Disk interruption retained; recovery prepared
+
+- Real V1 stopped with exit 120 while the filesystem reported ENOSPC. No analysis,
+  audit or plan completed; two requests were reserved, one settled at $0.0018975,
+  and the second remains uncertain at $0.1364. After freeing space, the supervisor
+  wrote an interrupted outcome without inventing the worker's missing response.
+- Removed rebuildable project caches and the obsolete merge-worktree environment.
+  Source, the active environment and all private evidence remain intact. Space
+  recovered above 4 GiB and a write/fsync probe passed. Runtime code did not change.
+- The configured inference key cannot query analytics metadata (HTTP 403); retain
+  both old and new uncertain reservations. Do not change retention/logging settings.
+- Prepared recovery V2 with the same inputs/runtime, capped at $0.24 / 24 calls.
+  Including the full uncertain reservation, it fits the previously approved $0.49
+  comparison/$1.25 aggregate ceilings. Requested explicit reallocation/retry
+  approval; it remains pending. Safe results and next actions are ready to publish
+  in PR #10; no fresh real score or engineering-ready plan is claimed.

@@ -71,6 +71,8 @@ lost qualifiers, unsupported correction advice and valid-control false alarms.
 Grade the inventory against source as well as the final findings. A better audit
 does not repair the analyst's output or satisfy the gate for full planning.
 Offline checks establish isolation, complete passage accounting and recovery only.
+The [2026-10-30 results](source-first-results-2026-10-30.md) record the completed
+source-first calibration, interrupted real condition and proposed recovery.
 
 ## Runner and recovery
 
