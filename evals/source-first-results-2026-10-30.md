@@ -1,10 +1,11 @@
-# Source-first auditor calibration and interrupted real comparison
+# Source-first auditor calibration and failed real recovery
 
 The independent source reading recovers the previously missed synthetic omission:
 all five seeded defects are now detected. The auditor still emits unsupported
-extra findings and mixed correction advice. The real-specification comparison
-was interrupted by local disk exhaustion before producing analysis, so there is
-no new real-packet quality score or engineer-ready plan.
+extra findings and mixed correction advice. After an initial disk interruption,
+the approved real recovery completed extraction but failed inventory validation.
+Extraction covers 6/13 frozen labels, down from 9/13. No real audit comparison or
+engineer-ready plan was produced.
 
 These are provisional development judgments, not engineering acceptance or a
 held-out benchmark. The [protocol](source-audit-protocol.md) and
@@ -27,7 +28,8 @@ ceiling. Failure does not silently renew an allocation.
 | --- | --- | ---: | ---: | ---: |
 | Source-first calibration | All eight audits completed | 47 | $0.102234715 | $0 |
 | Real analysis-only V1 | Interrupted before analysis; process exit 120 | 2 | $0.001897500 | $0.136400000 |
-| This comparison so far | Failure retained | 49 | $0.104132215 | $0.136400000 |
+| Real recovery V2 | Extraction completed; inventory rejected | 6 | $0.046524588 | $0 |
+| This comparison so far | Both failures retained | 55 | $0.150656803 | $0.136400000 |
 
 The outstanding reservation is a conservative bound, not a confirmed charge.
 The interrupted request has no saved provider response or generation ID. A
@@ -88,26 +90,53 @@ environment. Private inputs, references, outputs, source and the active environm
 were preserved. Disk availability subsequently recovered to more than 4 GiB,
 and a write/fsync probe passed. A future paid start must recheck space immediately.
 
-A fresh recovery condition is prepared, not executed: same code/prompt/input/KB
-and generation settings, at most $0.24 / 24 calls. It requires an explicit decision
-to reuse unused calibration allowance for this attempt. Including the interrupted
-request's full reservation, the proposed combined commitment is $0.480532215,
-inside the approved $0.49 comparison ceiling; the $1.25 aggregate ceiling is
-unchanged. No approval for this retry is inferred from the earlier allocation.
+The user explicitly approved recovery V2 on 2026-10-31: unchanged
+code/prompt/input/KB and generation settings, at most $0.24 / 24 calls, reusing
+unused calibration allowance. Storage preflight passed. The run completed
+extraction, then stopped with ModelResponseError during inventory validation.
+All six calls settled at $0.046524588; this failure added no uncertain reservation.
+
+Offline replay of the saved response found all 62 expected passage IDs exactly
+once, valid JSON and a normal stop. Seventeen context readings included descriptive
+facts. The persisted contract requires an empty fact list for context, but the
+model-facing schema allowed those lists and the prompt did not state the rule
+explicitly. Host validation correctly rejected them; no response was edited into
+an accepted inventory. The comparison invocation and planner never ran.
+
+All thirteen frozen extraction labels were assessed from the accepted analysis:
+
+| Measure | Original baseline | Previous real run | Recovery V2 |
+| --- | ---: | ---: | ---: |
+| Fully retained compound labels | 9 / 13 | 9 / 13 | 6 / 13 |
+| Incomplete or absent labels | 4 / 13 | 4 / 13 | 7 / 13 |
+| Labels unassessed | 0 | 0 | 0 |
+
+Against the original baseline, two labels recover and five regress; against the
+previous real run, one recovers and four regress. One covered label has incomplete
+citations despite its facts appearing in the source; coverage does not establish
+complete support. Optional clarification and an unestablished source-conflict
+claim also remain. The analyst instruction is unchanged; a single sample does not
+explain the variation, and the later auditor did not cause upstream omissions.
+There is no real audit detection/false-alarm score because comparison never ran.
+Rejected inventory facts receive no accepted-coverage credit. KB benefit remains
+unmeasured. Detailed judgments and source evidence stay in the ignored reference
+directory.
 
 ## Decision and next actions
 
-Keep PR #10 experimental and the auditor advisory. Obtain the pending recovery
-allocation decision, then complete the real comparison at the frozen settings if
-approved. Preserve the interrupted condition and grade all thirteen labels,
-extraction support, inventory fidelity, audit misses/false findings and KB usage.
-No full planning, additional case or automatic semantic repair is authorized.
+Keep PR #10 experimental and the auditor advisory. The recovery authorization is
+consumed; preserve both failed attempts and the outstanding reservation. Complete
+the offline correction before proposing another paid condition. No full planning,
+additional case or automatic semantic repair is authorized.
 
-After the measured comparison, the next SV-07 correction should distinguish block
-IDs in analysis from passage IDs in audit evidence, separate optional source
-elaboration from extraction defects, and remove unsupported repair alternatives.
+The next SV-07 correction must expose the existing classification/fact-list rules
+in the model-facing schema without weakening validation. It should also distinguish
+block IDs in analysis from passage IDs in audit evidence, suppress duplicates,
+separate optional source elaboration from extraction defects, and remove
+unsupported repair alternatives.
 Use the existing controls as regressions and measure on the real source before
-promoting the workflow. Do not alter the frozen runtime during this comparison.
+promoting the workflow. Preserve the frozen runtime and receipts for both attempts;
+new code is a new condition, not a resume of the failed inventory.
 
 ## Provenance and validation
 
@@ -115,7 +144,7 @@ Ignored local roots under `artifacts/evaluations/`:
 
 - `source-first-calibration-2026-10-30-v1/`
 - `source-first-real-2026-10-30-v1/` (interrupted)
-- `source-first-real-2026-10-30-v2/` (prepared recovery, approval pending)
+- `source-first-real-2026-10-30-v2/` (approved; failed inventory after extraction)
 
 Calibration assessment: `reference/assessment.v001.json`, SHA-256
 `0741896d0b34f6e65063a8b6800b4c898ece4a460d0908a75b0fa4a41f75d8c1`.
@@ -123,13 +152,16 @@ The original condition hashes remain in [progress](../docs/progress.md).
 Recovery condition SHA-256:
 `19b40390b40607acd2112b102e4bef0535cd4c6ae2556d47058ebecefb704bea`;
 run ID `89fd1d82-7569-4c63-8ace-b6bba33face3`.
+Recovery assessment: `reference/assessment.v001.json`, SHA-256
+`3ed6ff6f97215de946a133120fc3cde93a14a8f8dfa1b127dd41d6e06a4c1939`.
 
 The prior implementation passed 347 offline tests (91% coverage), Ruff,
 strict mypy, build and Python 3.12/3.13 CI. Those tests were not rerun for this
 results-only milestone. Current checks validate the frozen conditions, all audit
 receipts, full finding inventory, unchanged references, ledgers and safe publication.
 
-Aggregate provider-reported charge is now $0.5238299605, with $0.444558400
+Aggregate provider-reported charge is now $0.5703545485, with $0.444558400
 reserved ($0.308158400 historical plus $0.136400000 from the interrupted run).
-Combined commitment is $0.9683883605 under the approved $1.25 ceiling. No uncertain
+Combined commitment is $1.0149129485 under the approved $1.25 ceiling. This
+comparison's commitment is $0.287056803 under its $0.49 ceiling. No uncertain
 charge has been released; unused allowance is not an automatic new condition.
