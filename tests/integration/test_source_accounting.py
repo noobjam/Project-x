@@ -3,10 +3,12 @@ from uuid import uuid4
 
 import pytest
 from openpyxl import load_workbook
+from tests.conftest import inventory_response
 from typer.testing import CliRunner
 
 from soc_verifier.cli import app
 from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.source_inventory import SourceInventory
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
@@ -28,6 +30,8 @@ class Agents:
 
     def run(self, **kwargs):
         self.calls.append(kwargs)
+        if issubclass(kwargs["schema"], SourceInventory):
+            return inventory_response(kwargs["context"])
         if issubclass(kwargs["schema"], SourceAudit):
             return SourceAudit(findings=[], knowledge_applications=[])
         response = next(self.responses)
@@ -49,9 +53,9 @@ def test_accounting_is_bound_before_planning_and_reused(
     assert report.semantic_acceptance == "unreviewed"
     assert (
         "Conditions:"
-        in json.loads(first.calls[1]["context"])["analysis"]["requirements"][0]["statement"]
+        in json.loads(first.calls[2]["context"])["analysis"]["requirements"][0]["statement"]
     )
-    assert "source_accounting" in first.calls[1]["task"].inputs.evidence
+    assert "source_accounting" in first.calls[2]["task"].inputs.evidence
     second = Agents(verification_plan, clean_review)
     PlanningWorkflow(second, artifacts, max_revisions=0, source_accounting=True).run()
     assert [c["role"] for c in second.calls] == ["planner", "reviewer"]
@@ -203,7 +207,7 @@ def test_cli_opt_in_is_persisted_and_required_on_resume(
     assert "analysis_ready" in result.output
     run = next((settings.artifact_dir / "runs").iterdir())
     assert not ArtifactStore(run).exists("result.json")
-    assert [c["role"] for c in agents.calls] == ["analyst", "reviewer"]
+    assert [c["role"] for c in agents.calls] == ["analyst", "reviewer", "reviewer"]
     audited = runner.invoke(app, ["audit", run.name])
     assert audited.exit_code == 0, audited.output
     assert ArtifactStore(run).read("manifest.json")["source_accounting"] is True
@@ -211,7 +215,7 @@ def test_cli_opt_in_is_persisted_and_required_on_resume(
     assert denied.exit_code == 1 and "configuration changed" in denied.output
     resumed = runner.invoke(app, ["resume", run.name, "--source-accounting"])
     assert resumed.exit_code == 0, resumed.output
-    assert len(agents.calls) == 4
+    assert len(agents.calls) == 5
 
 
 def test_revised_analysis_keeps_matching_accounting_and_originals(

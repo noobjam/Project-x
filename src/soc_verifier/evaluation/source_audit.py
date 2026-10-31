@@ -26,6 +26,7 @@ from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
 from soc_verifier.workflows.spec_to_plan.source_audit import (
+    SOURCE_FIRST,
     execute_source_audit,
     read_source_audit,
 )
@@ -204,7 +205,10 @@ def run_audits(agents: AgentExecutor, artifacts: ArtifactStore) -> dict[str, Any
                 instruction_sha256=fingerprint(prompts.AUDIT_SOURCE),
                 schema_sha256=fingerprint(bound_audit_schema(spec, analysis).model_json_schema()),
                 versions=evaluation.versions,
-                configuration={"configuration": evaluation.configuration},
+                configuration={
+                    "configuration": evaluation.configuration,
+                    "source_audit_mode": SOURCE_FIRST,
+                },
             ),
         )
         # Validate all cached results before any unfinished case can incur cost.

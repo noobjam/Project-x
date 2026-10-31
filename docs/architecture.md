@@ -157,8 +157,21 @@ snapshot, and interrupted projections are recreated from validated completions
 without recharging extraction. The local CLI and Excel export verify the same
 bindings. Existing source, analysis, plan and review schemas remain unchanged.
 
-The reviewer role runs a separate `source-audit-v1` task after each extraction
-revision and before planning. Its findings identify source passages and affected
+The reviewer role performs two separate invocations after each extraction revision
+and before planning. First, `source-inventory-v1` records explicit facts or a
+context/unresolved classification for every supplied passage. This task receives
+only source and optional KB references; requirement/plan tools have no candidate
+to return. It does not inherit the analyst's dispositions or any reference answers.
+The host rejects missing, duplicate or invented passage IDs. Complete passage
+accounting does not prove complete or correct understanding.
+
+The comparison invocation receives the exact inventory, source, analysis and
+accounting. Its output is projected into the existing `source-audit-v1` artifact.
+Inventory and comparison receipts are persisted independently; interrupted
+execution reuses completed stages. Reads validate the source-only inventory
+binding, comparison parent/input references, identical projected output and actual
+comparison-task KB reads. Earlier audits without this mode remain readable.
+Its findings identify source passages and affected
 requirements; an omission can lack a requirement ID. A conflict requires two
 distinct cited passages, subject, conditions and an incompatibility explanation.
 Known IDs prove location only. Python cannot establish whether the statements
@@ -177,8 +190,9 @@ if the later plan review is clean. The audit does not repair extracted facts.
 `--analysis-only` stops after extraction/audit with `analysis_ready` and no plan
 or `result.json`. It is a stopping point, not a changed task input: a later resume
 can continue planning with the same artifacts and budget. This opt-in path starts
-two tasks in analysis-only mode or at least four for a complete small run, plus
-one possible disposition correction. Each task may require several tool turns.
+three specialist invocations in analysis-only mode or at least five for a complete
+small run, plus one possible disposition correction. Each invocation may require
+several tool turns; the existing aggregate call/cost caps are unchanged.
 The CLI `audit` command and Excel sheets expose the findings without inference.
 See the [calibration protocol](../evals/source-audit-protocol.md) before interpreting
 these artifacts as evidence of quality.

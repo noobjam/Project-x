@@ -38,7 +38,7 @@ from soc_verifier.workflows.spec_to_plan.batched_roles import (
 )
 from soc_verifier.workflows.spec_to_plan.batching import split_specification
 from soc_verifier.workflows.spec_to_plan.reviewing import generate_review, validate_review
-from soc_verifier.workflows.spec_to_plan.source_audit import execute_source_audit
+from soc_verifier.workflows.spec_to_plan.source_audit import SOURCE_FIRST, execute_source_audit
 
 
 class PlanState(TypedDict, total=False):
@@ -166,7 +166,14 @@ def _run_workflow(
                 instruction_sha256=fingerprint(instruction),
                 schema_sha256=fingerprint(schema.model_json_schema()),
                 versions=execution["versions"],
-                configuration=execution,
+                configuration={
+                    **execution,
+                    **(
+                        {"source_audit_mode": SOURCE_FIRST}
+                        if instruction == prompts.AUDIT_SOURCE
+                        else {}
+                    ),
+                },
             ),
         )
 

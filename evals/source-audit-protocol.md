@@ -56,6 +56,24 @@ generalisation. The combined V3 path changes extraction mechanics, feedback and
 audit behaviour; do not attribute improvement to one component without a separate
 comparison. Full-plan adequacy and KB benefit remain separate SV-06/SV-10 questions.
 
+## Source-first corrective condition
+
+Prompt 13 adds one independent reviewer invocation per audit. It receives source
+and optional KB only, inventories every passage, then a separate comparison sees
+the candidate and that exact inventory. Both stages share the case/run allowance.
+The saved source-audit-v1 projection validates both receipts and their bindings;
+historical audits remain readable. The inventory is fallible model output, not an
+authored reference. No answers or candidate dispositions reach its first pass.
+
+Freeze this as a new condition before paid execution. Preserve all eight controls,
+the real packet's thirteen labels and the previous output. Assess whole omissions,
+lost qualifiers, unsupported correction advice and valid-control false alarms.
+Grade the inventory against source as well as the final findings. A better audit
+does not repair the analyst's output or satisfy the gate for full planning.
+Offline checks establish isolation, complete passage accounting and recovery only.
+The [2026-10-30 results](source-first-results-2026-10-30.md) record the completed
+source-first calibration, interrupted real condition and proposed recovery.
+
 ## Runner and recovery
 
 Preparation is offline and requires the expected pack manifest hash, a frozen KB
@@ -87,7 +105,9 @@ uv run --locked python -m soc_verifier.evaluation run-audits \
 ```
 
 All cases share the configured budget. No analysis or planning is regenerated.
-Each case gets at most one invocation with its declared turn limit. The first
+Source-first conditions allow one inventory invocation and one comparison
+invocation per case, each with the declared turn limit; the historical path used
+one comparison invocation. The first
 failure, interruption or exhausted budget ends execution; remaining cases are
 reported `not_run`, retaining the full denominator. Completed tasks can be recovered
 without inference. Failed or interrupted cases never retry implicitly, including
