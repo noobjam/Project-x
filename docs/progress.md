@@ -20,8 +20,9 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   fix/source-inventory-contract, based on published recovery results 2d104ec in
   draft [PR #10](https://github.com/noobjam/Project-x/pull/10). Existing
   inventory fact-list rules are now in the outgoing schema; audit instructions are
-  clarified at prompt 14. Publication/review is in_progress. SV-10 recovery
-  assessment is complete; prompt-14 paid evaluation and quality acceptance remain unmet.
+  clarified at prompt 14 in draft [PR #11](https://github.com/noobjam/Project-x/pull/11).
+  The correction is in_review; code head 719235c is pushed and all three CI checks
+  passed. SV-10 recovery assessment is complete; paid quality evaluation remains pending.
 - **Measured quality:** calibration detects 5/5 seeded defects, with four fully
   supported primary corrections, three unsupported extras and one duplicate;
   0/3 valid-control false alarms. Real extraction covers 6/13 frozen labels,
@@ -30,8 +31,8 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Failure diagnosis:** all 62 inventory passage IDs were returned exactly once,
   but 17 context entries contained facts prohibited by the persisted contract.
   The outgoing schema did not encode that rule. Offline replay reproduces the
-  rejection; no rejected response was edited into success. Expose the rule in
-  the generation schema and prompt, retaining host validation and old readers.
+  rejection; no rejected response was edited into success. The correction exposes
+  the rule in generation schema/instructions, retaining host validation and old readers.
 - **Spending:** V2 used six calls / $0.046524588 reported / $0 reserved. This
   comparison totals $0.150656803 reported plus $0.136400000 uncertain from V1.
   Aggregate reported is $0.5703545485; uncertain reservations remain $0.444558400.
@@ -68,8 +69,11 @@ Checked against GitHub on 2026-10-31:
 - Experimental source-first branch: feat/source-first-audit in draft PR #10, targeting #8.
   Recovery results are published at 2d104ec7fc08c6fd32ee06364cbbe21d59d7107f;
   its remote SHA was verified directly. Implementation 0e345be and integration
-  f847788 are included. Current correction branch fix/source-inventory-contract
-  is based on that head and is being published separately. Local main remains 9447b33.
+  f847788 are included. Correction branch fix/source-inventory-contract in draft
+  PR #11 targets #10. Published code head 719235c9a9ded4f6fc1e729968783308b9558bf7
+  was verified directly on origin; all three protected CI checks passed. This
+  documentation checkpoint follows that code; use Git for the final docs SHA.
+  Local main remains 9447b33.
   Historical experiment commits are preserved, not rewritten.
 - Migration commit 5d15c10, pre-migration prototype 10f5bad, PR #3 merge 82db1c2,
   frozen baseline 6c819bf and pilot 3e5d6da remain unchanged.
@@ -114,6 +118,14 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- Prepared, not authorized or executed: fixed-candidate auditor condition at
+  code 719235c / prompt 14, maximum $0.20 / 12 calls. Condition SHA-256
+  3c41a6acceb1909ff1303aa6a97a837751147e47b1661b301cedcb1ba96a136c.
+  It reuses V2 extraction without modifications. The inventory sees only source
+  and KB; the comparison then sees the fixed candidate. All thirteen labels and
+  every finding remain in scope. Worst-case comparison commitment $0.487056803
+  stays below $0.49; aggregate $1.2149129485 stays below $1.25, retaining all
+  uncertain reservations. No additional total allowance is requested.
 - On 2026-10-31 the user explicitly approved prepared recovery V2 with “lets go
   for it !” after the bounded next-step explanation. The condition is capped at
   $0.24 / 24 calls, with unchanged model, KB, source, prompt and generation limits.
@@ -319,14 +331,15 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-07 publication/review:** publish the focused fix/source-inventory-contract
-   branch against #10, verify remote SHA and protected CI. Review the classification
-   schema and prompt-14 evidence rules; no merge or quality promotion yet.
-2. **SV-10 fixed-candidate measurement:** prepare one new auditor-only condition
-   using V2's accepted analysis/source/KB, capped at $0.20 / 12 calls. Run only
-   after applicable user approval. This avoids another extraction charge and
-   tests whether the auditor identifies known missing facts in the exact candidate.
-   Preserve all previous receipts/reservations; no paid retry or plan is authorized.
+1. **SV-10 fixed-candidate measurement, approval pending:** one auditor-only
+   condition is prepared under artifacts/evaluations/source-first-fixed-candidate-2026-10-31-v1/.
+   It uses V2's accepted analysis/source/KB at code 719235c / prompt 14, capped at
+   $0.20 / 12 calls. Execute its ignored execute.py once only after applicable
+   user approval is recorded; --check passes without model calls. Approval/start
+   files are absent. Source answers stay outside the run; no extraction or plan.
+2. **SV-07 review:** draft PR #11 is published with all three checks passing on
+   code head 719235c. Review schema and prompt-14 evidence rules. Keep the stack
+   experimental until measured correction quality is useful; no merge yet.
 3. **Quality gate:** measure all thirteen labels and every accepted finding,
    including false positives, supported advice and KB applicability. Schema
    success alone cannot promote the 6/13 extraction or approve automatic repair.
@@ -1107,3 +1120,21 @@ ordered next action. Include commit/PR references only when they exist.
   Publish the focused draft, then prepare a $0.20 / 12-call auditor-only condition
   against the fixed accepted V2 analysis. Approval is still required for that
   condition; the prior one-attempt recovery authorization is consumed.
+
+### 2026-10-31: Correction published; fixed-candidate condition prepared
+
+- Draft PR #11 targets #10. Code commit
+  719235c9a9ded4f6fc1e729968783308b9558bf7 is published; remote SHA verified.
+  repository-policy and Python 3.12/3.13 quality checks all passed on this head.
+  PR #10's results head 2d104ec also passed all three checks. Neither was merged.
+- Prepared a new auditor-only condition using the exact accepted V2 candidate,
+  source, accounting and KB, with prompt 14. No reference answers are in its
+  input bundle or run. The run has zero model calls and no authorization/start
+  marker. Runtime/input/budget/storage preflight passes with execute.py --check.
+- Proposed cap $0.20 / 12 calls leaves both existing total ceilings intact.
+  The user must approve this new condition before execution; the previous recovery
+  authorization covered one attempt. Do not rerun extraction or claim its 6/13
+  score improves merely because the auditor identifies omissions.
+- Next after approval: run the frozen condition once, assess inventory and every
+  finding against all thirteen labels, record misses/false findings/advice quality,
+  then decide the narrow correction to extraction. No automatic repair or plan.
