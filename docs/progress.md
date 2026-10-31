@@ -16,10 +16,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   9447b33. Required current-base CI and resolved conversations are enforced;
   force push/deletion and administrator bypass are disabled. The single
   maintainer has no mandatory external-approval count.
-- **Active milestone:** SV-10 recovery assessment is complete on
-  feat/source-first-audit / draft [PR #10](https://github.com/noobjam/Project-x/pull/10).
-  The approved V2 run completed extraction but failed source-inventory validation.
-  Next is the focused SV-07 offline correction; quality acceptance remains unmet.
+- **Active milestone:** SV-07 offline correction is technically complete on
+  fix/source-inventory-contract, based on published recovery results 2d104ec in
+  draft [PR #10](https://github.com/noobjam/Project-x/pull/10). Existing
+  inventory fact-list rules are now in the outgoing schema; audit instructions are
+  clarified at prompt 14. Publication/review is in_progress. SV-10 recovery
+  assessment is complete; prompt-14 paid evaluation and quality acceptance remain unmet.
 - **Measured quality:** calibration detects 5/5 seeded defects, with four fully
   supported primary corrections, three unsupported extras and one duplicate;
   0/3 valid-control false alarms. Real extraction covers 6/13 frozen labels,
@@ -36,11 +38,12 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   Combined $1.0149129485 leaves $0.2350870515 under the approved $1.25 ceiling.
   No uncertain charge was released. The approved V2 attempt is consumed;
   remaining allowance does not authorize another paid condition.
-- **Validation:** frozen inputs, complete label inventory, saved rejected output,
-  storage preflight and ledgers checked locally. The original disk failure and
-  its 403 analytics lookup remain recorded. Previous 347 tests, Ruff, mypy, build
-  and CI passed; they were not rerun for this results-only checkpoint. No runtime
-  change has been made yet in this milestone.
+- **Validation:** the outgoing-schema regression failed before the fix and now
+  passes through the actual SDK/gateway request path. All 354 offline tests pass
+  (91% coverage), Ruff, strict mypy (49 files) and build pass. All eight historical
+  prompt-13 calibration audits remain readable with their receipts. The host still
+  rejects invalid context/fact combinations; persisted formats are unchanged.
+  Prompt 14 has no paid quality result. No model call followed V2's failure.
 - **Knowledge and acceptance:** 48 proposed public KB entries and their connector
   are now on main; merge does not confer engineering approval. Actual KB reads
   were measured, but benefit remains unestablished and some applications were
@@ -62,11 +65,11 @@ Checked against GitHub on 2026-10-31:
   d342406cdaa39b385a2df3f962e7d44122bd72fc. Both include the merged safeguards;
   all three checks passed on these exact heads. Their measured quality limits
   remain visible and the experimental stack is unmerged.
-- Current branch: feat/source-first-audit in draft PR #10, targeting #8.
-  Published head 0e68723c1e63fe10fd9f244017899fb035accc29 was verified remotely
-  and all three CI checks passed. Implementation 0e345be and integration f847788
-  are included. Recovery results are locally assessed and being published;
-  verify the final documentation commit directly. Local main remains 9447b33.
+- Experimental source-first branch: feat/source-first-audit in draft PR #10, targeting #8.
+  Recovery results are published at 2d104ec7fc08c6fd32ee06364cbbe21d59d7107f;
+  its remote SHA was verified directly. Implementation 0e345be and integration
+  f847788 are included. Current correction branch fix/source-inventory-contract
+  is based on that head and is being published separately. Local main remains 9447b33.
   Historical experiment commits are preserved, not rewritten.
 - Migration commit 5d15c10, pre-migration prototype 10f5bad, PR #3 merge 82db1c2,
   frozen baseline 6c819bf and pilot 3e5d6da remain unchanged.
@@ -85,7 +88,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Merged through PR #4 at e78e2ea. Four engineering comments incorporated; 48 entries including 14 public examples remain proposed. Entry-specific engineering confirmation is pending; merging does not complete SV-04 or SV-06. |
-| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Calibration detects 5/5 defects but emits three extra unsupported findings. Recovery completed extraction but inventory was rejected; offline correction is next. Semantic acceptance remains unmet. |
+| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Calibration detects 5/5 defects but emits three extra unsupported findings. Recovery completed extraction but inventory was rejected. Prompt-14 follow-up passes 354 offline tests; live quality is unmeasured. Semantic acceptance remains unmet. |
 | Actual KB diagnostic and quality screen | in_progress | Latest calibration and all thirteen recovery extraction labels assessed. Recovery is 6/13, down from 9/13; no accepted real audit. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
@@ -103,7 +106,7 @@ complete merely because its plan exists.
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
 | [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | Latest real extraction covers 6/13; all labels assessed, below the previous 9/13. No quality promotion or full-document expansion; interaction index remains deferred. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
-| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Source-first auditor detects 5/5 control defects, with four supported primary corrections, three unsupported extras and one duplicate; 0/3 valid-control false alarms. Real inventory failed validation; comparison quality remains unmeasured. Offline schema/prompt correction is next. Full plan review remains planned. |
+| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Source-first auditor detects 5/5 control defects, with four supported primary corrections, three unsupported extras and one duplicate; 0/3 valid-control false alarms. Real inventory failed validation; comparison quality remains unmeasured. Schema/prompt correction is technically complete offline; live validation is pending. Full plan review remains planned. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Source audit/accounting CLI and Excel views delivered in the bounded slice. Full scenario-to-source review view remains planned. |
 | [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Calibration and recovery assessed in PR #10; all eight controls/thirteen real labels retained. Approved V2 failed inventory validation after 6/13 extraction; both failed attempts preserved. No new full plan or engineering acceptance. |
@@ -316,15 +319,14 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-07 correction, authorized offline:** expose behavior/context fact-list
-   constraints in the outgoing inventory schema; clarify context handling and
-   audit block/passage namespaces, duplicate suppression and source-supported
-   recommendations. Use a focused branch based on #10 and a regression that
-   exercises the actual SDK/transport schema. Keep historical contracts readable.
-2. **SV-10 follow-up preparation:** preserve V2 analysis and rejected response.
-   A new condition can test the corrected auditor against this fixed candidate,
-   avoiding another extraction charge. Declare budget and obtain applicable
-   approval before execution; no paid retry or full plan is currently authorized.
+1. **SV-07 publication/review:** publish the focused fix/source-inventory-contract
+   branch against #10, verify remote SHA and protected CI. Review the classification
+   schema and prompt-14 evidence rules; no merge or quality promotion yet.
+2. **SV-10 fixed-candidate measurement:** prepare one new auditor-only condition
+   using V2's accepted analysis/source/KB, capped at $0.20 / 12 calls. Run only
+   after applicable user approval. This avoids another extraction charge and
+   tests whether the auditor identifies known missing facts in the exact candidate.
+   Preserve all previous receipts/reservations; no paid retry or plan is authorized.
 3. **Quality gate:** measure all thirteen labels and every accepted finding,
    including false positives, supported advice and KB applicability. Schema
    success alone cannot promote the 6/13 extraction or approve automatic repair.
@@ -1088,3 +1090,20 @@ ordered next action. Include commit/PR references only when they exist.
   reviewable publication. New paid execution requires a declared allocation;
   remaining allowance is not an automatic retry. No code tests rerun for this
   results-only checkpoint.
+
+### 2026-10-31: Inventory contract correction validated offline
+
+- SV-07 focused follow-up on fix/source-inventory-contract, based on published
+  results 2d104ec. Generation-only reading variants now encode existing context
+  and behavior fact-list rules. Persisted v1 readers and validation are unchanged.
+- Prompt 14 clarifies context descriptions, field-specific citation namespaces,
+  evidence-bound repair advice and one finding per root cause. The analyst is
+  unchanged. No extra agents, automatic repair or fallback inference was added.
+- The regression failed against the old outgoing schema, then passed through the
+  actual SDK/transport. 354 offline tests pass (91% coverage), Ruff/format,
+  strict mypy (49 files) and build pass. Eight saved prompt-13 calibration audits
+  were read successfully with their original evidence/knowledge receipts.
+- This is technical completion only. No new paid call or engineering acceptance.
+  Publish the focused draft, then prepare a $0.20 / 12-call auditor-only condition
+  against the fixed accepted V2 analysis. Approval is still required for that
+  condition; the prior one-attempt recovery authorization is consumed.
