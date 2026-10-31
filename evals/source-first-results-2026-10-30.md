@@ -138,6 +138,35 @@ Use the existing controls as regressions and measure on the real source before
 promoting the workflow. Preserve the frozen runtime and receipts for both attempts;
 new code is a new condition, not a resume of the failed inventory.
 
+## Offline corrective follow-up
+
+Draft [PR #11](https://github.com/noobjam/Project-x/pull/11), on
+fix/source-inventory-contract at 719235c, implements prompt 14. Its
+generation schema exposes the existing behavior/context fact-list constraints as
+separate alternatives, while persisted v1 contracts and host validation keep their
+meaning. Instructions clarify context-only descriptions, block versus passage
+citations, one finding per root cause, and source-supported correction requests.
+The analyst, model, KB and automatic-repair policy are unchanged.
+
+A regression using the actual SDK and gateway request path failed on the previous
+schema and passes with the fix. All 354 offline tests pass (91% coverage), as do
+Ruff, strict mypy and build. All eight saved prompt-13 calibration audits remain
+readable with their original inventory/KB receipts. All three protected GitHub
+checks pass on code head 719235c. This establishes software
+compatibility, not better model judgment; prompt 14 has not been evaluated live.
+
+The proposed next measurement reuses the accepted V2 analysis and source snapshot
+and runs only the corrected independent inventory and comparison. It would assess
+all seven incomplete labels, all thirteen labels overall, citation support and
+every finding without buying another extraction. Its maximum proposed allocation
+is $0.20 / 12 calls, inside both existing total ceilings with all uncertain
+reservations retained. The condition is prepared and its offline preflight passes;
+there are zero model calls and no authorization/start marker. It requires a new
+applicable approval before execution. Ignored local root:
+artifacts/evaluations/source-first-fixed-candidate-2026-10-31-v1/.
+Condition SHA-256:
+3c41a6acceb1909ff1303aa6a97a837751147e47b1661b301cedcb1ba96a136c.
+
 ## Provenance and validation
 
 Ignored local roots under `artifacts/evaluations/`:

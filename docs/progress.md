@@ -16,10 +16,13 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   9447b33. Required current-base CI and resolved conversations are enforced;
   force push/deletion and administrator bypass are disabled. The single
   maintainer has no mandatory external-approval count.
-- **Active milestone:** SV-10 recovery assessment is complete on
-  feat/source-first-audit / draft [PR #10](https://github.com/noobjam/Project-x/pull/10).
-  The approved V2 run completed extraction but failed source-inventory validation.
-  Next is the focused SV-07 offline correction; quality acceptance remains unmet.
+- **Active milestone:** SV-07 offline correction is technically complete on
+  fix/source-inventory-contract, based on published recovery results 2d104ec in
+  draft [PR #10](https://github.com/noobjam/Project-x/pull/10). Existing
+  inventory fact-list rules are now in the outgoing schema; audit instructions are
+  clarified at prompt 14 in draft [PR #11](https://github.com/noobjam/Project-x/pull/11).
+  The correction is in_review; code head 719235c is pushed and all three CI checks
+  passed. SV-10 recovery assessment is complete; paid quality evaluation remains pending.
 - **Measured quality:** calibration detects 5/5 seeded defects, with four fully
   supported primary corrections, three unsupported extras and one duplicate;
   0/3 valid-control false alarms. Real extraction covers 6/13 frozen labels,
@@ -28,19 +31,20 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
 - **Failure diagnosis:** all 62 inventory passage IDs were returned exactly once,
   but 17 context entries contained facts prohibited by the persisted contract.
   The outgoing schema did not encode that rule. Offline replay reproduces the
-  rejection; no rejected response was edited into success. Expose the rule in
-  the generation schema and prompt, retaining host validation and old readers.
+  rejection; no rejected response was edited into success. The correction exposes
+  the rule in generation schema/instructions, retaining host validation and old readers.
 - **Spending:** V2 used six calls / $0.046524588 reported / $0 reserved. This
   comparison totals $0.150656803 reported plus $0.136400000 uncertain from V1.
   Aggregate reported is $0.5703545485; uncertain reservations remain $0.444558400.
   Combined $1.0149129485 leaves $0.2350870515 under the approved $1.25 ceiling.
   No uncertain charge was released. The approved V2 attempt is consumed;
   remaining allowance does not authorize another paid condition.
-- **Validation:** frozen inputs, complete label inventory, saved rejected output,
-  storage preflight and ledgers checked locally. The original disk failure and
-  its 403 analytics lookup remain recorded. Previous 347 tests, Ruff, mypy, build
-  and CI passed; they were not rerun for this results-only checkpoint. No runtime
-  change has been made yet in this milestone.
+- **Validation:** the outgoing-schema regression failed before the fix and now
+  passes through the actual SDK/gateway request path. All 354 offline tests pass
+  (91% coverage), Ruff, strict mypy (49 files) and build pass. All eight historical
+  prompt-13 calibration audits remain readable with their receipts. The host still
+  rejects invalid context/fact combinations; persisted formats are unchanged.
+  Prompt 14 has no paid quality result. No model call followed V2's failure.
 - **Knowledge and acceptance:** 48 proposed public KB entries and their connector
   are now on main; merge does not confer engineering approval. Actual KB reads
   were measured, but benefit remains unestablished and some applications were
@@ -62,11 +66,14 @@ Checked against GitHub on 2026-10-31:
   d342406cdaa39b385a2df3f962e7d44122bd72fc. Both include the merged safeguards;
   all three checks passed on these exact heads. Their measured quality limits
   remain visible and the experimental stack is unmerged.
-- Current branch: feat/source-first-audit in draft PR #10, targeting #8.
-  Published head 0e68723c1e63fe10fd9f244017899fb035accc29 was verified remotely
-  and all three CI checks passed. Implementation 0e345be and integration f847788
-  are included. Recovery results are locally assessed and being published;
-  verify the final documentation commit directly. Local main remains 9447b33.
+- Experimental source-first branch: feat/source-first-audit in draft PR #10, targeting #8.
+  Recovery results are published at 2d104ec7fc08c6fd32ee06364cbbe21d59d7107f;
+  its remote SHA was verified directly. Implementation 0e345be and integration
+  f847788 are included. Correction branch fix/source-inventory-contract in draft
+  PR #11 targets #10. Published code head 719235c9a9ded4f6fc1e729968783308b9558bf7
+  was verified directly on origin; all three protected CI checks passed. This
+  documentation checkpoint follows that code; use Git for the final docs SHA.
+  Local main remains 9447b33.
   Historical experiment commits are preserved, not rewritten.
 - Migration commit 5d15c10, pre-migration prototype 10f5bad, PR #3 merge 82db1c2,
   frozen baseline 6c819bf and pilot 3e5d6da remain unchanged.
@@ -85,7 +92,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Preparation | done | SV-01A/SV-03A merged in PR #1; SV-01B/C merged in PR #2 at 927f5fb. Five local packets, 37 provisional/disputed labels, scoring controls and the frozen inventory are technically complete. Context/label engineering review and paid evaluation remain separate. |
 | Baseline foundation | done | SV-02/minimal SV-03B merged in PR #3 at 82db1c2. Exact snapshots, task/call spending, strict resume, legacy readers and reasoning replay passed offline checks and final-head CI. Paid evaluation remains pending. |
 | Knowledge curation revision 2 | in_review | Merged through PR #4 at e78e2ea. Four engineering comments incorporated; 48 entries including 14 public examples remain proposed. Entry-specific engineering confirmation is pending; merging does not complete SV-04 or SV-06. |
-| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Calibration detects 5/5 defects but emits three extra unsupported findings. Recovery completed extraction but inventory was rejected; offline correction is next. Semantic acceptance remains unmet. |
+| Source-first audit correction | in_review | Draft PR #10; 347 offline tests and all three CI checks pass. Calibration detects 5/5 defects but emits three extra unsupported findings. Recovery completed extraction but inventory was rejected. Prompt-14 follow-up passes 354 offline tests; live quality is unmeasured. Semantic acceptance remains unmet. |
 | Actual KB diagnostic and quality screen | in_progress | Latest calibration and all thirteen recovery extraction labels assessed. Recovery is 6/13, down from 9/13; no accepted real audit. Full quality correction, engineering acceptance and KB benefit remain unestablished. |
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
@@ -103,7 +110,7 @@ complete merely because its plan exists.
 | [SV-04](agent-roadmap.md#sv-04-correct-retrieval-and-bounded-source-context) | planned | Fix matching excerpts, pagination and bounded table/neighbor context after minimal contracts. |
 | [SV-05](agent-roadmap.md#sv-05-experiment-with-extraction-coverage-and-interaction-links) | in_progress | Latest real extraction covers 6/13; all labels assessed, below the previous 9/13. No quality promotion or full-document expansion; interaction index remains deferred. |
 | [SV-06](agent-roadmap.md#sv-06-evaluate-check-adequacy-before-expanding-planner-schemas) | in_progress | Existing fields scored; prompt trial improved some checks but introduced unsupported assumptions and was rejected. No pattern library or schema expansion. |
-| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Source-first auditor detects 5/5 control defects, with four supported primary corrections, three unsupported extras and one duplicate; 0/3 valid-control false alarms. Real inventory failed validation; comparison quality remains unmeasured. Offline schema/prompt correction is next. Full plan review remains planned. |
+| [SV-07](agent-roadmap.md#sv-07-add-typed-review-findings-on-existing-plans) | in_progress | Source-first auditor detects 5/5 control defects, with four supported primary corrections, three unsupported extras and one duplicate; 0/3 valid-control false alarms. Real inventory failed validation; comparison quality remains unmeasured. Schema/prompt correction is technically complete offline; live validation is pending. Full plan review remains planned. |
 | [SV-08](agent-roadmap.md#sv-08-trial-one-bounded-plan-only-repair) | deferred | Optional existing-item replacement against frozen analysis/partition after usable findings. |
 | [SV-09](agent-roadmap.md#sv-09-produce-a-useful-review-view) | planned | Source audit/accounting CLI and Excel views delivered in the bounded slice. Full scenario-to-source review view remains planned. |
 | [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Calibration and recovery assessed in PR #10; all eight controls/thirteen real labels retained. Approved V2 failed inventory validation after 6/13 extraction; both failed attempts preserved. No new full plan or engineering acceptance. |
@@ -111,6 +118,14 @@ complete merely because its plan exists.
 
 ## Decisions and execution boundaries
 
+- Prepared, not authorized or executed: fixed-candidate auditor condition at
+  code 719235c / prompt 14, maximum $0.20 / 12 calls. Condition SHA-256
+  3c41a6acceb1909ff1303aa6a97a837751147e47b1661b301cedcb1ba96a136c.
+  It reuses V2 extraction without modifications. The inventory sees only source
+  and KB; the comparison then sees the fixed candidate. All thirteen labels and
+  every finding remain in scope. Worst-case comparison commitment $0.487056803
+  stays below $0.49; aggregate $1.2149129485 stays below $1.25, retaining all
+  uncertain reservations. No additional total allowance is requested.
 - On 2026-10-31 the user explicitly approved prepared recovery V2 with “lets go
   for it !” after the bounded next-step explanation. The condition is capped at
   $0.24 / 24 calls, with unchanged model, KB, source, prompt and generation limits.
@@ -316,15 +331,15 @@ complete merely because its plan exists.
 
 ## Next moves
 
-1. **SV-07 correction, authorized offline:** expose behavior/context fact-list
-   constraints in the outgoing inventory schema; clarify context handling and
-   audit block/passage namespaces, duplicate suppression and source-supported
-   recommendations. Use a focused branch based on #10 and a regression that
-   exercises the actual SDK/transport schema. Keep historical contracts readable.
-2. **SV-10 follow-up preparation:** preserve V2 analysis and rejected response.
-   A new condition can test the corrected auditor against this fixed candidate,
-   avoiding another extraction charge. Declare budget and obtain applicable
-   approval before execution; no paid retry or full plan is currently authorized.
+1. **SV-10 fixed-candidate measurement, approval pending:** one auditor-only
+   condition is prepared under artifacts/evaluations/source-first-fixed-candidate-2026-10-31-v1/.
+   It uses V2's accepted analysis/source/KB at code 719235c / prompt 14, capped at
+   $0.20 / 12 calls. Execute its ignored execute.py once only after applicable
+   user approval is recorded; --check passes without model calls. Approval/start
+   files are absent. Source answers stay outside the run; no extraction or plan.
+2. **SV-07 review:** draft PR #11 is published with all three checks passing on
+   code head 719235c. Review schema and prompt-14 evidence rules. Keep the stack
+   experimental until measured correction quality is useful; no merge yet.
 3. **Quality gate:** measure all thirteen labels and every accepted finding,
    including false positives, supported advice and KB applicability. Schema
    success alone cannot promote the 6/13 extraction or approve automatic repair.
@@ -1088,3 +1103,38 @@ ordered next action. Include commit/PR references only when they exist.
   reviewable publication. New paid execution requires a declared allocation;
   remaining allowance is not an automatic retry. No code tests rerun for this
   results-only checkpoint.
+
+### 2026-10-31: Inventory contract correction validated offline
+
+- SV-07 focused follow-up on fix/source-inventory-contract, based on published
+  results 2d104ec. Generation-only reading variants now encode existing context
+  and behavior fact-list rules. Persisted v1 readers and validation are unchanged.
+- Prompt 14 clarifies context descriptions, field-specific citation namespaces,
+  evidence-bound repair advice and one finding per root cause. The analyst is
+  unchanged. No extra agents, automatic repair or fallback inference was added.
+- The regression failed against the old outgoing schema, then passed through the
+  actual SDK/transport. 354 offline tests pass (91% coverage), Ruff/format,
+  strict mypy (49 files) and build pass. Eight saved prompt-13 calibration audits
+  were read successfully with their original evidence/knowledge receipts.
+- This is technical completion only. No new paid call or engineering acceptance.
+  Publish the focused draft, then prepare a $0.20 / 12-call auditor-only condition
+  against the fixed accepted V2 analysis. Approval is still required for that
+  condition; the prior one-attempt recovery authorization is consumed.
+
+### 2026-10-31: Correction published; fixed-candidate condition prepared
+
+- Draft PR #11 targets #10. Code commit
+  719235c9a9ded4f6fc1e729968783308b9558bf7 is published; remote SHA verified.
+  repository-policy and Python 3.12/3.13 quality checks all passed on this head.
+  PR #10's results head 2d104ec also passed all three checks. Neither was merged.
+- Prepared a new auditor-only condition using the exact accepted V2 candidate,
+  source, accounting and KB, with prompt 14. No reference answers are in its
+  input bundle or run. The run has zero model calls and no authorization/start
+  marker. Runtime/input/budget/storage preflight passes with execute.py --check.
+- Proposed cap $0.20 / 12 calls leaves both existing total ceilings intact.
+  The user must approve this new condition before execution; the previous recovery
+  authorization covered one attempt. Do not rerun extraction or claim its 6/13
+  score improves merely because the auditor identifies omissions.
+- Next after approval: run the frozen condition once, assess inventory and every
+  finding against all thirteen labels, record misses/false findings/advice quality,
+  then decide the narrow correction to extraction. No automatic repair or plan.

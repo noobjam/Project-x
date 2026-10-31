@@ -44,6 +44,65 @@ def test_passage_classification_cannot_contradict_its_fact_list(classification, 
         )
 
 
+@pytest.mark.parametrize(
+    "classification,facts,valid",
+    [
+        ("behavior", ["Reset clears pending interrupts."], True),
+        ("behavior", [], False),
+        ("context", [], True),
+        ("context", ["This is a section heading."], False),
+        ("unresolved", [], True),
+        ("unresolved", ["Reset clears pending interrupts."], True),
+    ],
+)
+def test_bound_and_persisted_inventory_accept_the_same_readings(
+    specification, classification, facts, valid
+):
+    payload = {
+        "format": "source-inventory-v1",
+        "readings": [
+            {
+                "evidence_id": source_units(specification)[0].id,
+                "classification": classification,
+                "facts": facts,
+                "reason": "Synthetic classification fixture",
+            }
+        ],
+    }
+    bound = inventory_schema(specification)
+    if valid:
+        output = bound.model_validate(payload)
+        assert output.model_dump(mode="json") == payload
+        assert SourceInventory.model_validate_json(output.model_dump_json()).model_dump() == payload
+    else:
+        for schema in (bound, SourceInventory):
+            with pytest.raises(ValueError):
+                schema.model_validate(payload)
+
+
+def test_historical_source_first_read_does_not_rebuild_generation_schema(
+    tmp_path, specification, passage_accounting_draft, source_inventory, clean_audit, monkeypatch
+):
+    from soc_verifier.agents import instructions
+    from soc_verifier.workflows.spec_to_plan import source_audit
+
+    store = ArtifactStore(tmp_path)
+    PlanningWorkflow(
+        Scripted(passage_accounting_draft, source_inventory, clean_audit),
+        store,
+        0,
+        source_accounting=True,
+    ).run(specification, analysis_only=True)
+
+    def changed_schema(_spec):
+        raise AssertionError("Historical reads must use persisted contracts")
+
+    monkeypatch.setattr(source_audit, "inventory_schema", changed_schema)
+    monkeypatch.setattr(instructions, "PROMPT_VERSION", "future")
+    monkeypatch.setattr(instructions, "INVENTORY_SOURCE", "Future generation instructions")
+    assert read_source_audit(store, "source-audit.r000.json") == clean_audit
+
+
 def test_inventory_cannot_access_candidate_and_reuses_completed_work(
     tmp_path, specification, passage_accounting_draft, source_inventory, clean_audit
 ):

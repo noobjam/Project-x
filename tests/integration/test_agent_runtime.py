@@ -8,6 +8,7 @@ from decimal import Decimal
 
 import httpx
 import pytest
+from jsonschema import Draft202012Validator
 from pydantic import SecretStr
 
 from soc_verifier.agents import instructions
@@ -657,6 +658,27 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         assert workflow.run()["status"] == "draft_ready"
         assert len(api.requests) == (15 if source_accounting else 9)
         if source_accounting:
+            # Exercise the schema after both SDK and gateway transformations.
+            # The old schema accepted context facts that host validation rejected.
+            schemas = [
+                request["response_format"]["json_schema"]["schema"]
+                for request in api.requests
+                if "response_format" in request
+            ]
+            wire_schema = next(s for s in schemas if s.get("title") == "SourceInventory")
+            Draft202012Validator.check_schema(wire_schema)
+            validator = Draft202012Validator(wire_schema)
+            for classification, facts, valid in [
+                ("behavior", ["Reset clears pending interrupts."], True),
+                ("behavior", [], False),
+                ("context", [], True),
+                ("context", ["This is a section heading."], False),
+                ("unresolved", [], True),
+                ("unresolved", ["Reset clears pending interrupts."], True),
+            ]:
+                candidate = source_inventory.model_dump(mode="json")
+                candidate["readings"][0].update(classification=classification, facts=facts)
+                assert validator.is_valid(candidate) is valid, (classification, facts)
             report = artifacts.read("source-accounting.r000.json")
             assert report["semantic_acceptance"] == "unreviewed"
             assert report["unaccounted"] == []

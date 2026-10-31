@@ -29,19 +29,42 @@ class SourceInventory(Contract):
     readings: list[PassageReading]
 
 
+# Generation-only alternatives expose the existing host validator's rules.
+# Persisted v1 readings and historical readers keep the same fields/meaning.
+class _BehaviorReading(PassageReading):
+    classification: Literal["behavior"]
+    facts: list[NonEmpty] = Field(min_length=1)
+
+
+class _ContextReading(PassageReading):
+    classification: Literal["context"]
+    facts: list[NonEmpty] = Field(max_length=0)
+
+
+class _UnresolvedReading(PassageReading):
+    classification: Literal["unresolved"]
+
+
 def inventory_schema(spec: Specification) -> type[SourceInventory]:
     units = source_units(spec)
     if not units:
         raise ValueError("Source inventory requires non-whitespace passages")
     factory: Any = StrEnum
     passage: Any = factory("InventoryPassageID", {f"P{i}": u.id for i, u in enumerate(units)})
-    reading: Any = create_model(
-        "BoundPassageReading", __base__=PassageReading, evidence_id=(passage, ...)
+    behavior: Any = create_model(
+        "BoundBehaviorReading", __base__=_BehaviorReading, evidence_id=(passage, ...)
     )
+    context: Any = create_model(
+        "BoundContextReading", __base__=_ContextReading, evidence_id=(passage, ...)
+    )
+    unresolved: Any = create_model(
+        "BoundUnresolvedReading", __base__=_UnresolvedReading, evidence_id=(passage, ...)
+    )
+    constrained: Any = behavior | context | unresolved
     return create_model(
         "SourceInventory",
         __base__=SourceInventory,
-        readings=(list[reading], Field(min_length=len(units), max_length=len(units))),
+        readings=(list[constrained], Field(min_length=len(units), max_length=len(units))),
     )
 
 

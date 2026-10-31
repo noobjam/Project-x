@@ -331,6 +331,15 @@ the exact inventory and candidate. Persist both task receipts and validate their
 lineage when projecting/reading the existing source-audit-v1 output; historical
 audits retain their old reader. No added agent role or automatic semantic repair.
 
+Recovery correction: expose the existing classification/fact-list constraints in
+the generation schema as well as host validation: behavior requires facts, context
+requires an empty list, and unresolved preserves any established facts. This does
+not change the persisted v1 fields or meaning. Test the schema after the actual
+SDK/transport transformations and preserve historical reads. Keep block citations
+in analysis distinct from passage citations in audit evidence; combine findings
+with the same root cause. Prompt changes require a new version and new evaluation
+condition, never a silent resume of the rejected output.
+
 Acceptance for this substep:
 
 - A complete omission cannot be excused by the analyst's non-normative disposition.
