@@ -3,7 +3,10 @@
 SV-01A freezes inputs and provenance; SV-03A defines the
 [evidence/task conventions](../docs/evaluation-contracts.md). SV-01B/C adds bounded
 source packets, versioned annotations and scoring of explicit judgments. Model
-comparisons and spending attribution are later work; these commands do not call models.
+comparisons use separate declared conditions. The preparation/scoring commands below
+do not call models. The [source-audit runner](source-audit-protocol.md#runner-and-recovery)
+adds explicit paid `run-audits` execution, with offline `prepare-audits` and
+`audit-status` commands. Never treat a command example as a spending authorization.
 
 ## Freeze a baseline
 

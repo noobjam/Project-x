@@ -8,6 +8,7 @@ from agents.tool_context import ToolContext
 
 from soc_verifier.agents.tools import (
     MAX_RESULT_CHARACTERS,
+    MAX_RESULTS,
     EvidenceContext,
     get_knowledge_entries,
     get_plan_items,
@@ -40,6 +41,90 @@ def test_source_search_and_pagination_preserve_text(specification):
         offset = item["next_character"]
         assert len(json.dumps(page)) <= MAX_RESULT_CHARACTERS
     assert rebuilt == text
+
+
+@pytest.mark.parametrize("section_length", [10, 9000])
+def test_source_search_pages_every_ranked_hit_within_response_limit(specification, section_length):
+    blocks = [
+        specification.blocks[0].model_copy(
+            update={
+                "id": f"P{i:05}",
+                "section": "s" * section_length,
+                "text": "timer reset" if i % 2 else "timer",
+            }
+        )
+        for i in range(29)
+    ]
+    context = EvidenceContext(specification.model_copy(update={"blocks": blocks}))
+    expected = [block.id for block in blocks[1::2] + blocks[::2]]
+    first = invoke(search_spec, context, query="timer reset")
+    assert first == invoke(search_spec, context, query="timer reset", offset=0)
+    found, offset = [], 0
+    while offset is not None:
+        page = invoke(search_spec, context, query="timer reset", offset=offset)
+        assert 0 < len(page["items"]) <= MAX_RESULTS
+        assert len(json.dumps(page)) <= MAX_RESULT_CHARACTERS
+        found.extend(item["id"] for item in page["items"])
+        assert page["remaining"] == len(blocks) - len(found)
+        assert page["next_offset"] == (len(found) if page["remaining"] else None)
+        offset = page["next_offset"]
+    assert found == expected
+    assert len(set(found)) == len(found)
+    for end in (len(blocks), len(blocks) + 100):
+        assert invoke(search_spec, context, query="timer reset", offset=end) == {
+            "items": [],
+            "remaining": 0,
+            "next_offset": None,
+        }
+
+
+@pytest.mark.parametrize(
+    "arguments", [{"query": ""}, {"query": "a" * 257}, {"query": "reset", "offset": -1}]
+)
+def test_source_search_rejects_invalid_bounds(specification, arguments):
+    with pytest.raises(ValueError):
+        invoke(search_spec, EvidenceContext(specification), **arguments)
+
+
+def test_source_search_handles_no_hits_and_rejects_oversized_item(specification):
+    context = EvidenceContext(specification)
+    assert invoke(search_spec, context, query="no-matching-signal") == {
+        "items": [],
+        "remaining": 0,
+        "next_offset": None,
+    }
+    block = specification.blocks[0].model_copy(
+        update={"section": "s" * MAX_RESULT_CHARACTERS, "text": "reset"}
+    )
+    context = EvidenceContext(specification.model_copy(update={"blocks": [block]}))
+    with pytest.raises(ValueError, match="exceeds the tool response limit"):
+        invoke(search_spec, context, query="reset")
+
+
+def test_source_search_centers_late_unicode_match_and_audits_exact_span(specification):
+    text = "ß\t" * 850 + "\nThe STRASSE interface has a reset latency.\n" + "tail " * 400
+    block = specification.blocks[0].model_copy(update={"text": text, "section": "Interface"})
+    records = []
+    context = EvidenceContext(
+        specification.model_copy(update={"blocks": [block]}), source_audit=records.append
+    )
+    item = invoke(search_spec, context, query="Straße")["items"][0]
+    assert item["start_character"] > 1000
+    assert "STRASSE" in item["text"]
+    assert text[item["start_character"] : item["end_character"]] == item["text"]
+    audit = records[-1]
+    assert audit["query_sha256"] == hashlib.sha256("Straße".encode()).hexdigest()
+    assert audit["source_ids"] == [block.id]
+    assert audit["spans"][0]["excerpt_sha256"] == hashlib.sha256(item["text"].encode()).hexdigest()
+    assert "STRASSE" not in json.dumps(audit)
+    page = invoke(
+        get_source_blocks, context, ids=[block.id], start_character=item["start_character"]
+    )
+    read = page["items"][0]
+    assert text[read["start_character"] : read["end_character"]] == read["text"]
+    assert records[-1]["tool"] == "get_source_blocks"
+    with pytest.raises(ValueError, match="exceeds the block"):
+        invoke(get_source_blocks, context, ids=[block.id], start_character=len(text))
 
 
 @pytest.mark.parametrize("ids", [["invented"], [], ["P00001"] * 13])

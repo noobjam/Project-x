@@ -84,3 +84,18 @@ def test_spending_separates_reported_and_uncertain_charges_without_writing(tmp_p
     assert snapshot.unsettled_calls == 1
     assert snapshot.committed == budget(tmp_path).committed == Decimal("0.525")
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
+
+
+def test_each_request_settles_its_own_bound_and_preserves_unknown_on_resume(tmp_path):
+    ledger = budget(tmp_path, reservation=Decimal(0))
+    first = ledger.reserve(reservation=Decimal("0.2"))
+    second = ledger.reserve(reservation=Decimal("0.5"))
+    ledger.settle(second, 0.1)  # Out-of-order completion must use the second request's bound.
+    assert ledger.committed == Decimal("0.3")
+    resumed = budget(tmp_path, reservation=Decimal(0))
+    assert resumed.committed == Decimal("0.3")
+    assert read_spending(resumed.artifacts).reserved == Decimal("0.2")
+    with pytest.raises(BudgetExceeded):
+        resumed.reserve(reservation=Decimal("0.71"))
+    resumed.settle(first, 0.05)
+    assert resumed.committed == Decimal("0.15")

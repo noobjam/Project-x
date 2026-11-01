@@ -1,7 +1,9 @@
 # SoC Verifier
 
 An extensible Python application for agent-assisted, system-level ASIC verification.
-The first workflow turns a specification into a source-linked draft verification plan.
+The product sequence is specification -> verification plan -> testbench -> simulation
+-> coverage improvement. The first implemented workflow produces a source-linked
+draft verification plan; engineering review is a checkpoint in that pipeline.
 
 The current slice includes DOCX ingestion, typed contracts, OpenAI Agents SDK
 analyst/planner/reviewer agents, evidence retrieval tools, an OpenRouter gateway,
@@ -11,7 +13,9 @@ Testbench generation, simulation, semantic retrieval and coverage closure are fu
 
 Offline snapshots, source packets and evaluation scoring are documented in
 [evals/README.md](evals/README.md). They preserve source/reference separation and
-do not call a model. Current implementation status is in [docs/progress.md](docs/progress.md).
+do not call a model. The separate [source-audit calibration runner](evals/source-audit-protocol.md)
+has an explicitly paid execution command with a shared budget across frozen cases.
+Current implementation status is in [docs/progress.md](docs/progress.md).
 
 Engineers can review proposed knowledge entries, source evidence and testbench
 subchecklists in the [knowledge curation pack](docs/knowledge/README.md). These
@@ -55,6 +59,24 @@ provider endpoint slug. Choose an endpoint supporting function tools, JSON Schem
 configured data-handling requirements. Planning sends extracted content to
 OpenRouter and the selected inference provider and incurs usage charges.
 
+`SOC_VERIFIER_MODEL_API` selects `chat_completions` (the default) or `responses`.
+The Responses route uses the native Agents SDK adapter with local conversation
+history, function tools and structured output. It does not store a server-side
+conversation or enable hosted tools. The exact `openai/gpt-6.1-terra` model requires
+`responses` for this agent runtime; the application rejects its Chat Completions
+configuration before inference. Model and provider selection stay explicit.
+`SOC_VERIFIER_REASONING_EFFORT` is optional; leave it unset unless supported by
+the selected model/provider. Terra defaults to medium effort on Responses.
+
+To require source investigation before a planner finishes, set
+`SOC_VERIFIER_PLANNER_SOURCE_LOOKUP=true`. The planner must search the full bound
+source and read a matching block when results exist. This follows the KB search/read
+when a catalog is enabled. Set `SOC_VERIFIER_AGENT_MAX_TURNS` to at least five with
+KB, or three without; eight allows additional investigation. Invalid turn capacity
+is rejected before the workflow starts model calls. These are minimum consultation
+steps, not a guarantee that the relevant evidence was found or correctly applied.
+The total call and cost limits still apply to every follow-up.
+
 ```bash
 uv run soc-verifier plan artifacts/specification.json
 uv run soc-verifier resume <run-id>
@@ -87,15 +109,70 @@ show retrieval, not proof that guidance was correctly applied to each plan row.
 Changing the saved snapshot prevents resume; changing authoring files leaves
 existing snapshots intact. Tool follow-ups consume the same run budget.
 
+Source search returns excerpts around matching text and a `next_offset` for more
+results. Full-block reads use character offsets. Local `source-access.*.json`
+receipts bind task/invocation, source snapshot, returned IDs, offsets and excerpt
+hashes. Table-header and neighboring-block context remain incomplete; source access
+does not establish complete document coverage.
+
+For the experimental SV-05 source-accounting workflow, add `--source-accounting`
+to `plan` (and to `resume` for that run), or set `SOC_VERIFIER_SOURCE_ACCOUNTING=true`.
+It defaults off and currently accepts only one bounded source chunk; larger
+inputs fail before inference. The analyst records conditions, constraints and
+exceptions and selects from precomputed source-passage IDs. Python copies exact
+source quotations and locations from those IDs, preserves those fields in the
+planner's requirements and exposes unaccounted text as unresolved. Dispositions
+use the same passage IDs. Invalid overlapping or duplicate dispositions receive
+one correction opportunity; every obligation and gap must stay unchanged.
+Both attempts and validation feedback are saved, so resume does not renew this
+allowance. All model requests use the existing run budget.
+
+The existing reviewer first records an independent inventory of every source
+passage, with no access to candidate requirements or dispositions. A second
+invocation compares that inventory, the original source and the extraction, citing source
+passages for omissions, lost qualifiers, unsupported claims and contradictions.
+Findings remain advisory and visible in planning/export. The auditor can record
+why a KB entry applies only if it actually read that entry during its task.
+These judgments require review; an empty audit does not establish correctness.
+
+```bash
+uv run soc-verifier plan artifacts/packet.json --source-accounting \
+  --knowledge-catalog docs/knowledge/catalog.json --allow-proposed-knowledge \
+  --analysis-only
+uv run soc-verifier accounting <run-id> --revision 0
+uv run soc-verifier audit <run-id> --revision 0
+uv run soc-verifier resume <run-id> --source-accounting
+```
+
+`--analysis-only` requires source accounting and stops after extraction/audit,
+before paying for planning. It reports `analysis_ready` and creates no plan or
+`result.json`. Resume without that flag to continue under the same configuration
+and remaining budget. Omit the flag initially to run the complete workflow.
+An extraction revision has three specialist invocations before planning (analyst,
+independent inventory, comparison), plus at most one disposition correction.
+Each invocation can make multiple model/tool calls, all under the existing budget.
+The inventory and comparison are saved with their own input bindings and reused on
+resume. The inventory accounts for passages; its facts still need semantic review.
+
+The local `accounting` and `audit` commands inspect completed artifacts without
+inference. Plan exports add **Source accounting**, **Source audit** and
+**Knowledge application** sheets. Unknown IDs and stale bindings fail validation.
+Passage boundaries are mechanical sentence/line splits; table rows stay whole.
+Quotations prove location, not correct interpretation or complete extraction;
+non-normative dispositions and audit findings require review. Historical V1/V2
+accounting remains readable; runs without these artifacts report them unavailable.
+The [auditor evaluation protocol](evals/source-audit-protocol.md) separates these
+software checks from the outstanding quality measurements.
+
 Monitor a run from another terminal with `uv run soc-verifier spend <run-id> --watch`.
 It refreshes every five seconds and stops when the run completes; Ctrl-C stops
 only the monitor. Omit `--watch` for a single snapshot. This command is local and
 does not require an API key or make paid requests. It separates provider-reported
 charges from outstanding reservations for in-flight or unknown charges, and shows
 the remaining run budget and attempted-call count. Available budget must cover the
-next full reservation before another request can start. An interrupted run's
-monitor keeps watching until stopped. Older runs without a ledger require their
-`events.log` instead. Account-wide spending and per-key filters are available in
+next full reservation before another request can start. An interrupted or
+analysis-only run's monitor keeps watching until stopped. Older runs without a
+ledger require their `events.log` instead. Account-wide spending and per-key filters are available in
 [OpenRouter Activity](https://openrouter.ai/activity); an API key's spending cap is
 separate from the account's credit balance and this application's per-run cap.
 

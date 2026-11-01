@@ -16,6 +16,8 @@ from soc_verifier.agents.attempts import current_invocation
 from soc_verifier.agents.base import ModelResponseError, OutputLimitError
 from soc_verifier.agents.tasks import fingerprint
 from soc_verifier.providers.budget import CallBudget
+from soc_verifier.providers.request_pricing import estimate_request, pricing_bound
+from soc_verifier.providers.responses import prepare_responses, validate_response
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 
@@ -49,6 +51,17 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                 )
                 if endpoint is None:
                     raise ValueError("Pinned provider endpoint not found; no generation was sent")
+                if self.settings.model_api == "responses":
+                    self.artifacts.write(
+                        "budget-pricing.json", pricing_bound(endpoint, self.settings.model)
+                    )
+                    self.budget = CallBudget(
+                        self.artifacts,
+                        max_cost=Decimal(str(self.settings.max_cost_usd)),
+                        max_calls=self.settings.max_model_calls,
+                        reservation=Decimal(0),
+                    )
+                    return self.budget
                 pricing = endpoint["pricing"]
                 if pricing.get("overrides"):
                     raise ValueError("Tiered endpoint pricing is not supported by the cost bound")
@@ -145,12 +158,19 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
         return response
 
     def _send_request(self, request: httpx.Request) -> httpx.Response:
-        if str(request.url) != "https://openrouter.ai/api/v1/chat/completions":
+        responses_api = self.settings.model_api == "responses"
+        endpoint = "responses" if responses_api else "chat/completions"
+        if (
+            request.method != "POST"
+            or str(request.url) != f"https://openrouter.ai/api/v1/{endpoint}"
+        ):
             raise ValueError("Unexpected model endpoint")
         payload = json.loads(request.content)
         invocation = current_invocation.get()
-        if invocation is not None and any(
-            entry["reasoning_fields"] for entry in invocation.reasoning_history
+        if (
+            not responses_api
+            and invocation is not None
+            and any(entry["reasoning_fields"] for entry in invocation.reasoning_history)
         ):
             history = [
                 m
@@ -163,9 +183,9 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                 if _tool_identity(message) != original["tool_identity"]:
                     raise ModelResponseError("Tool history changed during reasoning replay")
                 message.update(deepcopy(original["reasoning_fields"]))
-        context = json.dumps(payload.get("messages", []))
-        instruction = ""
-        if len(context) > self.settings.max_input_characters:
+        context = json.dumps(payload.get("input" if responses_api else "messages", []))
+        instruction = payload.get("instructions", "") if responses_api else ""
+        if len(context) + len(instruction) > self.settings.max_input_characters:
             raise ValueError("Input exceeds configured character limit; no request was sent")
         # Enforce routing even if an SDK setting tries to change it.
         payload["model"] = self.settings.model
@@ -176,19 +196,25 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             "data_collection": "deny",
             "zdr": True,
         }
-        payload["max_tokens"] = self.settings.max_output_tokens
-        choice = payload.get("tool_choice")
-        if choice == "required" or (isinstance(choice, dict) and choice.get("type") == "function"):
-            # A forced function turn returns arguments under the tool schema, not
-            # a final artifact. Combining both output modes is rejected by some
-            # providers. Keep the final schema on subsequent auto/none turns.
-            payload.pop("response_format", None)
-        output = payload.get("response_format", {}).get("json_schema")
+        if responses_api:
+            output = prepare_responses(payload, self.settings.max_output_tokens)
+        else:
+            payload["max_tokens"] = self.settings.max_output_tokens
+            if self.settings.reasoning_effort is not None:
+                payload["reasoning_effort"] = self.settings.reasoning_effort
+            choice = payload.get("tool_choice")
+            if choice == "required" or (
+                isinstance(choice, dict) and choice.get("type") == "function"
+            ):
+                # Forced calls use the function schema; keep the final schema on auto turns.
+                payload.pop("response_format", None)
+            output = payload.get("response_format", {}).get("json_schema")
         if output:
             output["schema"] = _strict_schema(output["schema"])
         for tool in payload.get("tools", []):
             if tool.get("type") == "function":
-                tool["function"]["parameters"] = _strict_schema(tool["function"]["parameters"])
+                function = tool if responses_api else tool["function"]
+                function["parameters"] = _strict_schema(function["parameters"])
         budget = self._run_budget()
         attribution = None
         if invocation is not None:
@@ -198,7 +224,19 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                 "call_id": f"{invocation.invocation_id}.{invocation.calls:03d}",
                 "request_sha256": fingerprint(payload),
             }
-        attempt = budget.reserve(attribution) if budget is not None else None
+        attempt: int | None
+        if budget is not None and responses_api:
+            assert self.artifacts is not None
+            estimate = estimate_request(payload, self.artifacts.read("budget-pricing.json"))
+            attempt = budget.reserve(
+                attribution,
+                reservation=Decimal(estimate["reservation_usd"]),
+            )
+            self.artifacts.write(
+                f"request-estimate.{attempt:05d}.json", {**(attribution or {}), **estimate}
+            )
+        else:
+            attempt = budget.reserve(attribution) if budget is not None else None
         started = monotonic()
         response = self.client.post(
             str(request.url),
@@ -236,7 +274,15 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             {
                 key: value
                 for key, value in usage.items()
-                if key in {"prompt_tokens", "completion_tokens", "total_tokens", "cost"}
+                if key
+                in {
+                    "prompt_tokens",
+                    "completion_tokens",
+                    "input_tokens",
+                    "output_tokens",
+                    "total_tokens",
+                    "cost",
+                }
                 and isinstance(value, (int, float))
             }
             if isinstance(usage, dict)
@@ -246,6 +292,8 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
             for category, keys in {
                 "prompt_tokens_details": {"cached_tokens", "cache_write_tokens"},
                 "completion_tokens_details": {"reasoning_tokens"},
+                "input_tokens_details": {"cached_tokens", "cache_write_tokens"},
+                "output_tokens_details": {"reasoning_tokens"},
             }.items():
                 details = usage.get(category, {})
                 if isinstance(details, dict):
@@ -276,12 +324,24 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                     "request_id": payload.get("id"),
                     "schema": output["schema"].get("title", output.get("name")) if output else None,
                     "max_output_tokens": self.settings.max_output_tokens,
-                    "choices": payload.get("choices"),
+                    **(
+                        {
+                            "api": "responses",
+                            "output": payload.get("output"),
+                            "status": payload.get("status"),
+                            "incomplete_details": payload.get("incomplete_details"),
+                        }
+                        if responses_api
+                        else {"choices": payload.get("choices")}
+                    ),
                 },
             )
-        if "error" in payload:
+        if payload.get("error"):
             self._record_http_error(response, attempt, instruction, context)
             raise ModelResponseError("Provider returned an error envelope")
+        if responses_api:
+            validate_response(payload)
+            return self._decoded_response(response, request)
         choices = payload.get("choices", [])
         if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
             raise ModelResponseError("Provider returned no complete generation")
@@ -316,6 +376,10 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                     "reasoning_fields": fields,
                 }
             )
+        return self._decoded_response(response, request)
+
+    @staticmethod
+    def _decoded_response(response: httpx.Response, request: httpx.Request) -> httpx.Response:
         # HTTPX has already decoded response.content. Rebuild entity headers so
         # the SDK does not decompress those bytes again or inherit wire framing.
         headers = [
@@ -385,10 +449,9 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                     for child in value:
                         collect_text(child)
 
-            for item in messages:
-                if isinstance(item, dict):
-                    for key in ("reasoning", "reasoning_content", "reasoning_details"):
-                        collect_text(item.get(key))
+            # Responses contains nested text, encrypted reasoning and function output.
+            # Redact all input strings, not just Chat Completions content fields.
+            collect_text(messages)
 
         def redact(value: Any) -> Any:
             if isinstance(value, str):

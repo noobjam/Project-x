@@ -1,5 +1,6 @@
 """Bounded read-only evidence tools. No arbitrary files, shell or network access."""
 
+import hashlib
 import json
 import logging
 from collections.abc import Callable
@@ -25,12 +26,20 @@ class EvidenceContext:
     plan: VerificationPlan | None = None
     knowledge: KnowledgeSnapshot | None = None
     knowledge_audit: Callable[[dict[str, Any]], None] | None = None
+    source_audit: Callable[[dict[str, Any]], None] | None = None
 
 
-def _result(name: str, records: list[dict[str, Any]]) -> str:
+def _result(name: str, records: list[dict[str, Any]], *, offset: int | None = None) -> str:
+    def response(items: list[dict[str, Any]]) -> dict[str, Any]:
+        remaining = len(records) - len(items)
+        result: dict[str, Any] = {"items": items, "remaining": remaining}
+        if offset is not None:
+            result["next_offset"] = offset + len(items) if remaining else None
+        return result
+
     output: list[dict[str, Any]] = []
     for record in records[:MAX_RESULTS]:
-        candidate = {"items": [*output, record], "remaining": len(records) - len(output) - 1}
+        candidate = response([*output, record])
         if len(json.dumps(candidate)) > MAX_RESULT_CHARACTERS:
             break
         output.append(record)
@@ -45,37 +54,99 @@ def _result(name: str, records: list[dict[str, Any]]) -> str:
     )
     if records and not output:
         raise ValueError("Evidence item exceeds the tool response limit; narrow the requested data")
-    return json.dumps({"items": output, "remaining": len(records) - len(output)})
+    return json.dumps(response(output))
+
+
+def _source_result(
+    ctx: RunContextWrapper[EvidenceContext],
+    name: str,
+    records: list[dict[str, Any]],
+    *,
+    offset: int | None = None,
+    query: str | None = None,
+) -> str:
+    result = _result(name, records, offset=offset)
+    if ctx.context.source_audit is not None:
+        page = json.loads(result)
+        items = page["items"]
+        ctx.context.source_audit(
+            {
+                "tool": name,
+                "source_ids": [item["id"] for item in items],
+                "query_sha256": hashlib.sha256(query.encode()).hexdigest()
+                if query is not None
+                else None,
+                "offset": offset,
+                "next_offset": page.get("next_offset"),
+                "remaining": page["remaining"],
+                "spans": [
+                    {
+                        "id": item["id"],
+                        "start_character": item["start_character"],
+                        "end_character": item["end_character"],
+                        "excerpt_sha256": hashlib.sha256(item["text"].encode()).hexdigest(),
+                    }
+                    for item in items
+                ],
+            }
+        )
+    return result
+
+
+def _excerpt_start(text: str, terms: list[str]) -> int:
+    folded = text.casefold()
+    hits = [folded.find(term) for term in terms if term in folded]
+    if not hits:
+        return 0  # A section-title match may have no corresponding match in the block.
+    target = min(hits)
+    folded_offset = 0
+    for index, character in enumerate(text):
+        folded_offset += len(character.casefold())
+        if folded_offset > target:
+            return max(0, index - 200)
+    return 0
 
 
 @function_tool(failure_error_function=None)
-def search_spec(ctx: RunContextWrapper[EvidenceContext], query: str) -> str:
+def search_spec(ctx: RunContextWrapper[EvidenceContext], query: str, offset: int = 0) -> str:
     """Search source text by words. Returns bounded matching blocks with source IDs.
+
+    Follow next_offset with the same query to read more matches; null means complete.
+    Text excerpts are centered on a match; character offsets refer to the original block.
 
     Args:
         query: Words or signal names to find in the specification.
+        offset: Position in the ranked matches, starting at zero.
     """
     terms = query.casefold().split()
     if not terms or len(query) > 256:
         raise ValueError("Search query must contain 1 to 256 characters")
+    if offset < 0:
+        raise ValueError("Search offset must be non-negative")
     matches = []
     for block in ctx.context.specification.blocks:
         text = f"{block.section} {block.text}".casefold()
         score = sum(term in text for term in terms)
         if score:
+            start = _excerpt_start(block.text, terms)
+            end = min(len(block.text), start + 1000)
             matches.append(
                 (
                     score,
                     {
                         "id": block.id,
                         "section": block.section,
-                        "text": block.text[:1000],
-                        "truncated": len(block.text) > 1000,
+                        "text": block.text[start:end],
+                        "start_character": start,
+                        "end_character": end,
+                        "truncated": start > 0 or end < len(block.text),
                     },
                 )
             )
     matches.sort(key=lambda item: item[0], reverse=True)
-    return _result("search_spec", [record for _, record in matches])
+    return _source_result(
+        ctx, "search_spec", [record for _, record in matches[offset:]], offset=offset, query=query
+    )
 
 
 def _select(ids: list[str], records: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
@@ -104,13 +175,17 @@ def get_source_blocks(
             "section": block.section,
             "text": block.text[start_character : start_character + 1500],
             "start_character": start_character,
+            "end_character": min(len(block.text), start_character + 1500),
             "next_character": start_character + 1500
             if len(block.text) > start_character + 1500
             else None,
         }
         for block in ctx.context.specification.blocks
     }
-    return _result("get_source_blocks", _select(ids, records))
+    selected = _select(ids, records)
+    if any(not item["text"] for item in selected):
+        raise ValueError("Source character offset exceeds the block")
+    return _source_result(ctx, "get_source_blocks", selected)
 
 
 @function_tool(failure_error_function=None)

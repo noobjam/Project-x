@@ -4,14 +4,30 @@ Council-reviewed plan, revised 26 October 2026. Planning baseline: 7c2f05d.
 Live milestone/ticket status, authorization and next actions are maintained in
 [project progress](progress.md). This file defines scope and acceptance criteria.
 
-Deliver a better verification-plan draft for the actual Management CPU DOCX.
-Use OpenTitan as supporting evaluation material. The first release improves
+The product goal is a complete verification pipeline: specification -> verification
+plan -> testbench -> simulation -> coverage improvement. Engineering review is a
+checkpoint, and planning must provide usable inputs to testbench generation.
+SV-01 through SV-11 cover the current planning milestone, not the whole product.
+
+For that milestone, deliver a better verification-plan draft for the actual
+Management CPU DOCX. Use OpenTitan as supporting evaluation material. The first release improves
 evidence access, reviewer findings and visibility into agent work and cost.
 Broader obligation redesign, relationship maps, patterns and automatic repair
 depend on measured failures that justify them.
 
 The research comparison is preserved below; the revised scope and decision log
 are in [the council review](agent-council-review.md).
+
+## Product delivery stages
+
+| Stage | Exit evidence | Scope boundary |
+| --- | --- | --- |
+| Specification and planning | Source-linked requirements and implementable checks, measured coverage/unsupported claims, visible design questions and engineering review on the actual workload. | Current SV-01–SV-11 milestone; software tests alone do not complete it. |
+| Testbench generation | Bind a settled scenario to actual RTL interfaces/clocks/resets, generate its environment and checks, and compile with a selected simulator. | Next implementation stage. Define detailed tickets once RTL and simulator inputs are available. |
+| Simulation and failure analysis | Execute reproducible tests, retain logs/results, and demonstrate detection of a known incorrect behavior as well as a passing control. | A generated testbench or successful compile is not execution evidence. |
+| Coverage improvement | Map measured coverage and observed failures back to planned checks, propose targeted additions, and validate improvements without weakening checks. | Later feedback loop; plan-row counts are not simulation coverage. |
+
+Execution status and the next eligible action remain in [progress](progress.md).
 
 ## Acceptance workload and evaluation scope
 
@@ -31,8 +47,9 @@ evidence, not a blind test. OpenTitan is public and may appear in model training
 Do not claim generalization from either. Additional public IPs and independent
 families are later expansion, not prerequisites for the first release.
 
-Agents receive source evidence only. Human plans, tests, coverage code and
-annotations stay outside runtime retrieval. Record provenance for each label:
+Agents receive specification evidence and explicitly selected methodology guidance.
+Human reference plans, reference tests, coverage code and evaluation annotations
+stay outside runtime retrieval. Record provenance for each label:
 agent-proposed, imported reference, human-reviewed or disputed. A reference-plan
 disagreement remains disputed until the source/design owner resolves its authority.
 
@@ -51,6 +68,15 @@ Slice recall is never presented as full-document recall. Counts of visited block
 do not establish completeness. Human editing time is reported only when measured.
 
 ## What we borrow
+
+The [2026-10-29 Synopsys/Siemens comparison](agent-architecture-comparison.md)
+defines the next quality slice, authorized for implementation on 2026-10-29: passage-scoped accounting and
+one bounded correction of rejected extraction (SV-05), an evaluated source audit
+before planning (a narrow SV-07 prerequisite), and assessment of existing KB
+procedure application (SV-06/SV-10). Implementation status is in progress.md;
+authorization does not allocate a new paid run. General analysis repair still needs its
+own lineage contract; SV-08 remains plan-only. Preserve current acceptance gates
+and measure false alarms before relying on an automated semantic audit.
 
 | Reference | Applicable technique | Boundary |
 | --- | --- | --- |
@@ -87,6 +113,8 @@ do not establish completeness. Human editing time is reported only when measured
 8. Automatic repair is optional. Its first form replaces existing plan items with
    source, analysis and partition frozen. Analysis additions/deletions/splits,
    scenario additions and general dependency repair are outside that experiment.
+   SV-05 additionally permits one mechanical correction of passage dispositions
+   before extraction acceptance, with obligation facts and evidence frozen.
 
 ## Ticket backlog
 
@@ -201,6 +229,15 @@ packet was demonstrably supplied and a model screen still misses explicit facts,
 an instructions-only coverage trial may precede SV-04. It adds no extraction
 schema or interaction index and must be compared before expansion.
 
+After that prompt-only trial failed, the user approved a structured bounded-packet
+trial before SV-04: extract conditions, values/constraints and exceptions with
+exact source quotations; record grouped non-normative/unresolved dispositions;
+compute unaccounted source text locally. Keep accounting separately versioned and
+project facts into the existing analysis/plan contracts. Start opt-in with one
+bounded source chunk, rejecting larger inputs before inference. No interaction
+index or additional role is included. This limited scope does not complete the
+full ticket or authorize full-document expansion.
+
 Test independently reviewable behavioral obligations and a small source-linked
 interaction index for identified failures. Preserve parameterized register/interrupt
 families when the source supports uniform behavior. Use compact source dispositions;
@@ -212,11 +249,25 @@ Acceptance:
 - Representation size and calls are measured before full-document expansion.
 - Improvement comes from correctly recovered behavior, not more rows.
 - Missing relationship edges are unknown dependencies, not proof of independence.
+- Fabricated quotations/IDs and stale accounting fail before planning. Unaccounted
+  text remains visible; quoted text is never called semantically covered by code.
+- Structured facts survive projection into planner inputs and offline exports.
+  Interrupted execution reuses validated extraction; historical exports/spend work.
 
 Cancel or defer expansion if it fails the targeted cases, creates unsupported
 relationships or increases cost/review effort without a measured benefit.
 
 Edit points: analyst instructions, batched analysis and small typed local indexes.
+
+**Current bounded substep (authorized 2026-10-29):** draft/report V3 uses passage
+IDs for dispositions as well as evidence. A mixed paragraph can retain a behavioral
+passage while classifying a separate informative passage. Unknown IDs fail; duplicate
+or evidence-overlapping dispositions produce structured feedback and at most one
+correction. The correction must preserve all obligations, their IDs, facts/evidence
+and gaps. It is not semantic analysis repair. Persist both attempts and feedback
+with exact input bindings so resume cannot renew the correction allowance. Keep
+V1/V2 readers and exports. Add mixed-content, failure, tampering and interruption
+checks before any new evaluation.
 
 ### SV-06 Evaluate check adequacy before expanding planner schemas
 
@@ -265,6 +316,61 @@ Acceptance:
 
 Edit points: domain finding contract, reviewer instructions, reviewing.py and
 batched_roles.py.
+
+**Early source-audit substep (authorized 2026-10-29):** reuse the reviewer role
+before planning on the bounded SV-05 extraction. Version a separate source audit
+with typed omissions, lost qualifiers, unsupported claims, source conflicts and
+unresolved context. Findings bind existing requirement/passage IDs; omissions may
+lack a requirement. Conflicts require both source statements, subject, conditions
+and an incompatibility explanation. Knowledge application records bind frozen KB
+entries actually read by the task and remain proposed judgments. They never serve
+as specification evidence. Initially the audit is advisory and keeps findings
+visible in planning/export; it does not repair facts or confer acceptance. Add an
+analysis-only run mode for assessing the auditor before downstream spending.
+Synthetic defect and valid-control fixtures validate contracts/routing offline;
+real missed-defect and false-alarm measurements remain SV-10 work. Do not activate
+automatic semantic blocking/repair on the strength of mocked tests.
+
+**Corrective substep (authorized 2026-10-30):** make the
+source the starting point for omission review, independently of the analyst's
+selected requirements and non-normative/unresolved dispositions. Compare a bounded
+source obligation inventory with the candidate; include skipped passages and lost
+qualifiers within cited passages. Reuse the reviewer role and declare any added
+invocation/output cost before evaluation; do not add an agent or silently expand
+persisted contracts. Proposed correction requests must cite the supporting source.
+
+Implementation boundary: one additional bounded reviewer invocation produces a
+versioned source-inventory-v1 before seeing candidate requirements or dispositions.
+Every supplied passage gets one classification and its explicit facts or an
+unresolved reason. Python validates the inventory's IDs and complete passage
+accounting, not its semantic completeness. A separate comparison invocation binds
+the exact inventory and candidate. Persist both task receipts and validate their
+lineage when projecting/reading the existing source-audit-v1 output; historical
+audits retain their old reader. No added agent role or automatic semantic repair.
+
+Recovery correction: expose the existing classification/fact-list constraints in
+the generation schema as well as host validation: behavior requires facts, context
+requires an empty list, and unresolved preserves any established facts. This does
+not change the persisted v1 fields or meaning. Test the schema after the actual
+SDK/transport transformations and preserve historical reads. Keep block citations
+in analysis distinct from passage citations in audit evidence; combine findings
+with the same root cause. Prompt changes require a new version and new evaluation
+condition, never a silent resume of the rejected output.
+
+Acceptance for this substep:
+
+- A complete omission cannot be excused by the analyst's non-normative disposition.
+- A cited passage is not considered covered merely because its ID is present.
+- Unsupported relationships remain unresolved; relabeling them as derived is not
+  a sufficient correction. Different mechanisms are not inherently inconsistent.
+- Optional specification detail and conditional KB advice are not extraction
+  defects or new design requirements. Check applicability against the target source.
+- Evaluate the frozen omission/qualifier controls and all thirteen real-packet
+  labels, preserving prior gains and reporting false alarms and advice quality.
+  Offline contract tests and a source inventory do not prove semantic completeness.
+- Keep the audit advisory until measured quality supports a separately recorded
+  decision. A new paid condition needs a declared applicable allocation; the
+  completed calibration's unused balance does not authorize automatic retries.
 
 ### SV-08 Trial one bounded plan-only repair
 
@@ -362,6 +468,20 @@ Acceptance:
   acceptance. Public and private development cases do not prove generalization.
 
 Edit points: evals comparison runner, result schemas and local reports.
+
+**Current bounded calibration:** prepare the existing eight source-audit controls
+without changing labels or generating new analyses. Reuse the workflow auditor,
+freeze the KB/settings/code, and enforce one shared cost/call allowance. Separate
+offline preparation/status from paid execution. Retain completed, failed,
+interrupted, budget-exhausted and unrun cases; restarting cannot silently repeat
+a failed or interrupted invocation. Assess findings against isolated reference
+judgments, reporting misses and false alarms separately. Then run the real
+development packet in analysis-only mode under its separately declared cap.
+
+Analysis-only assessment must retain every frozen obligation and report downstream
+scenario adequacy as not evaluated. It must not label a run without a plan/review
+as a completed full workflow. Report recovered and regressed labels alongside the
+aggregate extraction count, and grade the audit independently of the extraction.
 
 ### SV-11 Check model feasibility early and route later
 

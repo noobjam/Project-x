@@ -6,6 +6,14 @@ import socket
 
 import pytest
 
+from soc_verifier.domain.accounting import (
+    AccountingDraft,
+    DraftObligation,
+    SourceQuote,
+    UnitAccountingDraft,
+    UnitObligation,
+    source_units,
+)
 from soc_verifier.domain.knowledge import KnowledgeEntry, KnowledgeSnapshot
 from soc_verifier.domain.models import (
     PlanReview,
@@ -16,6 +24,33 @@ from soc_verifier.domain.models import (
     VerificationItem,
     VerificationPlan,
 )
+from soc_verifier.domain.passage_accounting import PassageAccountingDraft
+from soc_verifier.domain.source_audit import SourceAudit
+from soc_verifier.domain.source_inventory import PassageReading, SourceInventory
+
+
+def inventory_response(context):
+    """Synthetic transport output; this helper does not evaluate model understanding."""
+    source = json.loads(context)["specification"]
+    return SourceInventory(
+        readings=[
+            PassageReading(
+                evidence_id=unit["id"],
+                classification="behavior",
+                facts=[unit["text"]],
+                reason="Synthetic fixture fact",
+            )
+            for block in source["blocks"]
+            for unit in block["units"]
+        ]
+    )
+
+
+@pytest.fixture
+def source_inventory(specification):
+    from soc_verifier.workflows.spec_to_plan.accounting import source_context
+
+    return inventory_response(json.dumps({"specification": source_context(specification)}))
 
 
 @pytest.fixture(autouse=True)
@@ -60,6 +95,54 @@ def analysis():
         ],
         gaps=[],
     )
+
+
+@pytest.fixture
+def accounting_draft(specification, analysis):
+    requirement = analysis.requirements[0]
+    return AccountingDraft(
+        obligations=[
+            DraftObligation(
+                **requirement.model_dump(exclude={"source_ids"}),
+                conditions=["System reset is asserted"],
+                constraints=[],
+                exceptions=[],
+                evidence=[
+                    SourceQuote(block_id="P00001", quote=specification.blocks[0].text, occurrence=0)
+                ],
+            )
+        ],
+        dispositions=[],
+        gaps=[],
+    )
+
+
+@pytest.fixture
+def unit_accounting_draft(specification, analysis):
+    requirement = analysis.requirements[0]
+    return UnitAccountingDraft(
+        obligations=[
+            UnitObligation(
+                **requirement.model_dump(exclude={"source_ids"}),
+                conditions=["System reset is asserted"],
+                constraints=[],
+                exceptions=[],
+                evidence_ids=[unit.id for unit in source_units(specification)],
+            )
+        ],
+        dispositions=[],
+        gaps=[],
+    )
+
+
+@pytest.fixture
+def passage_accounting_draft(unit_accounting_draft):
+    return PassageAccountingDraft(**unit_accounting_draft.model_dump(exclude={"format"}))
+
+
+@pytest.fixture
+def clean_audit():
+    return SourceAudit(findings=[], knowledge_applications=[])
 
 
 @pytest.fixture
