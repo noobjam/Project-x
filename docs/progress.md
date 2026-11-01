@@ -34,7 +34,8 @@ snapshots below are historical evidence, not current execution instructions.
 ## Delivery and repository
 
 Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
-The integration branch is `feat/terra-evidence-tools`. It combines the already
+Integration [PR #12](https://github.com/noobjam/Project-x/pull/12) uses branch
+`feat/terra-evidence-tools`. It combines the already
 published source-accounting stack from [#7](https://github.com/noobjam/Project-x/pull/7),
 [#8](https://github.com/noobjam/Project-x/pull/8),
 [#10](https://github.com/noobjam/Project-x/pull/10) and
