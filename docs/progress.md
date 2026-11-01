@@ -34,12 +34,19 @@ snapshots below are historical evidence, not current execution instructions.
 ## Delivery and repository
 
 Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
-Integration [PR #12](https://github.com/noobjam/Project-x/pull/12) uses branch
-`feat/terra-evidence-tools`. It combines the already
-published source-accounting stack from [#7](https://github.com/noobjam/Project-x/pull/7),
+Integration [PR #12](https://github.com/noobjam/Project-x/pull/12) merged on
+2026-11-01 at [de31753](https://github.com/noobjam/Project-x/commit/de31753f2d38c60d2014d1917f24c6185a4a7753).
+Remote main was verified directly and local main was fast-forwarded to that merge.
+It includes the published source-accounting stack and runtime/retrieval changes.
+[#7](https://github.com/noobjam/Project-x/pull/7) was automatically marked merged;
 [#8](https://github.com/noobjam/Project-x/pull/8),
 [#10](https://github.com/noobjam/Project-x/pull/10) and
-[#11](https://github.com/noobjam/Project-x/pull/11) with the runtime/retrieval changes.
+[#11](https://github.com/noobjam/Project-x/pull/11) were closed as superseded,
+with all their commits retained in main. No separate merge of those drafts remains.
+
+All three required [CI checks](https://github.com/noobjam/Project-x/actions/runs/41314015114)
+passed on the exact reviewed head 817893a before merge. That confirms software
+validation; planning quality and engineering acceptance remain open as listed below.
 Merges require current-base repository-policy and Python 3.12/3.13 CI checks and
 resolved review threads; no administrator bypass or force push is used.
 
