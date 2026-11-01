@@ -1,7 +1,9 @@
 # SoC Verifier
 
 An extensible Python application for agent-assisted, system-level ASIC verification.
-The first workflow turns a specification into a source-linked draft verification plan.
+The product sequence is specification -> verification plan -> testbench -> simulation
+-> coverage improvement. The first implemented workflow produces a source-linked
+draft verification plan; engineering review is a checkpoint in that pipeline.
 
 The current slice includes DOCX ingestion, typed contracts, OpenAI Agents SDK
 analyst/planner/reviewer agents, evidence retrieval tools, an OpenRouter gateway,
@@ -57,6 +59,24 @@ provider endpoint slug. Choose an endpoint supporting function tools, JSON Schem
 configured data-handling requirements. Planning sends extracted content to
 OpenRouter and the selected inference provider and incurs usage charges.
 
+`SOC_VERIFIER_MODEL_API` selects `chat_completions` (the default) or `responses`.
+The Responses route uses the native Agents SDK adapter with local conversation
+history, function tools and structured output. It does not store a server-side
+conversation or enable hosted tools. The exact `openai/gpt-6.1-terra` model requires
+`responses` for this agent runtime; the application rejects its Chat Completions
+configuration before inference. Model and provider selection stay explicit.
+`SOC_VERIFIER_REASONING_EFFORT` is optional; leave it unset unless supported by
+the selected model/provider. Terra defaults to medium effort on Responses.
+
+To require source investigation before a planner finishes, set
+`SOC_VERIFIER_PLANNER_SOURCE_LOOKUP=true`. The planner must search the full bound
+source and read a matching block when results exist. This follows the KB search/read
+when a catalog is enabled. Set `SOC_VERIFIER_AGENT_MAX_TURNS` to at least five with
+KB, or three without; eight allows additional investigation. Invalid turn capacity
+is rejected before the workflow starts model calls. These are minimum consultation
+steps, not a guarantee that the relevant evidence was found or correctly applied.
+The total call and cost limits still apply to every follow-up.
+
 ```bash
 uv run soc-verifier plan artifacts/specification.json
 uv run soc-verifier resume <run-id>
@@ -88,6 +108,12 @@ model chooses the search query and which entries to read. The local `knowledge` 
 show retrieval, not proof that guidance was correctly applied to each plan row.
 Changing the saved snapshot prevents resume; changing authoring files leaves
 existing snapshots intact. Tool follow-ups consume the same run budget.
+
+Source search returns excerpts around matching text and a `next_offset` for more
+results. Full-block reads use character offsets. Local `source-access.*.json`
+receipts bind task/invocation, source snapshot, returned IDs, offsets and excerpt
+hashes. Table-header and neighboring-block context remain incomplete; source access
+does not establish complete document coverage.
 
 For the experimental SV-05 source-accounting workflow, add `--source-accounting`
 to `plan` (and to `resume` for that run), or set `SOC_VERIFIER_SOURCE_ACCOUNTING=true`.

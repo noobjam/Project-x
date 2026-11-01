@@ -31,6 +31,14 @@ disables fallback and retains the current deny-data-collection/ZDR policy.
 The client SDK does not imply OpenAI-hosted inference or an OpenAI API key.
 Automatic model selection and per-role model settings are not implemented.
 
+`model_api` selects the native SDK Chat Completions or Responses adapter. Responses
+is opt-in and supports stateless, non-streaming text with local function tools;
+remote conversation state, hosted tools and multimodal input are rejected. Full
+tool history and opaque encrypted reasoning are replayed by the SDK. The transport
+enforces `store=false`, disabled truncation and the configured output limit, then
+records usage before rejecting partial/refused output. API mode and reasoning
+settings are bound into task configuration; changing them requires a new run.
+
 ## Agents and tools
 
 An optional knowledge catalog enables `search_knowledge` and
@@ -46,6 +54,12 @@ guard rejects providers that ignore required consultation. The runtime records
 `knowledge-access-v1` events by task/invocation, entry hash and character offset.
 These are access records, not per-item application claims. Guidance is untrusted
 methodology, never specification evidence or permission to execute tools.
+When `planner_source_lookup` is enabled, planners must also search the full bound
+source and read a matching block when results exist. No-hit searches can proceed.
+A read must include an ID actually returned by a search. The workflow rejects
+insufficient turn capacity before extraction starts: at least five turns with KB,
+or three without, including final output. The model still chooses queries and
+reads; enforced consultation alone cannot establish relevance or correctness.
 Forced function turns use the function's argument schema without a simultaneous
 final-output response schema; automatic/final turns retain the artifact schema.
 
@@ -58,8 +72,12 @@ final-output response schema; automatic/final turns retain the artifact schema.
 Tools read the current run's specification and validated artifacts. Context is
 injected locally by the SDK and is not automatically serialized into prompts.
 Search is deterministic word matching, not semantic retrieval. Search results
-contain bounded previews; source reads support character pagination with explicit
-continuation offsets. Retrieval rejects unknown IDs, has an ID-count limit and
+contain match-centered excerpts with exact character offsets and stable pagination
+through `next_offset`; source reads support character pagination with explicit
+continuation offsets. `source-access-v1` receipts bind the task/invocation and
+source snapshot to returned IDs, offsets and excerpt hashes without copying text
+into the receipt. Supported table-header and neighboring-block access remain
+unfinished. Retrieval rejects unknown IDs, has an ID-count limit and
 bounds output size. Tools cannot read arbitrary paths, run shell commands, call
 external services or grant approval. Source and tool text remain untrusted evidence.
 
@@ -199,23 +217,34 @@ these artifacts as evidence of quality.
 
 ## Spending and migration compatibility
 
-Reservations use advertised endpoint context capacity and output ceiling at pinned
-token prices. Unknown charges remain reserved across restarts. Only a confirmed
-OpenRouter in-flight admission rejection settles at zero. Pricing changes or
-provider billing above its advertised bound stop the run. Tiered endpoint prices
-are currently rejected because the reservation calculation cannot bound them.
-These controls do not replace an account-level credit/key cap.
+Chat Completions reservations use advertised endpoint context capacity and output
+ceiling at pinned token prices; tiered prices remain unsupported on that route.
+Responses uses a conservative request estimate covering serialized instructions,
+schemas, tools and complete history: twice the UTF-8 byte count plus a framing
+allowance. It selects the highest advertised input/cache and output rates across
+recognized tiers, rejects unknown fee structures, and pins pricing across resumes.
+This is an estimate, not an exact provider token count or provider-enforced dollar
+cap. Large tool histories can exhaust admission headroom even when reported charges
+are small. Each call settles against its own persisted reservation.
+
+Unknown charges remain reserved across restarts. Only a confirmed OpenRouter
+in-flight admission rejection settles at zero. Pricing changes or reported billing
+above the reservation stop the run. These controls do not replace an account-level
+credit/key cap.
 
 Runs pin engine, prompt version, model, provider and generation limits. Only worker
 scheduling can change on resume; changed output ceilings require a new run. Prompt
 version 7 added enforced knowledge consultation; version 11 introduced passage
 dispositions, mechanical feedback and the advisory source audit to the opt-in
-path. Normal specialist instructions remain unchanged. Opt-in planning appends
+path. Those audit revisions left normal specialist instructions unchanged. Opt-in planning appends
 explicit guidance for handling provisional audit findings.
 Version 12 adds source-specific audit ID enums and confines extraction defects
 to differences supported by the actual source. Missing optional checklist detail
 does not by itself establish an extraction defect. The audit remains fallible
 and advisory; calibration results are separate from these software constraints.
+Prompt 15 requires concrete stimulus, observation and discriminating expected
+results, and source investigation of missing design details before planning is
+finalized. Tool version 5 records the changed retrieval behavior and source access.
 Engine `openai-agents-v2` identifies
 task-aware runs. Version 2.0 run
 manifests/results coexist with unchanged 1.0 domain schemas. Legacy completed plans
@@ -231,12 +260,13 @@ visible. Thread-local asynchronous context propagation keeps concurrent attribut
 separate. `soc-verifier tasks RUN_ID [--json]` reconciles task charges and unsettled
 reservations separately against the existing ledger.
 
-The OpenRouter transport restores `reasoning_details` and plaintext reasoning onto
+For Chat Completions, the OpenRouter transport restores `reasoning_details` and plaintext reasoning onto
 the corresponding assistant tool-call messages before follow-up requests. It retains
 opaque values and block order, isolates histories per invocation, and rejects
 ambiguous histories before inference. Plain calls without reasoning metadata keep
 their existing request behavior. Reasoning replay is recorded as `openrouter-v1`
-and must be declared separately in model comparisons. Offline SDK tests validate
+and must be declared separately in model comparisons. Responses uses native SDK
+encrypted-reasoning replay instead of this Chat-specific reconstruction. Offline SDK tests validate
 serialization; live endpoint feasibility remains an SV-10A gate before model selection.
 
 Operational logs contain agent/tool names and numeric usage, including cache and
@@ -250,7 +280,7 @@ Offline tests exercise the real OpenAI SDK and Agents SDK tool loop against a
 simulated OpenRouter API, plus domain contracts, source retrieval, revisions,
 restart behavior, usage accounting, failed responses and budget/turn limits.
 They establish software behavior, not model quality, live provider compatibility
-or savings. No paid model run is part of this migration's validation.
+or savings. Normal CI remains offline; engineering validation is tracked separately.
 
 Before selecting models, compare source accuracy, missed requirements, unsupported
 claims, interaction scenarios, reviewer effort and cost on engineer-labelled cases.

@@ -1,13 +1,91 @@
 # Project progress
 
-Last updated: 2026-10-31.
+Last updated: 2026-11-01.
 
-This is the live status and session handoff. Ticket scope and acceptance criteria
-are in [the roadmap](agent-roadmap.md); design rationale is in
-[the council review](agent-council-review.md). Local sessions also use an ignored
-AGENTS.md instruction file; it is intentionally absent from the published tree.
+This is the public implementation snapshot. Ticket scope and acceptance criteria
+are in [the roadmap](agent-roadmap.md). Private specifications, generated plans,
+evaluation records and unpublished handoff details remain local. Earlier dated
+snapshots below are historical evidence, not current execution instructions.
 
 ## Current state
+
+- **Implemented foundation:** DOCX ingestion, typed requirements/plans/reviews,
+  OpenAI Agents SDK specialists, source/KB tools, immutable task artifacts,
+  traceability validation, spending records and JSON/Excel export.
+- **Runtime and retrieval integration:** opt-in native Responses support, explicit
+  reasoning settings, source-search pagination and match-centered excerpts,
+  source-access receipts, and optional enforced planner source consultation.
+  Invalid planner turn capacity is rejected before extraction starts. Normal
+  Chat Completions access and historical export/spending readers remain available.
+- **Experimental audit path:** source accounting and independent source-inventory
+  review remain opt-in. Their presence does not establish semantic accuracy or
+  make automatic correction an accepted default. Prior published quality limits
+  remain in the historical records and evaluation documents.
+- **Acceptance:** the planning stage remains in_progress. Engineer review,
+  remaining source-context work and full real-workload validation are required.
+  Software checks and a successful tool loop do not establish complete coverage,
+  correct checks or readiness for automatic testbench generation.
+- **Validation for this integration:** 393 offline tests passed, 91% coverage;
+  Ruff lint/format, strict mypy on 51 source files and source/wheel build passed.
+  The new regression first demonstrated extraction starting with insufficient
+  planner turns, then passed after moving that validation before model calls.
+  No paid evaluation is part of CI or the publication checks.
+
+## Delivery and repository
+
+Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
+The integration branch is `feat/terra-evidence-tools`. It combines the already
+published source-accounting stack from [#7](https://github.com/noobjam/Project-x/pull/7),
+[#8](https://github.com/noobjam/Project-x/pull/8),
+[#10](https://github.com/noobjam/Project-x/pull/10) and
+[#11](https://github.com/noobjam/Project-x/pull/11) with the runtime/retrieval changes.
+Merges require current-base repository-policy and Python 3.12/3.13 CI checks and
+resolved review threads; no administrator bypass or force push is used.
+
+Only implementation, tests and supporting public documentation belong in this
+integration. AGENTS.md, credentials, private source/reference material, generated
+plans, review artifacts and new private evaluation records are excluded.
+
+## Position in the product plan
+
+| Stage | Status | What remains |
+| --- | --- | --- |
+| Specification -> verification plan | in_progress | Complete check/source-context refinements, engineering review and validation on the actual full workload. |
+| Plan -> testbench | planned | Bind a settled scenario to actual RTL, clocks/resets and a simulator; generate the environment/checks and compile. |
+| Testbench -> simulation results | planned | Run reproducible tests and demonstrate both passing behavior and detection of a known fault. |
+| Results -> coverage improvement | planned | Map measured coverage and failures to the plan, add targeted tests and validate that they improve coverage without weakening checks. |
+
+The full pipeline is the product goal. Planning and engineering review are its
+first milestone; testbench generation and simulation are not yet implemented.
+
+## Current tickets and next actions
+
+| Ticket | Status | Next acceptance evidence |
+| --- | --- | --- |
+| SV-04 | in_progress | Pagination and exact excerpts are implemented; finish supported table-header/neighbor context and evaluate retrieval adequacy. |
+| SV-05 / SV-07 | in_progress | Keep accounting/audit experiments opt-in; semantic omissions, unsupported findings and false alarms need adjudicated evidence. |
+| SV-06 | in_progress | Check that each scenario covers its claimed behaviors with explicit stimulus, observation and discriminating expected results. |
+| SV-09 | in_review | Engineers review source-linked scenarios and resolve design questions; export success does not confer approval. |
+| SV-10 | in_progress | Complete targeted evaluations and then actual full-workload acceptance under separately authorized execution scopes. |
+| SV-11 | in_progress | Responses compatibility and explicit configuration are implemented; model/role routing remains deferred until justified by quality evidence. |
+
+SV-01–SV-03 retain their completed technical-foundation status; SV-08 automatic
+plan repair remains deferred. Their detailed acceptance criteria are in the roadmap.
+
+1. SV-06/SV-09: finish scenario adequacy review using existing fields, and obtain
+   engineering decisions for unresolved design behavior and execution bindings.
+2. SV-04: finish bounded table/neighbor context without expanding tool permissions.
+3. SV-10: validate the planning milestone on the actual full DOCX. Keep authored
+   references outside agent retrieval and distinguish software checks from quality.
+4. Next product stage: select the actual RTL block and simulator, then define the
+   testbench implementation tickets around one settled, testable scenario.
+
+## Historical progress through 2026-10-31
+
+The following snapshots preserve previously published validation, decisions and
+execution history. Their branch, budget and next-action statements are dated.
+
+### Current state
 
 - **Merged foundation:** PR [#9](https://github.com/noobjam/Project-x/pull/9)
   adds CI/merge safeguards; [#4](https://github.com/noobjam/Project-x/pull/4),
@@ -52,7 +130,7 @@ AGENTS.md instruction file; it is intentionally absent from the published tree.
   stay outside retrieval. Private inputs/outputs remain ignored under artifacts/.
   AGENTS.md remains local-only. Model defaults and environment settings are unchanged.
 
-## Repository snapshot
+### Repository snapshot
 
 Checked against GitHub on 2026-10-31:
 
@@ -82,7 +160,7 @@ Checked against GitHub on 2026-10-31:
 
 Recheck Git state on resume; this snapshot is not a permanent assertion.
 
-## Milestone status
+### Milestone status
 
 | Milestone | Status | Evidence and remaining work |
 | --- | --- | --- |
@@ -97,7 +175,7 @@ Recheck Git state on resume; this snapshot is not a permanent assertion.
 | Retrieval and review release | planned | SV-04, SV-07 and SV-09, with SV-10 comparisons during delivery. |
 | Full real-workload acceptance | planned | SV-10D after useful slice evidence, declared funding and engineering review. |
 
-## Ticket status
+### Ticket status
 
 All scopes below link to their acceptance criteria. No implementation ticket is
 complete merely because its plan exists.
@@ -116,7 +194,7 @@ complete merely because its plan exists.
 | [SV-10](agent-roadmap.md#sv-10-run-comparisons-throughout-delivery) | in_progress | Calibration and recovery assessed in PR #10; all eight controls/thirteen real labels retained. Approved V2 failed inventory validation after 6/13 extraction; both failed attempts preserved. No new full plan or engineering acceptance. |
 | [SV-11](agent-roadmap.md#sv-11-check-model-feasibility-early-and-route-later) | deferred | A bounded current-endpoint feasibility check belongs to SV-10A; per-role routing is later. |
 
-## Decisions and execution boundaries
+### Decisions and execution boundaries
 
 - Prepared, not authorized or executed: fixed-candidate auditor condition at
   code 719235c / prompt 14, maximum $0.20 / 12 calls. Condition SHA-256
@@ -329,7 +407,7 @@ complete merely because its plan exists.
 - Model selection, Booley/JEV, execution tools, automatic diagram interpretation
   and broader agent teams remain deferred according to the roadmap.
 
-## Next moves
+### Next moves
 
 1. **SV-10 fixed-candidate measurement, approval pending:** one auditor-only
    condition is prepared under artifacts/evaluations/source-first-fixed-candidate-2026-10-31-v1/.
@@ -355,7 +433,7 @@ complete merely because its plan exists.
    workload and reviewed references. A vendor comparison supplies design ideas,
    not acceptance evidence.
 
-## Validation and result references
+### Validation and result references
 
 - 2026-10-30 source-first correction at f847788: 347 offline tests passed (91%
   coverage), Ruff check/format, strict mypy (49 files), source/wheel build and
@@ -509,9 +587,9 @@ complete merely because its plan exists.
   git ls-remote confirmed GitHub main at 2bb4293 and git status showed a clean,
   synchronized working tree at that checkpoint. No force push was used.
 
-## Milestone history
+### Milestone history
 
-### 2026-10-28: Actual KB integration started
+#### 2026-10-28: Actual KB integration started
 
 - User clarified that the desired experiment must exercise runtime KB retrieval.
   Started feat/agent-knowledge-tools from the local tested transport fix; initial
@@ -520,7 +598,7 @@ complete merely because its plan exists.
 - Next: wire frozen knowledge into every specialist task, test the connection,
   run within the remaining original budget, and supply traceable actual output.
 
-### 2026-10-28: KB connector published; live consultation failure caught
+#### 2026-10-28: KB connector published; live consultation failure caught
 
 - Published 4c136b2 on feat/agent-knowledge-tools and verified the remote SHA;
   opened draft PR #5 with PR #4 as its base. 239 offline tests, Ruff, mypy and
@@ -534,7 +612,7 @@ complete merely because its plan exists.
   the configured endpoint advertises tool_choice support. Revalidate and pin a
   fresh matched pair before claiming successful KB execution.
 
-### 2026-10-26 SDK migration and architecture planning
+#### 2026-10-26 SDK migration and architecture planning
 
 - Migrated to SDK agents with bounded evidence tools and merged locally at 7c2f05d.
 - Completed the research council, then a second review of the implementation plan.
@@ -543,7 +621,7 @@ complete merely because its plan exists.
 - Application implementation of those tickets remains unstarted; next milestone
   is offline preparation. The new pilot budget and label owner remain unresolved.
 
-### 2026-10-26 Session continuity setup
+#### 2026-10-26 Session continuity setup
 
 - Added root instructions and this progress tracker; moved live status out of
   roadmap prose and linked the historical council review back to this file.
@@ -553,7 +631,7 @@ complete merely because its plan exists.
 - Next action when implementation is requested: SV-01A/SV-03A preparation on a
   focused feature branch, followed by the smallest offline pilot.
 
-### 2026-10-26 GitHub publication
+#### 2026-10-26 GitHub publication
 
 - Confirmed fetch and push destination: noobjam/Project-x. GitHub had remained at
   the October 11 commit because the migration was merged locally without a push.
@@ -563,7 +641,7 @@ complete merely because its plan exists.
 - Added an explicit remote-verification rule to AGENTS.md and updated this handoff.
 - Next application ticket remains SV-01A alongside SV-03A. No paid runs were made.
 
-### 2026-10-26 Keep agent instructions local
+#### 2026-10-26 Keep agent instructions local
 
 - At the user's request, removed AGENTS.md from tracking while retaining the local
   file and added a case-insensitive filename pattern to .gitignore.
@@ -576,7 +654,7 @@ complete merely because its plan exists.
   whitespace checks passed. No code tests or inference were needed.
 - Next application ticket remains SV-01A alongside SV-03A; no paid runs are needed.
 
-### 2026-10-27 SV-01A/SV-03A offline preparation slice
+#### 2026-10-27 SV-01A/SV-03A offline preparation slice
 
 - User approved this offline implementation slice. Added freeze/verify tooling in
   src/soc_verifier/evaluation/, usage/scope in evals/README.md and source/span/task
@@ -593,7 +671,7 @@ complete merely because its plan exists.
   in_progress. Next: review this PR, then SV-01B/C source packets, annotation states
   and scoring. Engineering label ownership and the paid pilot remain unresolved.
 
-### 2026-10-27 Merge the preparation slice
+#### 2026-10-27 Merge the preparation slice
 
 - User requested merging PR #1. Final review found no blocking issues or pending
   review comments; all four push/PR CI checks passed on head 514d0b0, covering
@@ -608,7 +686,7 @@ complete merely because its plan exists.
   No paid calls or repeat local code tests. Next implementation ticket: SV-01B/C
   source packets, annotation states and scoring.
 
-### 2026-10-27 SV-01B/C source packets and evaluation scoring
+#### 2026-10-27 SV-01B/C source packets and evaluation scoring
 
 - User requested the next ticket. Implemented offline private/public source packet
   preparation, label states and evidence checks, explicit-judgment scoring and a
@@ -631,7 +709,7 @@ complete merely because its plan exists.
   pending. Next: review PR #2, then SV-02/minimal SV-03B task/input/cost attribution.
   The paid-pilot budget and engineering label owner remain unresolved.
 
-### 2026-10-27 Merge evaluation packets and scoring
+#### 2026-10-27 Merge evaluation packets and scoring
 
 - User approved merging PR #2 if the checks were clear. Final review found no
   blocking issue or pending review comments, and all four push/PR CI checks passed
@@ -648,7 +726,7 @@ complete merely because its plan exists.
   No paid calls or repeat local code tests. Next implementation: SV-02/minimal SV-03B task identity,
   exact input binding, per-attempt spending and compatible resume/export behavior.
 
-### 2026-10-27 SV-02/minimal SV-03B task accounting and compatibility
+#### 2026-10-27 SV-02/minimal SV-03B task accounting and compatibility
 
 - User approved the implementation following the best-practices assessment. Added
   task/input fingerprints and explicit evidence revisions, atomic completion records,
@@ -668,7 +746,7 @@ complete merely because its plan exists.
   Next implementation after merge:
   SV-04 retrieval. Paid pilot allocation and label review remain unresolved.
 
-### 2026-10-27 Merge task accounting and compatibility
+#### 2026-10-27 Merge task accounting and compatibility
 
 - User approved merging PR #3 after final checks. No blocking review issue or
   pending comment remained; all four CI checks passed on exact head 95ae453.
@@ -682,7 +760,7 @@ complete merely because its plan exists.
   table/neighbor context on a new branch. Paid SV-10A funding and engineering label
   review remain separate pending decisions.
 
-### 2026-10-27: Knowledge curation pack prepared locally
+#### 2026-10-27: Knowledge curation pack prepared locally
 
 - User requested material their verification engineer can curate, then clarified
   the objective as a rich knowledge-base starting set rather than broader
@@ -704,7 +782,7 @@ complete merely because its plan exists.
   curation and measured knowledge benefit remain pending; next action is the
   engineer's review.
 
-### 2026-10-27: Public knowledge review documents published
+#### 2026-10-27: Public knowledge review documents published
 
 - User requested GitHub publication for engineering review. Prepared the public
   edition on docs/knowledge-curation-review: 36 candidate entries, 21 testbench
@@ -722,7 +800,7 @@ complete merely because its plan exists.
   changes, paid calls or new engineering approvals. Local code tests were not
   rerun for this documentation-only publication; GitHub CI runs separately.
 
-### 2026-10-28: Knowledge review revision 2 published
+#### 2026-10-28: Knowledge review revision 2 published
 
 - Incorporated all four comments from 5a1aah into proposed revisions: K13–K15
   for clock/reset, data/control and registers; C10 for automatic draft completion
@@ -742,7 +820,7 @@ complete merely because its plan exists.
   SV-04 is still planned; runtime knowledge integration requires a separately
   defined evaluation split.
 
-### 2026-10-28: Live reset-packet review trial and transport fix
+#### 2026-10-28: Live reset-packet review trial and transport fix
 
 - User requested actual generated outputs. First run
   70491ac9-5373-4cd7-b0ae-e216755ba448 failed after one paid response; retained its
@@ -766,7 +844,7 @@ complete merely because its plan exists.
   live outputs passed structural/workbook checks. Branch publication remains the
   delivery step; merging and engineering acceptance remain pending.
 
-### 2026-10-28: Actual KB execution and private engineering package
+#### 2026-10-28: Actual KB execution and private engineering package
 
 - Final implementation 7ee24a4 is pushed in draft PR #5 and directly verified on
   origin. PR #5 depends on the curation branch in PR #4; neither is merged.
@@ -796,7 +874,7 @@ complete merely because its plan exists.
   comparison under an explicitly recorded allocation. SV-10 remains in_progress;
   the broader SV-04 source-retrieval ticket remains planned.
 
-### 2026-10-28: Engineer handoff held after output assessment
+#### 2026-10-28: Engineer handoff held after output assessment
 
 - User rejected the current output as unsuitable for engineer review and asked
   whether architecture explains the failures. Inspected extraction, knowledge
@@ -809,7 +887,7 @@ complete merely because its plan exists.
 - The existing package remains historical diagnostic material. Its handoff
   invitation is withdrawn pending internal correction; no engineering approval.
 
-### 2026-10-28: Model screen complete; prompt-only correction rejected
+#### 2026-10-28: Model screen complete; prompt-only correction rejected
 
 - Committed the source-free protocol at 54493b8. Froze 13 source-bound provisional
   obligations before the new model output; verified source, KB, runtime versions
@@ -836,7 +914,7 @@ complete merely because its plan exists.
   passed for 10026da; its PR CI was still running when this handoff was written.
   This publication-status update is the only follow-up change.
 
-### 2026-10-28: Source accounting implemented; live candidates rejected
+#### 2026-10-28: Source accounting implemented; live candidates rejected
 
 - Implemented opt-in source obligations, conditions/constraints/exceptions,
   proposed dispositions, exact source spans and visible unaccounted text. Immutable
@@ -864,7 +942,7 @@ complete merely because its plan exists.
   $0.308158400 uncertain reservation. No further paid run is scheduled. Next work
   is the offline correction described above; this does not complete SV-05.
 
-### 2026-10-29: Immediate architecture comparison with Synopsys
+#### 2026-10-29: Immediate architecture comparison with Synopsys
 
 - Studied GPT-Synopsys's announcement, AgentEngineer/Autopilot architecture and
   availability, the DV demonstration and reusable VIP collateral. Cross-checked
@@ -883,7 +961,7 @@ complete merely because its plan exists.
   contracts, including false-alarm controls, before implementing that expanded
   slice. The original aggregate budget and quality gates remain unchanged.
 
-### 2026-10-29: Passage feedback and pre-planning source audit
+#### 2026-10-29: Passage feedback and pre-planning source audit
 
 - User authorized updating the tickets and implementing the researched slice.
   Updated SV-05/SV-07 acceptance scope, implemented V3 passage dispositions and
@@ -904,7 +982,7 @@ complete merely because its plan exists.
   Next: technical review and offline calibration runner, then a declared capped
   condition before any inference. Model quality remains an open acceptance gate.
 
-### 2026-10-29: Auditor calibration and real extraction comparison
+#### 2026-10-29: Auditor calibration and real extraction comparison
 
 - Implemented SV-10's frozen-candidate runner with offline preparation/status,
   exact input/configuration bindings, one shared cost/call ledger and terminal
@@ -943,7 +1021,7 @@ checks actually run and outcomes; decisions/authorization; blockers and scope;
 ordered next action. Include commit/PR references only when they exist.
 -->
 
-### 2026-10-30: Merge safeguards prepared
+#### 2026-10-30: Merge safeguards prepared
 
 - Added a required-ready repository-policy job, tracked-file/credential checks,
   prompt-version comparison and PR evidence template. PR/main CI replaces
@@ -958,7 +1036,7 @@ ordered next action. Include commit/PR references only when they exist.
   in order. No additional paid execution. The source-first audit correction follows
   on its own branch; #7/#8 remain draft.
 
-### 2026-10-30: Safeguards merged; curation merge review
+#### 2026-10-30: Safeguards merged; curation merge review
 
 - PR #9 merged at 4458169; remote main SHA verified. Required checks are bound to
   GitHub Actions: repository-policy and quality on Python 3.12/3.13. Main requires
@@ -969,7 +1047,7 @@ ordered next action. Include commit/PR references only when they exist.
   documents are introduced. Updated this branch by merge, preserving frozen history.
 - Next: merge #4 after final-head CI, then update/review/merge #5 and #6 in order.
 
-### 2026-10-30: Curation merged; connector merge review
+#### 2026-10-30: Curation merged; connector merge review
 
 - PR #4 merged at e78e2ea after all three required final-head checks passed.
   The engineering comments are reflected in revision notes; entries remain proposed.
@@ -980,7 +1058,7 @@ ordered next action. Include commit/PR references only when they exist.
   conflict resolution; no runtime content was changed by the merge. Next: final-head
   CI and merge #5, then documentation-only #6.
 
-### 2026-10-30: Connector merged; evaluation record merge review
+#### 2026-10-30: Connector merged; evaluation record merge review
 
 - PR #5 merged at 69ac52d after all three protected checks passed on 3024648.
   KB use is explicit/opt-in for proposed entries; no content became engineer-approved.
@@ -989,7 +1067,7 @@ ordered next action. Include commit/PR references only when they exist.
   only progress required conflict resolution. Next: merge #6 after required CI, then
   continue the source-first audit correction with historical evidence preserved.
 
-### 2026-10-30: Foundation merges complete
+#### 2026-10-30: Foundation merges complete
 
 - PR #6 merged at 9447b33 after required CI passed on 02c551b. Remote main verified.
   #4/#5/#6 are merged; #7/#8 remain experimental drafts. Carried safeguards and the
@@ -997,7 +1075,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Next: propagate this base through #8 and finish/test the independent source-first
   inventory/comparison correction on feat/source-first-audit. No paid run started.
 
-### 2026-10-30: Calibration branch aligned with protected main
+#### 2026-10-30: Calibration branch aligned with protected main
 
 - Propagated the merged foundation and CI safeguards through draft #7 and #8 with
   merge commits, preserving frozen code provenance and paid-result evidence.
@@ -1005,7 +1083,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Next: complete and publish source-first audit correction on feat/source-first-audit.
   Detailed experimental results remain unchanged; no new paid inference.
 
-### 2026-10-30: Source-first omission review implemented
+#### 2026-10-30: Source-first omission review implemented
 
 - Added source-inventory-v1 with exactly one reading per source passage. The
   inventory task can access source/KB only; a separate comparison binds it to the
@@ -1026,7 +1104,7 @@ ordered next action. Include commit/PR references only when they exist.
   approval is pending. Next: run/assess the controls only after that decision, then
   the real diagnostic if usable. Prior quality results and uncertain charges remain intact.
 
-### 2026-10-30: Source-first comparison authorized and started
+#### 2026-10-30: Source-first comparison authorized and started
 
 - User approved the prepared $0.49 comparison and $1.25 aggregate ceiling.
   Recorded separate immutable authorization receipts outside agent inputs.
@@ -1036,7 +1114,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Calibration is active first; assess it before the conditional real run. Keep
   controls/labels fixed, prior failures charged and old uncertain reservation intact.
 
-### 2026-10-30: Source-first calibration assessed; real diagnostic started
+#### 2026-10-30: Source-first calibration assessed; real diagnostic started
 
 - Eight controls completed in 47 calls for $0.102234715, with zero unsettled
   reservations. Every seeded defect was detected (5/5, previously 4/5); four have
@@ -1053,7 +1131,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Next: complete that condition under $0.24 / 24 calls and assess all thirteen
   labels plus every audit finding. No planner, code edit or automatic repair.
 
-### 2026-10-30: Disk interruption retained; recovery prepared
+#### 2026-10-30: Disk interruption retained; recovery prepared
 
 - Real V1 stopped with exit 120 while the filesystem reported ENOSPC. No analysis,
   audit or plan completed; two requests were reserved, one settled at $0.0018975,
@@ -1072,7 +1150,7 @@ ordered next action. Include commit/PR references only when they exist.
   locally outside model inputs with a fresh storage check and space reserved for
   a terminal record. No fresh real score or engineering-ready plan is claimed.
 
-### 2026-10-31: Real recovery authorized
+#### 2026-10-31: Real recovery authorized
 
 - User approved the prepared $0.24 / 24-call V2 recovery within existing comparison
   and aggregate ceilings. Recorded an immutable authorization receipt outside the
@@ -1083,7 +1161,7 @@ ordered next action. Include commit/PR references only when they exist.
 - Active milestone is SV-10 on feat/source-first-audit. Run and inspect all thirteen
   labels at the existing frozen settings before deciding the next correction.
 
-### 2026-10-31: Recovery failed inventory; all extraction labels assessed
+#### 2026-10-31: Recovery failed inventory; all extraction labels assessed
 
 - Executed the explicitly approved V2 once at frozen code 73d1ff3 / prompt 13.
   Storage preflight passed. Six calls cost $0.046524588 reported, with no new
@@ -1104,7 +1182,7 @@ ordered next action. Include commit/PR references only when they exist.
   remaining allowance is not an automatic retry. No code tests rerun for this
   results-only checkpoint.
 
-### 2026-10-31: Inventory contract correction validated offline
+#### 2026-10-31: Inventory contract correction validated offline
 
 - SV-07 focused follow-up on fix/source-inventory-contract, based on published
   results 2d104ec. Generation-only reading variants now encode existing context
@@ -1121,7 +1199,7 @@ ordered next action. Include commit/PR references only when they exist.
   against the fixed accepted V2 analysis. Approval is still required for that
   condition; the prior one-attempt recovery authorization is consumed.
 
-### 2026-10-31: Correction published; fixed-candidate condition prepared
+#### 2026-10-31: Correction published; fixed-candidate condition prepared
 
 - Draft PR #11 targets #10. Code commit
   719235c9a9ded4f6fc1e729968783308b9558bf7 is published; remote SHA verified.

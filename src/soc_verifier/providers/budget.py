@@ -65,11 +65,16 @@ class CallBudget:
         self.count = spending.attempts
         self.committed = spending.committed
 
-    def reserve(self, attribution: dict[str, Any] | None = None) -> int:
+    def reserve(
+        self, attribution: dict[str, Any] | None = None, *, reservation: Decimal | None = None
+    ) -> int:
+        amount = self.reservation if reservation is None else reservation
+        if not amount.is_finite() or amount < 0:
+            raise ValueError("Invalid provider cost reservation")
         with self.lock:
             if self.count >= self.max_calls:
                 raise BudgetExceeded("Run model-call limit reached; no request was sent")
-            if self.committed + self.reservation > self.max_cost:
+            if self.committed + amount > self.max_cost:
                 raise BudgetExceeded(
                     "Run cost budget cannot cover another request; no request was sent"
                 )
@@ -79,11 +84,11 @@ class CallBudget:
                 {
                     **({"format": "task-reservation-v1", **attribution} if attribution else {}),
                     "attempt": attempt,
-                    "reserved_usd": str(self.reservation),
+                    "reserved_usd": str(amount),
                 },
             )
             self.count = attempt
-            self.committed += self.reservation
+            self.committed += amount
             return attempt
 
     def settle(self, attempt: int, cost: object) -> None:
@@ -94,6 +99,9 @@ class CallBudget:
         if not actual.is_finite() or actual < 0:
             return
         with self.lock:
+            reservation = Decimal(
+                self.artifacts.read(f"cost-reserved.{attempt:05d}.json")["reserved_usd"]
+            )
             self.artifacts.write(
                 f"cost-settled.{attempt:05d}.json",
                 {
@@ -101,8 +109,8 @@ class CallBudget:
                     "cost_usd": str(actual),
                 },
             )
-            self.committed += actual - self.reservation
-            if actual > self.reservation:
+            self.committed += actual - reservation
+            if actual > reservation:
                 # Endpoint pricing/capacity did not match billed usage. Fail closed.
                 self.artifacts.write(
                     "budget-stopped.json",

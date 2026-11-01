@@ -13,11 +13,13 @@ from agents import (
     ModelBehaviorError,
     ModelSettings,
     OpenAIChatCompletionsModel,
+    OpenAIResponsesModel,
     RunConfig,
     Runner,
     UserError,
 )
 from openai import APIConnectionError, AsyncOpenAI
+from openai.types.shared import Reasoning
 from pydantic import BaseModel
 
 from soc_verifier.agents.analyst import create_analyst
@@ -53,6 +55,7 @@ class AgentRuntime:
 
     @property
     def configuration(self) -> dict[str, object]:
+        self._check_planner_turn_capacity(self.artifacts.exists("knowledge.json"))
         configuration = self.settings.agent_configuration()
         if self.artifacts.exists("knowledge.json"):
             configuration["knowledge"] = ArtifactReference.capture(
@@ -61,7 +64,20 @@ class AgentRuntime:
             configuration["knowledge_consultation"] = "required-search-read-v1"
         return configuration
 
-    def _evidence(self, task: TaskEnvelope, accesses: list[dict[str, Any]]) -> EvidenceContext:
+    def _check_planner_turn_capacity(self, has_knowledge: bool) -> None:
+        if self.settings.planner_source_lookup and self.settings.agent_max_turns < (
+            5 if has_knowledge else 3
+        ):
+            raise ValueError(
+                "Planner turn limit must allow source/knowledge search, read and final output"
+            )
+
+    def _evidence(
+        self,
+        task: TaskEnvelope,
+        accesses: list[dict[str, Any]],
+        source_accesses: list[dict[str, Any]],
+    ) -> EvidenceContext:
         references = task.inputs.evidence
         source = references["source"].read(self.artifacts)
         analysis = references["analysis"].read(self.artifacts) if "analysis" in references else None
@@ -97,12 +113,29 @@ class AgentRuntime:
             )
             accesses.append(record)
 
+        def audit_source(record: dict[str, Any]) -> None:
+            invocation = current_invocation.get()
+            if invocation is None:
+                raise ValueError("Source access requires a bound invocation")
+            self.artifacts.write(
+                f"source-access.{uuid4()}.json",
+                {
+                    "format": "source-access-v1",
+                    "created_at": datetime.now(UTC).isoformat(),
+                    **invocation.attribution(),
+                    "snapshot_sha256": references["source"].sha256,
+                    **record,
+                },
+            )
+            source_accesses.append(record)
+
         return EvidenceContext(
             Specification.model_validate(source),
             SpecAnalysis.model_validate(analysis) if analysis is not None else None,
             VerificationPlan.model_validate(plan) if plan is not None else None,
             knowledge,
             audit if knowledge else None,
+            audit_source,
         )
 
     def run[T: BaseModel](
@@ -221,7 +254,12 @@ class AgentRuntime:
             max_retries=0,
             http_client=httpx.AsyncClient(transport=self.transport),
         ) as client:
-            model = OpenAIChatCompletionsModel(model=self.settings.model, openai_client=client)
+            responses_api = self.settings.model_api == "responses"
+            model = (
+                OpenAIResponsesModel(model=self.settings.model, openai_client=client)
+                if responses_api
+                else OpenAIChatCompletionsModel(model=self.settings.model, openai_client=client)
+            )
             factory = {
                 "analyst": create_analyst,
                 "planner": create_planner,
@@ -229,28 +267,76 @@ class AgentRuntime:
             }[role]
             agent = factory(model, instruction, schema)
             agent.model_settings = ModelSettings(max_tokens=self.settings.max_output_tokens)
+            if responses_api:
+                agent.model_settings.store = False
+                agent.model_settings.truncation = "disabled"
+                agent.model_settings.response_include = ["reasoning.encrypted_content"]
+                effort = self.settings.reasoning_effort
+                if effort is None and self.settings.model == "openai/gpt-6.1-terra":
+                    effort = "medium"
+                if effort is not None:
+                    agent.model_settings.reasoning = Reasoning(effort=effort)
             accesses: list[dict[str, Any]] = []
-            evidence = self._evidence(task, accesses)
+            source_accesses: list[dict[str, Any]] = []
+            evidence = self._evidence(task, accesses, source_accesses)
+            require_source = role == "planner" and self.settings.planner_source_lookup
+            if require_source:
+                self._check_planner_turn_capacity(evidence.knowledge is not None)
             if evidence.knowledge is not None:
                 agent.tools.extend([search_knowledge, get_knowledge_entries])
-                # Enforce consultation at the API boundary, not just in prose.
-                # The agent still chooses its query and the entries it reads.
+
+            def next_tool() -> str:
+                for required, records, search, read, id_key in (
+                    (
+                        evidence.knowledge is not None,
+                        accesses,
+                        "search_knowledge",
+                        "get_knowledge_entries",
+                        "entry_ids",
+                    ),
+                    (
+                        require_source,
+                        source_accesses,
+                        "search_spec",
+                        "get_source_blocks",
+                        "source_ids",
+                    ),
+                ):
+                    if not required:
+                        continue
+                    searches = [r for r in records if r["tool"] == search]
+                    if not searches:
+                        return search
+                    matches = {identifier for r in searches for identifier in r[id_key]}
+                    reads = {
+                        identifier for r in records if r["tool"] == read for identifier in r[id_key]
+                    }
+                    if matches and not matches.intersection(reads):
+                        return read
+                return "auto"
+
+            if evidence.knowledge is not None or require_source:
+                # Enforce actual search/read turns; relevance and adequacy still need review.
                 agent.reset_tool_choice = False
-                agent.model_settings.tool_choice = "search_knowledge"
-                persist_access = evidence.knowledge_audit
-                assert persist_access is not None
+                agent.model_settings.tool_choice = next_tool()
+                persist_knowledge = evidence.knowledge_audit
+                persist_source = evidence.source_audit
 
-                def audit_and_route(record: dict[str, Any]) -> None:
-                    persist_access(record)
-                    has_matches = any(
-                        a["tool"] == "search_knowledge" and a["entry_ids"] for a in accesses
-                    )
-                    has_read = any(a["tool"] == "get_knowledge_entries" for a in accesses)
-                    agent.model_settings.tool_choice = (
-                        "get_knowledge_entries" if has_matches and not has_read else "auto"
-                    )
+                def audit_knowledge_and_route(record: dict[str, Any]) -> None:
+                    assert persist_knowledge is not None
+                    persist_knowledge(record)
+                    agent.model_settings.tool_choice = next_tool()
 
-                evidence = replace(evidence, knowledge_audit=audit_and_route)
+                def audit_source_and_route(record: dict[str, Any]) -> None:
+                    assert persist_source is not None
+                    persist_source(record)
+                    agent.model_settings.tool_choice = next_tool()
+
+                evidence = replace(
+                    evidence,
+                    knowledge_audit=audit_knowledge_and_route if evidence.knowledge else None,
+                    source_audit=audit_source_and_route,
+                )
             logger.info(
                 "agent_start role=%s task=%s tools=%s max_turns=%s",
                 role,
@@ -282,13 +368,10 @@ class AgentRuntime:
             except (ModelBehaviorError, UserError):
                 # SDK errors may include rejected output text; keep it out of CLI logs.
                 raise ModelResponseError("Agent returned an invalid structured artifact") from None
-            if evidence.knowledge is not None:
-                searches = [a for a in accesses if a["tool"] == "search_knowledge"]
-                reads = [a for a in accesses if a["tool"] == "get_knowledge_entries"]
-                if not searches or (any(a["entry_ids"] for a in searches) and not reads):
-                    raise ModelResponseError(
-                        "Agent completed without consulting available knowledge"
-                    )
+            if next_tool() != "auto":
+                raise ModelResponseError(
+                    "Agent completed without consulting required source or knowledge evidence"
+                )
             logger.info(
                 "agent_finish role=%s task=%s model_calls=%s",
                 role,

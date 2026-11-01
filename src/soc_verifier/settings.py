@@ -1,7 +1,7 @@
 """Environment-based configuration with redacted credentials."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr | None = None
     model: str = ""
     provider: str = ""
+    model_api: Literal["chat_completions", "responses"] = "chat_completions"
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
+    planner_source_lookup: bool = False
     artifact_dir: Path = Path("artifacts")
     agent_max_turns: int = Field(default=4, ge=1, le=12)
     max_revisions: int = Field(default=2, ge=0, le=5)
@@ -39,3 +42,5 @@ class Settings(BaseSettings):
             raise ValueError("Set SOC_VERIFIER_OPENROUTER_API_KEY before calling a model")
         if not self.model.strip() or not self.provider.strip():
             raise ValueError("Set SOC_VERIFIER_MODEL and SOC_VERIFIER_PROVIDER explicitly")
+        if self.model == "openai/gpt-6.1-terra" and self.model_api != "responses":
+            raise ValueError("Terra agent tool calls require SOC_VERIFIER_MODEL_API=responses")

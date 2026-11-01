@@ -4,14 +4,30 @@ Council-reviewed plan, revised 26 October 2026. Planning baseline: 7c2f05d.
 Live milestone/ticket status, authorization and next actions are maintained in
 [project progress](progress.md). This file defines scope and acceptance criteria.
 
-Deliver a better verification-plan draft for the actual Management CPU DOCX.
-Use OpenTitan as supporting evaluation material. The first release improves
+The product goal is a complete verification pipeline: specification -> verification
+plan -> testbench -> simulation -> coverage improvement. Engineering review is a
+checkpoint, and planning must provide usable inputs to testbench generation.
+SV-01 through SV-11 cover the current planning milestone, not the whole product.
+
+For that milestone, deliver a better verification-plan draft for the actual
+Management CPU DOCX. Use OpenTitan as supporting evaluation material. The first release improves
 evidence access, reviewer findings and visibility into agent work and cost.
 Broader obligation redesign, relationship maps, patterns and automatic repair
 depend on measured failures that justify them.
 
 The research comparison is preserved below; the revised scope and decision log
 are in [the council review](agent-council-review.md).
+
+## Product delivery stages
+
+| Stage | Exit evidence | Scope boundary |
+| --- | --- | --- |
+| Specification and planning | Source-linked requirements and implementable checks, measured coverage/unsupported claims, visible design questions and engineering review on the actual workload. | Current SV-01–SV-11 milestone; software tests alone do not complete it. |
+| Testbench generation | Bind a settled scenario to actual RTL interfaces/clocks/resets, generate its environment and checks, and compile with a selected simulator. | Next implementation stage. Define detailed tickets once RTL and simulator inputs are available. |
+| Simulation and failure analysis | Execute reproducible tests, retain logs/results, and demonstrate detection of a known incorrect behavior as well as a passing control. | A generated testbench or successful compile is not execution evidence. |
+| Coverage improvement | Map measured coverage and observed failures back to planned checks, propose targeted additions, and validate improvements without weakening checks. | Later feedback loop; plan-row counts are not simulation coverage. |
+
+Execution status and the next eligible action remain in [progress](progress.md).
 
 ## Acceptance workload and evaluation scope
 
@@ -31,8 +47,9 @@ evidence, not a blind test. OpenTitan is public and may appear in model training
 Do not claim generalization from either. Additional public IPs and independent
 families are later expansion, not prerequisites for the first release.
 
-Agents receive source evidence only. Human plans, tests, coverage code and
-annotations stay outside runtime retrieval. Record provenance for each label:
+Agents receive specification evidence and explicitly selected methodology guidance.
+Human reference plans, reference tests, coverage code and evaluation annotations
+stay outside runtime retrieval. Record provenance for each label:
 agent-proposed, imported reference, human-reviewed or disputed. A reference-plan
 disagreement remains disputed until the source/design owner resolves its authority.
 
