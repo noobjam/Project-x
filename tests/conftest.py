@@ -16,7 +16,6 @@ from soc_verifier.domain.accounting import (
 )
 from soc_verifier.domain.knowledge import KnowledgeEntry, KnowledgeSnapshot
 from soc_verifier.domain.models import (
-    PlanReview,
     Requirement,
     SourceBlock,
     SpecAnalysis,
@@ -25,6 +24,7 @@ from soc_verifier.domain.models import (
     VerificationPlan,
 )
 from soc_verifier.domain.passage_accounting import PassageAccountingDraft
+from soc_verifier.domain.review import ScopedPlanReview
 from soc_verifier.domain.source_audit import SourceAudit
 from soc_verifier.domain.source_inventory import PassageReading, SourceInventory
 
@@ -169,7 +169,7 @@ def verification_plan():
 
 @pytest.fixture
 def clean_review():
-    return PlanReview(findings=[])
+    return ScopedPlanReview(findings=[])
 
 
 @pytest.fixture

@@ -4,12 +4,12 @@ import pytest
 
 from soc_verifier.agents import instructions as prompts
 from soc_verifier.domain.models import (
-    PlanReview,
     Requirement,
     Specification,
     VerificationItem,
     VerificationPlan,
 )
+from soc_verifier.domain.review import ScopedPlanReview
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.batching import AnalysisBatch
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
@@ -88,8 +88,55 @@ class EvidenceAgents:
         else:
             if instruction == prompts.REVIEW_CHUNK:
                 self.reviewed.extend(item["id"] for item in payload["evidence"])
-            result = PlanReview(findings=[])
+            result = ScopedPlanReview(findings=[])
         return schema.model_validate(result.model_dump())
+
+
+def test_local_scoped_findings_reach_system_review_and_remain_preserved(tmp_path, specification):
+    class ReviewAgents(EvidenceAgents):
+        def run(self, *, role, instruction, context, schema, task=None):
+            payload = json.loads(context)
+            if instruction == prompts.REVIEW_CHUNK:
+                block = payload["evidence"][0]
+                return ScopedPlanReview.model_validate(
+                    {
+                        "findings": [
+                            {
+                                "severity": "warning",
+                                "target": "analysis",
+                                "kind": "omission",
+                                "description": "Synthetic source-only omission control",
+                                "recommended_action": "Check the source obligation.",
+                                "scope": {
+                                    "kind": "sources",
+                                    "source_ids": [block["id"]],
+                                    "rationale": "This source must be checked for an omission.",
+                                    "evidence": [
+                                        {"source_id": block["id"], "quote": block["text"]}
+                                    ],
+                                },
+                            }
+                        ]
+                    }
+                )
+            if instruction == prompts.REVIEW_SYSTEM:
+                self.local_findings = payload["local_findings"]
+                assert payload["omitted_local_findings"] == 0
+                return ScopedPlanReview(findings=[])
+            return super().run(
+                role=role, instruction=instruction, context=context, schema=schema, task=task
+            )
+
+    agents = ReviewAgents()
+    artifacts = ArtifactStore(tmp_path)
+    result = PlanningWorkflow(agents, artifacts, max_revisions=0, chunk_max_characters=1000).run(
+        large_spec(specification)
+    )
+    review = ScopedPlanReview.model_validate(result["review"])
+    assert len(review.findings) == len(agents.local_findings) == 3
+    assert {f["scope"] for f in agents.local_findings} == {"sources"}
+    assert result["status"] == "needs_review"
+    assert artifacts.read("review.r000.system.json")["findings"] == []
 
 
 def large_spec(specification):

@@ -221,12 +221,21 @@ def test_cli_opt_in_is_persisted_and_required_on_resume(
 def test_revised_analysis_keeps_matching_accounting_and_originals(
     tmp_path, specification, accounting_draft, verification_plan, clean_review
 ):
-    from soc_verifier.domain.models import PlanReview, ReviewFinding
+    from soc_verifier.domain.review import ScopedPlanReview, ScopedReviewFinding
 
-    review = PlanReview(
+    review = ScopedPlanReview(
         findings=[
-            ReviewFinding(
-                severity="error", target="analysis", item_ids=[], description="Check extraction"
+            ScopedReviewFinding(
+                severity="error",
+                target="analysis",
+                description="Check extraction",
+                kind="omission",
+                recommended_action="Recheck the extraction.",
+                scope={
+                    "kind": "unknown",
+                    "rationale": "Synthetic unresolved scope",
+                    "evidence": [],
+                },
             )
         ]
     )

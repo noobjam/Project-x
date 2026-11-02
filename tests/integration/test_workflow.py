@@ -1,10 +1,29 @@
 import pytest
 
-from soc_verifier.domain.models import PlanReview, ReviewFinding, Specification
+from soc_verifier.domain.models import Specification
+from soc_verifier.domain.review import ScopedPlanReview as PlanReview
+from soc_verifier.domain.review import ScopedReviewFinding
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
 pytestmark = pytest.mark.integration
+
+
+def review_finding(*, item_ids, target="plan", **kwargs):
+    return ScopedReviewFinding(
+        **kwargs,
+        target=target,
+        kind="other",
+        recommended_action="Resolve this synthetic defect.",
+        scope={
+            "kind": "items" if item_ids else "unknown",
+            **({"item_ids": item_ids} if item_ids else {}),
+            "rationale": "Explicit test scope; not semantic evaluation.",
+            "evidence": [
+                {"source_id": "P00001", "quote": "System reset clears pending interrupts"}
+            ],
+        },
+    )
 
 
 class FakeAgents:
@@ -27,7 +46,7 @@ class FakeAgents:
 def error_review():
     return PlanReview(
         findings=[
-            ReviewFinding(
+            review_finding(
                 severity="error", item_ids=["VPLAN-RST-001"], description="Strengthen reset checks"
             )
         ]
@@ -52,15 +71,24 @@ def test_review_reference_correction_preserves_only_valid_artifacts(
 ):
     invalid = PlanReview(
         findings=[
-            ReviewFinding(
+            review_finding(
                 severity="warning",
-                target="specification",
+                target="plan",
                 item_ids=["REQ-RST-001"],
                 description="Missing timing information",
             )
         ]
     )
-    valid = PlanReview(findings=[invalid.findings[0].model_copy(update={"item_ids": []})])
+    valid = PlanReview(
+        findings=[
+            review_finding(
+                severity="warning",
+                target="specification",
+                item_ids=[],
+                description="Missing timing information",
+            )
+        ]
+    )
     agents = FakeAgents(analysis, verification_plan, invalid, valid if corrected else invalid)
     artifacts = ArtifactStore(tmp_path)
     workflow = PlanningWorkflow(agents, artifacts, max_revisions=0)
@@ -174,7 +202,7 @@ def test_missing_requirement_routes_back_to_analysis(
 ):
     missing = PlanReview(
         findings=[
-            ReviewFinding(
+            review_finding(
                 severity="error",
                 target="analysis",
                 item_ids=[],
@@ -217,7 +245,7 @@ def test_specification_gaps_do_not_trigger_unfixable_revisions(
 ):
     gap = PlanReview(
         findings=[
-            ReviewFinding(
+            review_finding(
                 severity="error",
                 target="specification",
                 item_ids=[],
@@ -237,7 +265,7 @@ def test_specification_gaps_do_not_trigger_unfixable_revisions(
 def test_analysis_revision_budget_and_restart(tmp_path, specification, analysis, verification_plan):
     missing = PlanReview(
         findings=[
-            ReviewFinding(
+            review_finding(
                 severity="error", target="analysis", item_ids=[], description="Missing requirement"
             )
         ]

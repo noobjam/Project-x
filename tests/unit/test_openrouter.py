@@ -9,6 +9,7 @@ import pytest
 from pydantic import SecretStr, ValidationError
 
 from soc_verifier.domain.models import PlanReview
+from soc_verifier.domain.testbench_proposal import InputValue
 from soc_verifier.providers.budget import BudgetExceeded
 from soc_verifier.providers.openrouter import (
     ModelResponseError,
@@ -301,6 +302,41 @@ def test_http_error_records_reason_without_sensitive_payloads(tmp_path, caplog):
         assert sensitive not in json.dumps(saved)
 
 
+def test_numeric_schema_error_is_actionable_without_logging_raw_provider_text(tmp_path, caplog):
+    response = httpx.Response(
+        400,
+        json={
+            "error": {
+                "code": 400,
+                "message": "Provider returned error",
+                "metadata": {
+                    "provider_error_code": "invalid_json_schema",
+                    "raw": json.dumps(
+                        {
+                            "error": {
+                                "message": "Invalid schema for 'text.format.schema': "
+                                "a numeric value in the schema is too large.",
+                                "code": "invalid_json_schema",
+                            },
+                            "private": "private-upstream-payload test-secret",
+                        }
+                    ),
+                },
+            }
+        },
+    )
+    artifacts = ArtifactStore(tmp_path)
+    with httpx.Client() as client, caplog.at_level(logging.ERROR):
+        transport = OpenRouterTransport(settings(), client, artifacts=artifacts)
+        transport._record_http_error(response, 1, "review", "private-source")
+    saved = artifacts.read("http-error.00001.json")
+    assert saved["metadata"]["provider_error_code"] == "invalid_json_schema"
+    assert saved["schema_error"] == "numeric_value_too_large"
+    for sensitive in ("test-secret", "private-source", "private-upstream-payload"):
+        assert sensitive not in caplog.text
+        assert sensitive not in json.dumps(saved)
+
+
 @pytest.mark.parametrize("source", ["openrouter_in_flight_budget", "openrouter_credits", "unknown"])
 def test_only_confirmed_inflight_rejection_releases_reservation(tmp_path, monkeypatch, source):
     response = httpx.Response(
@@ -383,6 +419,72 @@ def test_schema_conversion_preserves_property_named_default():
     )
     assert result["properties"]["default"] == {"type": "string", "enum": ["fixed"]}
     assert result["required"] == ["default"]
+
+
+def test_large_bound_conversion_preserves_literals_names_and_other_constraints():
+    result = _strict_schema(
+        {
+            "type": "object",
+            "properties": {
+                "maximum": {
+                    "type": "integer",
+                    "description": "Wide signed value.",
+                    "minimum": -(2**63),
+                    "maximum": 2**63 - 1,
+                },
+                "values": {
+                    "type": "array",
+                    "maxItems": 128,
+                    "items": {"type": "integer", "minimum": 0, "maximum": 10_000},
+                },
+                "literal": {"const": {"maximum": 2**64 - 1}},
+            },
+        }
+    )
+    wide = result["properties"]["maximum"]
+    assert "minimum" not in wide and "maximum" not in wide
+    assert wide["description"].startswith("Wide signed value.")
+    assert str(-(2**63)) in wide["description"]
+    assert str(2**63 - 1) in wide["description"]
+    assert result["properties"]["literal"]["enum"] == [{"maximum": 2**64 - 1}]
+    assert result["properties"]["values"] == {
+        "type": "array",
+        "maxItems": 128,
+        "items": {"type": "integer", "minimum": 0, "maximum": 10_000},
+    }
+
+
+@pytest.mark.parametrize("value", [0, 2**53, 2**64 - 1, -1, 2**64, True, "1", 1.5])
+def test_provider_schema_can_express_wide_values_without_weakening_local_validation(value):
+    def respond(request):
+        schema = json.loads(request.content)["response_format"]["json_schema"]["schema"]
+        bound = schema["properties"]["value"].get("maximum")
+        if bound is not None and bound > 2**53 - 1:
+            return httpx.Response(400, json={"error": {"code": "invalid_json_schema"}})
+        assert schema["properties"]["value"]["minimum"] == 0
+        assert str(2**64 - 1) in schema["properties"]["value"]["description"]
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"content": json.dumps({"signal": "data", "value": value})},
+                    }
+                ]
+            },
+        )
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        transport = TransportHarness(settings(), client)
+        if type(value) is int and 0 <= value < 2**64:
+            result = transport.complete(instruction="test", context="synthetic", schema=InputValue)
+            assert result.value == value
+        else:
+            with pytest.raises(ValidationError):
+                transport.complete(instruction="test", context="synthetic", schema=InputValue)
+    # Persisted domain schemas retain the exact original unsigned 64-bit bound.
+    assert InputValue.model_json_schema()["properties"]["value"]["maximum"] == 2**64 - 1
 
 
 def test_output_limit_has_actionable_error():

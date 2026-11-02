@@ -19,6 +19,7 @@ from soc_verifier.domain.models import (
     Specification,
     VerificationPlan,
 )
+from soc_verifier.domain.review import ScopedPlanReview
 from soc_verifier.ingestion.docx import ingest_docx
 from soc_verifier.settings import Settings
 
@@ -204,7 +205,13 @@ def freeze_baseline(
         },
         schema_hashes={
             model.__name__: sha256(_json_bytes(model.model_json_schema())).hexdigest()
-            for model in (Specification, SpecAnalysis, VerificationPlan, PlanReview)
+            for model in (
+                Specification,
+                SpecAnalysis,
+                VerificationPlan,
+                PlanReview,
+                ScopedPlanReview,
+            )
         },
         historical_status="not_a_controlled_baseline" if historical_run else "not_supplied",
         files=files,

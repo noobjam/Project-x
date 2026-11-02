@@ -418,9 +418,31 @@ class OpenRouterTransport(httpx.AsyncBaseTransport):
                 details["metadata"] = {
                     key: value
                     for key, value in metadata.items()
-                    if key in {"reason", "limit_source", "remedy_hint", "provider_code"}
+                    if key
+                    in {
+                        "reason",
+                        "limit_source",
+                        "remedy_hint",
+                        "provider_code",
+                        "provider_error_code",
+                    }
                     and isinstance(value, (str, int))
                 }
+                raw = metadata.get("raw")
+                try:
+                    upstream = json.loads(raw) if isinstance(raw, str) else None
+                except ValueError:
+                    upstream = None
+                upstream_error = upstream.get("error") if isinstance(upstream, dict) else None
+                if (
+                    isinstance(upstream_error, dict)
+                    and upstream_error.get("code") == "invalid_json_schema"
+                    and upstream_error.get("message")
+                    == "Invalid schema for 'text.format.schema': "
+                    "a numeric value in the schema is too large."
+                ):
+                    # Classify the known error; arbitrary raw text may echo private inputs.
+                    details["schema_error"] = "numeric_value_too_large"
         for header in ("retry-after", "x-request-id"):
             if header in response.headers:
                 details[header] = response.headers[header]
@@ -494,6 +516,22 @@ def _strict_schema(schema: dict[str, Any]) -> dict[str, Any]:
             value.pop("default", None)
             if "const" in value:
                 value["enum"] = [value.pop("const")]
+            for keyword, operator in (
+                ("minimum", ">="),
+                ("maximum", "<="),
+                ("exclusiveMinimum", ">"),
+                ("exclusiveMaximum", "<"),
+            ):
+                bound = value.get(keyword)
+                if type(bound) is int and abs(bound) > 2**53 - 1:
+                    # Use JSON's interoperable exact-integer range as a conservative
+                    # wire policy, not a claim about every provider's precise limit.
+                    # Pydantic still enforces the original full-width domain bound.
+                    del value[keyword]
+                    value["description"] = (
+                        f"{value.get('description', '')} "
+                        f"Must be {operator} {bound} (validated locally)."
+                    ).strip()
             if value.get("type") == "object":
                 value["additionalProperties"] = False
                 value["required"] = list(value.get("properties", {}))

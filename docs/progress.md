@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-11-01.
+Last updated: 2026-11-02.
 
 This is the public implementation snapshot. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md). Private specifications, generated plans,
@@ -9,84 +9,101 @@ snapshots below are historical evidence, not current execution instructions.
 
 ## Current state
 
-- **Implemented foundation:** DOCX ingestion, typed requirements/plans/reviews,
+- **Planning foundation:** DOCX ingestion, typed requirements/plans/reviews,
   OpenAI Agents SDK specialists, source/KB tools, immutable task artifacts,
   traceability validation, spending records and JSON/Excel export.
-- **Runtime and retrieval integration:** opt-in native Responses support, explicit
-  reasoning settings, source-search pagination and match-centered excerpts,
-  source-access receipts, and optional enforced planner source consultation.
-  Invalid planner turn capacity is rejected before extraction starts. Normal
-  Chat Completions access and historical export/spending readers remain available.
-- **Experimental audit path:** source accounting and independent source-inventory
-  review remain opt-in. Their presence does not establish semantic accuracy or
-  make automatic correction an accepted default. Prior published quality limits
-  remain in the historical records and evaluation documents.
-- **Acceptance:** the planning stage remains in_progress. Engineer review,
-  remaining source-context work and full real-workload validation are required.
-  Software checks and a successful tool loop do not establish complete coverage,
-  correct checks or readiness for automatic testbench generation.
-- **Validation for this integration:** 393 offline tests passed, 91% coverage;
-  Ruff lint/format, strict mypy on 51 source files and source/wheel build passed.
-  The new regression first demonstrated extraction starting with insufficient
-  planner turns, then passed after moving that validation before model calls.
-  No paid evaluation is part of CI or the publication checks.
+- **Connected execution slice:** the feature branch adds a testbench specialist,
+  explicit hardware snapshots, per-item execution readiness, validated directed
+  testbench generation and local Icarus simulation. `verify` connects these stages;
+  `testbench` and `simulate` also support the separate authored-binding workflow.
+- **Execution boundaries:** strict readiness remains the default. An explicit
+  experimental mode permits source-grounded case investigation while retaining
+  original blockers and pending engineering acceptance. Non-simulation methods,
+  unresolved dependencies and unsupported configurations remain visible.
+- **Compatibility:** scoped review schema 2.0 and versioned testbench/execution
+  artifacts preserve historical readers. The provider adapter handles wide integer
+  schema bounds without weakening local validation. Completed artifacts remain
+  reusable only with matching evidence, settings and runtime.
+- **Validation:** 561 offline tests passed, 90.97% coverage; Ruff lint/format,
+  strict mypy on 64 source files and source/wheel builds passed. Simulator tests
+  use synthetic model replies and actual Icarus execution, including passing
+  controls and unchanged-test fault detection. These are software checks, not
+  engineering-quality acceptance or complete functional coverage.
+- **Acceptance:** planning quality, engineer review, broader testbench capability
+  and the actual Management CPU workload remain open. Private live evaluation
+  records are maintained separately from this public implementation snapshot.
 
 ## Delivery and repository
 
 Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
-Integration [PR #12](https://github.com/noobjam/Project-x/pull/12) merged on
-2026-11-01 at [de31753](https://github.com/noobjam/Project-x/commit/de31753f2d38c60d2014d1917f24c6185a4a7753).
-Remote main was verified directly and local main was fast-forwarded to that merge.
-It includes the published source-accounting stack and runtime/retrieval changes.
-[#7](https://github.com/noobjam/Project-x/pull/7) was automatically marked merged;
-[#8](https://github.com/noobjam/Project-x/pull/8),
-[#10](https://github.com/noobjam/Project-x/pull/10) and
-[#11](https://github.com/noobjam/Project-x/pull/11) were closed as superseded,
-with all their commits retained in main. No separate merge of those drafts remains.
+The connected execution slice is on `feat/plan-to-simulation` for review; it is
+not merged into main. Main remains at
+[a30509e](https://github.com/noobjam/Project-x/commit/a30509e008dc3ac7bebd2245c76a2cc920644db5),
+which merged [PR #13](https://github.com/noobjam/Project-x/pull/13) after the
+[PR #12](https://github.com/noobjam/Project-x/pull/12) runtime integration.
+The earlier integration superseded the old draft stack; no old draft merge is
+required before reviewing this feature branch.
 
-All three required [CI checks](https://github.com/noobjam/Project-x/actions/runs/41314015114)
-passed on the exact reviewed head 817893a before merge. That confirms software
-validation; planning quality and engineering acceptance remain open as listed below.
-Merges require current-base repository-policy and Python 3.12/3.13 CI checks and
-resolved review threads; no administrator bypass or force push is used.
-
-Only implementation, tests and supporting public documentation belong in this
-integration. AGENTS.md, credentials, private source/reference material, generated
-plans, review artifacts and new private evaluation records are excluded.
+This publication scope contains application implementation, synthetic software
+tests, simulator CI setup and supporting documentation. Local agent instructions,
+credentials, source documents, generated outputs, private experiments and cost
+records are excluded. Feature publication does not authorize a merge or a new paid
+run. Current-base CI checks and resolved review threads remain merge requirements.
 
 ## Position in the product plan
 
 | Stage | Status | What remains |
 | --- | --- | --- |
-| Specification -> verification plan | in_progress | Complete check/source-context refinements, engineering review and validation on the actual full workload. |
-| Plan -> testbench | planned | Bind a settled scenario to actual RTL, clocks/resets and a simulator; generate the environment/checks and compile. |
-| Testbench -> simulation results | planned | Run reproducible tests and demonstrate both passing behavior and detection of a known fault. |
-| Results -> coverage improvement | planned | Map measured coverage and failures to the plan, add targeted tests and validate that they improve coverage without weakening checks. |
+| Specification -> verification plan | in_progress | Source-context refinements, semantic quality evaluation and engineering review on the actual workload. |
+| Plan -> testbench | in_review | Review the bounded directed execution implementation and its proposed case judgments; broader environments remain future work. |
+| Testbench -> simulation results | in_review | Review reproducibility and check/failure evidence; distinguish tested faults from unmeasured coverage. |
+| Results -> coverage improvement | planned | Map measured coverage and failures back to the plan, add targeted tests and validate improvements without weakening checks. |
 
-The full pipeline is the product goal. Planning and engineering review are its
-first milestone; testbench generation and simulation are not yet implemented.
+The full pipeline remains the product goal. A working directed scenario does not
+complete planning acceptance, a general testbench environment or coverage closure.
 
 ## Current tickets and next actions
 
 | Ticket | Status | Next acceptance evidence |
 | --- | --- | --- |
-| SV-04 | in_progress | Pagination and exact excerpts are implemented; finish supported table-header/neighbor context and evaluate retrieval adequacy. |
-| SV-05 / SV-07 | in_progress | Keep accounting/audit experiments opt-in; semantic omissions, unsupported findings and false alarms need adjudicated evidence. |
-| SV-06 | in_progress | Check that each scenario covers its claimed behaviors with explicit stimulus, observation and discriminating expected results. |
-| SV-09 | in_review | Engineers review source-linked scenarios and resolve design questions; export success does not confer approval. |
-| SV-10 | in_progress | Complete targeted evaluations and then actual full-workload acceptance under separately authorized execution scopes. |
-| SV-11 | in_progress | Responses compatibility and explicit configuration are implemented; model/role routing remains deferred until justified by quality evidence. |
+| SV-04 | in_progress | Finish supported table-header/neighbor context and evaluate retrieval adequacy. |
+| SV-05 / SV-07 | in_progress | Assess semantic omissions, review scope and source-audit quality against adjudicated evidence. |
+| SV-06 | in_progress | Evaluate whether scenarios and generated checks cover their claimed behaviors. |
+| SV-09 | in_review | Engineer review of source-linked scenarios, execution assumptions and unresolved questions. |
+| SV-10 | in_progress | Targeted quality evaluation and actual full-workload acceptance under applicable paid authorizations. |
+| SV-11 | in_progress | Provider compatibility fixes are implemented; model/role routing remains deferred pending quality evidence. |
+| SV-12 | in_review | Review the connected testbench slice, evidence gates and experimental case-assessment boundaries. |
+| SV-13 | in_review | Review simulation receipts and unchanged-test fault checks; broader fault and coverage claims remain unmeasured. |
 
 SV-01–SV-03 retain their completed technical-foundation status; SV-08 automatic
-plan repair remains deferred. Their detailed acceptance criteria are in the roadmap.
+plan repair remains deferred. Detailed acceptance criteria are in the roadmap.
 
-1. SV-06/SV-09: finish scenario adequacy review using existing fields, and obtain
-   engineering decisions for unresolved design behavior and execution bindings.
-2. SV-04: finish bounded table/neighbor context without expanding tool permissions.
-3. SV-10: validate the planning milestone on the actual full DOCX. Keep authored
-   references outside agent retrieval and distinguish software checks from quality.
-4. Next product stage: select the actual RTL block and simulator, then define the
-   testbench implementation tickets around one settled, testable scenario.
+1. SV-12/SV-13: review the feature branch and its compatibility/software checks
+   before any merge. Technical review does not confer engineering acceptance.
+2. SV-06/SV-09/SV-10: assess generated checks and case judgments against their
+   source and design behavior, then define the next bounded evaluation scope.
+3. SV-04/SV-10: complete source-context work and acceptance on the actual Management
+   CPU workload. Keep reference answers outside agent retrieval.
+4. Extend testbench environments and measured coverage only with explicit scope,
+   preserving evidence, unresolved cases and applicable execution budgets.
+
+## Publication milestone — 2026-11-02
+
+Prepared the connected execution implementation, scoped review/experimental
+readiness, provider schema correction and simulator CI for feature-branch review.
+The staged publication tree was installed from locked dependencies in a clean
+checkout without private local files: all 561 offline tests, lint/format, strict
+typing and source/wheel builds passed. Documentation links, packaged source and
+the indexed repository policy also passed publication checks. No paid evaluation
+is part of CI or publication checks. Private run results remain local.
+
+## Integration checkpoint — 2026-11-01
+
+The prior runtime integration recorded 393 offline tests passing at 91% coverage,
+Ruff checks, strict mypy on 51 source files and source/wheel builds. All three
+required [CI checks](https://github.com/noobjam/Project-x/actions/runs/41314015114)
+passed on reviewed head 817893a before PR #12 merged at de31753. PR #13 then
+updated the integration handoff. Those checks are historical, not rerun claims.
 
 ## Historical progress through 2026-10-31
 

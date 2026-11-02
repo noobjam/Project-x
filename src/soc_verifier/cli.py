@@ -20,7 +20,9 @@ from soc_verifier.agents.instructions import PROMPT_VERSION
 from soc_verifier.agents.knowledge import load_knowledge, read_knowledge_accesses
 from soc_verifier.agents.runtime import AgentRuntime
 from soc_verifier.agents.tasks import ENGINE_VERSION, ArtifactReference, runtime_versions
-from soc_verifier.domain.models import PlanReview, SpecAnalysis, Specification, VerificationPlan
+from soc_verifier.domain.hardware import HardwareSnapshot, HardwareTarget
+from soc_verifier.domain.models import SpecAnalysis, Specification, VerificationPlan
+from soc_verifier.domain.review import read_review
 from soc_verifier.export.xlsx import export_plan
 from soc_verifier.ingestion.docx import ingest_docx
 from soc_verifier.providers.budget import read_spending
@@ -28,9 +30,14 @@ from soc_verifier.providers.reporting import read_task_report
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.storage.readers import read_result
+from soc_verifier.workflows.plan_to_simulation.workflow import (
+    prepare_testbench,
+    simulate_testbench,
+)
 from soc_verifier.workflows.spec_to_plan.accounting import read_accounting
 from soc_verifier.workflows.spec_to_plan.source_audit import read_source_audit
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
+from soc_verifier.workflows.verification import VerificationWorkflow
 
 app = typer.Typer(no_args_is_help=True, help="Traceable system-level verification workflows.")
 
@@ -66,6 +73,134 @@ def ingest(
         typer.echo(f"Extracted {len(spec.blocks)} blocks to {output}")
         for warning in spec.extraction_warnings:
             typer.echo(f"Warning: {warning}")
+
+
+@app.command("testbench")
+def testbench(
+    plan: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
+    specification: Annotated[Path, typer.Option("--source", exists=True, dir_okay=False)],
+    analysis: Annotated[Path, typer.Option("--analysis", exists=True, dir_okay=False)],
+    binding: Annotated[Path, typer.Option("--binding", exists=True, dir_okay=False)],
+    rtl: Annotated[list[Path], typer.Option("--rtl", exists=True, dir_okay=False)],
+    output: Annotated[Path, typer.Option("--output", "-o")],
+) -> None:
+    """Generate a directed testbench from a plan and explicit authored hardware bindings."""
+    with _errors():
+        prepare_testbench(specification, analysis, plan, binding, rtl, output)
+        typer.echo(f"Testbench bundle: {output}; no simulation has run yet.")
+
+
+@app.command("simulate")
+def simulate(
+    bundle: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    output: Annotated[Path, typer.Option("--output", "-o")],
+    timeout: Annotated[float, typer.Option("--timeout", min=0.01, max=120)] = 10,
+) -> None:
+    """Compile and run trusted RTL with Icarus; retain logs, waves and check results locally."""
+    with _errors():
+        result = simulate_testbench(bundle, output, timeout=timeout)
+        typer.echo(f"Simulation: {result['status']}; report: {output / 'result.json'}")
+        if result["status"] != "passed":
+            raise typer.Exit(1)
+
+
+@app.command()
+def verify(
+    specification: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
+    hardware: Annotated[Path, typer.Option("--hardware", exists=True, dir_okay=False)],
+    rtl: Annotated[list[Path], typer.Option("--rtl", exists=True, dir_okay=False)],
+    knowledge_catalog: Annotated[
+        Path | None, typer.Option("--knowledge-catalog", exists=True, dir_okay=False)
+    ] = None,
+    allow_proposed_knowledge: Annotated[bool, typer.Option("--allow-proposed-knowledge")] = False,
+    run_id: Annotated[
+        str | None, typer.Option("--run-id", help="Resume this connected run.")
+    ] = None,
+    max_cost_usd: Annotated[
+        float | None, typer.Option("--max-cost-usd", min=0.01, max=1000)
+    ] = None,
+    max_model_calls: Annotated[
+        int | None, typer.Option("--max-model-calls", min=1, max=2000)
+    ] = None,
+    timeout: Annotated[float, typer.Option("--timeout", min=0.01, max=120)] = 10,
+    experimental: Annotated[
+        bool,
+        typer.Option(
+            "--experimental",
+            help="Attempt cases with unknown review scope; engineering acceptance stays pending.",
+        ),
+    ] = False,
+) -> None:
+    """Run specification -> agents -> testbench -> simulation. Model requests incur charges."""
+    with _errors():
+        if allow_proposed_knowledge and knowledge_catalog is None:
+            raise ValueError("--allow-proposed-knowledge requires --knowledge-catalog")
+        settings = Settings()
+        updates: dict[str, Any] = {}
+        if max_cost_usd is not None:
+            updates["max_cost_usd"] = max_cost_usd
+        if max_model_calls is not None:
+            updates["max_model_calls"] = max_model_calls
+        settings = settings.model_copy(update=updates)
+        settings.require_agents()
+        target = HardwareTarget.model_validate_json(hardware.read_bytes())
+        snapshot = HardwareSnapshot.capture(target, rtl)
+        spec = (
+            ingest_docx(specification)
+            if specification.suffix.lower() == ".docx"
+            else Specification.model_validate_json(specification.read_bytes())
+        )
+        knowledge = (
+            load_knowledge(knowledge_catalog, allow_proposed=allow_proposed_knowledge)
+            if knowledge_catalog
+            else None
+        )
+        identifier = str(UUID(run_id)) if run_id else str(uuid4())
+        root = settings.artifact_dir / "runs" / identifier
+        if run_id and not (root / "manifest.json").is_file():
+            raise ValueError("Unknown connected run ID")
+        artifacts = ArtifactStore(root)
+        if run_id and artifacts.read("manifest.json").get("workflow") not in {
+            "verification-pipeline-v1",
+            "verification-pipeline-v2",
+            "verification-pipeline-v3",
+        }:
+            raise ValueError("Run is not a connected verification workflow")
+        if knowledge is not None:
+            artifacts.write("knowledge.json", knowledge)
+        elif artifacts.exists("knowledge.json"):
+            raise ValueError("Resume requires the original knowledge catalog")
+        if not artifacts.exists("manifest.json"):
+            artifacts.write(
+                "manifest.json",
+                {
+                    "schema_version": "2.0",
+                    "workflow": "verification-pipeline-v3"
+                    if experimental
+                    else "verification-pipeline-v2",
+                    "run_id": identifier,
+                    "created_at": datetime.now(UTC).isoformat(),
+                    "specification_sha256": spec.sha256,
+                    "prompt_version": PROMPT_VERSION,
+                    **_run_configuration(settings),
+                },
+            )
+        typer.echo(f"Run: {identifier}")
+        with httpx.Client() as client:
+            agents = AgentRuntime(settings, client, artifacts=artifacts)
+            planning = PlanningWorkflow(
+                agents,
+                artifacts,
+                max_revisions=settings.max_revisions,
+                chunk_max_characters=settings.chunk_max_characters,
+                plan_batch_size=settings.plan_batch_size,
+                batch_workers=settings.batch_workers,
+                source_accounting=settings.source_accounting,
+            )
+            result = VerificationWorkflow(planning, snapshot, timeout, experimental).run(spec)
+        typer.echo(f"Pipeline: {result['status']}; report: {root / 'pipeline-result.json'}")
+        if result["status"] != "passed":
+            raise typer.Exit(1)
 
 
 @app.command()
@@ -147,6 +282,12 @@ def resume(
             raise ValueError("Unknown run ID")
         artifacts = ArtifactStore(root)
         manifest = artifacts.read("manifest.json")
+        if manifest.get("workflow") in {
+            "verification-pipeline-v1",
+            "verification-pipeline-v2",
+            "verification-pipeline-v3",
+        }:
+            raise ValueError("Resume this run with verify and --run-id plus its original inputs")
         if (
             manifest.get("engine") != ENGINE_VERSION
             or manifest["prompt_version"] != PROMPT_VERSION
@@ -196,8 +337,18 @@ def spend(
             if artifacts.exists("budget-stopped.json"):
                 typer.echo("Run stopped after a provider pricing violation.")
                 return
-            if artifacts.exists("result.json"):
-                typer.echo(f"Run completed: {artifacts.read('result.json')['status']}")
+            completion = (
+                "pipeline-result.json"
+                if manifest.get("workflow")
+                in {
+                    "verification-pipeline-v1",
+                    "verification-pipeline-v2",
+                    "verification-pipeline-v3",
+                }
+                else "result.json"
+            )
+            if artifacts.exists(completion):
+                typer.echo(f"Run completed: {artifacts.read(completion)['status']}")
                 return
             if not watch:
                 return
@@ -253,7 +404,7 @@ def export_command(
                 artifacts.read(result.get("analysis_artifact", "analysis.json"))
             ),
             plan=VerificationPlan.model_validate(artifacts.read(result["plan_artifact"])),
-            review=PlanReview.model_validate(artifacts.read(result["review_artifact"])),
+            review=read_review(artifacts.read(result["review_artifact"])),
             task_metadata="available"
             if result.get("schema_version") == "2.0"
             else "unavailable (legacy run)",

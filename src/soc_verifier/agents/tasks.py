@@ -49,7 +49,7 @@ def runtime_versions() -> dict[str, str]:
         "code_sha256": fingerprint(code),
         "prompt": PROMPT_VERSION,
         "source_processing": SOURCE_PROCESSING_VERSION,
-        "tools": "5",
+        "tools": "6",
         "reasoning_replay": "openrouter-v1",
         "openai": version("openai"),
         "openai-agents": version("openai-agents"),
@@ -76,7 +76,7 @@ class ArtifactReference(Contract):
 
 
 class TaskInputs(Contract):
-    role: Literal["analyst", "planner", "reviewer"]
+    role: Literal["analyst", "planner", "reviewer", "testbench"]
     stage: str
     assigned_ids: list[str]
     evidence: dict[str, ArtifactReference]
@@ -89,7 +89,7 @@ class TaskInputs(Contract):
 
 
 class TaskEnvelope(Contract):
-    format: Literal["agent-task-v1"] = "agent-task-v1"
+    format: Literal["agent-task-v1", "agent-task-v2"] = "agent-task-v1"
     task_id: str
     output_artifact: str
     inputs: TaskInputs
@@ -97,6 +97,8 @@ class TaskEnvelope(Contract):
 
     @model_validator(mode="after")
     def check_fingerprint(self) -> Self:
+        if (self.format == "agent-task-v2") != (self.inputs.role == "testbench"):
+            raise ValueError("Testbench tasks require V2; existing specialist tasks remain V1")
         if fingerprint(self.inputs) != self.input_fingerprint:
             raise ValueError("Invalid task input fingerprint")
         return self
@@ -133,6 +135,7 @@ class Task:
             if artifacts.exists(name):
                 raise ValueError("Legacy checkpoint has no task binding; start a new run")
             envelope = TaskEnvelope(
+                format="agent-task-v2" if inputs.role == "testbench" else "agent-task-v1",
                 task_id=str(uuid4()),
                 output_artifact=name,
                 inputs=inputs,

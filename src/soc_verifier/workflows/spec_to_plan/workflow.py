@@ -16,7 +16,6 @@ from soc_verifier.agents.tasks import (
     runtime_versions,
 )
 from soc_verifier.domain.models import (
-    PlanReview,
     SpecAnalysis,
     Specification,
     VerificationPlan,
@@ -24,6 +23,7 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import passage_accounting_schema
+from soc_verifier.domain.review import ScopedPlanReview, read_review, validate_review_context
 from soc_verifier.domain.source_audit import bound_audit_schema
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import (
@@ -93,6 +93,10 @@ class PlanningWorkflow:
             execution["knowledge"] = ArtifactReference.capture(
                 self.artifacts, "knowledge.json"
             ).model_dump()
+        if self.artifacts.exists("hardware.json"):
+            execution["hardware"] = ArtifactReference.capture(
+                self.artifacts, "hardware.json"
+            ).model_dump()
         if self.artifacts.exists("execution.json"):
             if self.artifacts.read("execution.json") != execution:
                 raise ValueError("Run inputs or versions changed; start a new run")
@@ -142,6 +146,8 @@ def _run_workflow(
         names = {"source": "specification.json"}
         if "knowledge" in execution:
             names["knowledge"] = "knowledge.json"
+        if "hardware" in execution:
+            names["hardware"] = "hardware.json"
         if "analysis" in state:
             names["analysis"] = _analysis_artifact(state["analysis_revision"])
         if "source_accounting_artifact" in state:
@@ -318,8 +324,8 @@ def _run_workflow(
     def review(state: PlanState) -> PlanState:
         name = f"review.r{state['revision']:03d}.json"
         known = {item.id for item in VerificationPlan.model_validate(state["plan"]).items}
-        task = bind(name, state, "reviewer", prompts.REVIEW, PlanReview, sorted(known))
-        cached = task.load(PlanReview)
+        task = bind(name, state, "reviewer", prompts.REVIEW, ScopedPlanReview, sorted(known))
+        cached = task.load(ScopedPlanReview)
         if cached is not None:
             result = cached
         elif _batched(state):
@@ -344,14 +350,23 @@ def _run_workflow(
                     "plan": state["plan"],
                 },
                 known_items=known,
+                specification=Specification.model_validate(state["specification"]),
+                analysis=SpecAnalysis.model_validate(state["analysis"]),
+                plan=VerificationPlan.model_validate(state["plan"]),
                 task=task.envelope,
             )
         validate_review(result, known)
+        validate_review_context(
+            result,
+            Specification.model_validate(state["specification"]),
+            SpecAnalysis.model_validate(state["analysis"]),
+            VerificationPlan.model_validate(state["plan"]),
+        )
         task.save(result)
         return {"review": result.model_dump(mode="json"), "review_revision": state["revision"]}
 
     def route(state: PlanState) -> Literal["analyze", "plan", "finish"]:
-        review_result = PlanReview.model_validate(state["review"])
+        review_result = read_review(state["review"])
         if review_result.needs_revision and state["revision"] < max_revisions:
             if any(
                 item.severity == "error" and item.target == "analysis"
@@ -370,7 +385,7 @@ def _run_workflow(
         )
 
     def finish(state: PlanState) -> PlanState:
-        review_result = PlanReview.model_validate(state["review"])
+        review_result = read_review(state["review"])
         analysis = SpecAnalysis.model_validate(state["analysis"])
         spec = Specification.model_validate(state["specification"])
         plan_result = VerificationPlan.model_validate(state["plan"])

@@ -1,5 +1,6 @@
 """Aggregate explicit engineering judgments; never infer correctness from linked IDs."""
 
+import json
 from hashlib import sha256
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
@@ -9,12 +10,12 @@ from pydantic import Field, ValidationError, model_validator
 from soc_verifier.domain.models import (
     Contract,
     NonEmpty,
-    PlanReview,
     SpecAnalysis,
     VerificationPlan,
     validate_sources,
     validate_traceability,
 )
+from soc_verifier.domain.review import read_review, validate_review_context
 from soc_verifier.evaluation.baseline import Digest
 from soc_verifier.evaluation.packets import CaseId, load_packet
 
@@ -210,17 +211,20 @@ def score_packet(
     artifact_models: dict[str, type[Contract]] = {
         "analysis": SpecAnalysis,
         "plan": VerificationPlan,
-        "review": PlanReview,
     }
-    for name, model in artifact_models.items():
+    for name in (*artifact_models, "review"):
         if name not in artifacts:
             continue
         data = artifacts[name].read_bytes()
         if sha256(data).hexdigest() != assessment.artifact_hashes[name]:
             raise ValueError("Assessment output hash mismatch")
         try:
-            parsed[name] = model.model_validate_json(data)
-        except ValidationError:
+            parsed[name] = (
+                read_review(json.loads(data))
+                if name == "review"
+                else artifact_models[name].model_validate_json(data)
+            )
+        except (ValidationError, json.JSONDecodeError, UnicodeDecodeError):
             structural_errors.append(f"{name}: invalid artifact schema")
     analysis, plan, review = (parsed.get(name) for name in ("analysis", "plan", "review"))
     try:
@@ -228,6 +232,8 @@ def score_packet(
             validate_sources(analysis, specification)
         if analysis and plan:
             validate_traceability(plan, analysis)
+            if review:
+                validate_review_context(review, specification, analysis, plan)
     except ValueError:
         structural_errors.append("Invalid source or requirement links")
     if assessment.run_status == "complete" and len(parsed) != 3:
