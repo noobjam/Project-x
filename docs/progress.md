@@ -12,7 +12,7 @@ snapshots below are historical evidence, not current execution instructions.
 - **Planning foundation:** DOCX ingestion, typed requirements/plans/reviews,
   OpenAI Agents SDK specialists, source/KB tools, immutable task artifacts,
   traceability validation, spending records and JSON/Excel export.
-- **Connected execution slice:** the feature branch adds a testbench specialist,
+- **Connected execution slice:** the implementation adds a testbench specialist,
   explicit hardware snapshots, per-item execution readiness, validated directed
   testbench generation and local Icarus simulation. `verify` connects these stages;
   `testbench` and `simulate` also support the separate authored-binding workflow.
@@ -27,8 +27,8 @@ snapshots below are historical evidence, not current execution instructions.
 - **Merge review correction:** new `directed-sv-v3` bundles check all declared
   port widths against the RTL before stimulus. A truncated output cannot conceal
   a fault and report a pass. Historical generator bytes remain readable; new
-  execution requires regeneration with the guard. The fix and merge are
-  authorized; review and required CI remain in_progress.
+  execution requires regeneration with the guard. Regression and compatibility
+  checks pass; required merge checks are tracked in PR #14 below.
 - **Validation:** 579 offline tests passed, 91.05% coverage; Ruff lint/format,
   strict mypy on 64 source files and source/wheel builds passed. Simulator tests
   use synthetic model replies and actual Icarus execution, including passing
@@ -41,10 +41,13 @@ snapshots below are historical evidence, not current execution instructions.
 ## Delivery and repository
 
 Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
-The connected execution slice is on `feat/plan-to-simulation` for review; it is
-not merged into main. Main remains at
-[a30509e](https://github.com/noobjam/Project-x/commit/a30509e008dc3ac7bebd2245c76a2cc920644db5),
-which merged [PR #13](https://github.com/noobjam/Project-x/pull/13) after the
+The connected execution slice and port-width correction are delivered through
+[PR #14](https://github.com/noobjam/Project-x/pull/14); its page records the current
+merge state and required CI checks. The reviewed implementation includes
+[6ea174d](https://github.com/noobjam/Project-x/commit/6ea174dd579e27c308240319340a44b4a8af54ce)
+on `feat/plan-to-simulation`, based on
+[a30509e](https://github.com/noobjam/Project-x/commit/a30509e008dc3ac7bebd2245c76a2cc920644db5).
+That base merged [PR #13](https://github.com/noobjam/Project-x/pull/13) after the
 [PR #12](https://github.com/noobjam/Project-x/pull/12) runtime integration.
 The earlier integration superseded the old draft stack; no old draft merge is
 required before reviewing this feature branch.
@@ -61,8 +64,8 @@ No new paid evaluation is included in this work.
 | Stage | Status | What remains |
 | --- | --- | --- |
 | Specification -> verification plan | in_progress | Source-context refinements, semantic quality evaluation and engineering review on the actual workload. |
-| Plan -> testbench | in_review | Review the bounded directed execution implementation and its proposed case judgments; broader environments remain future work. |
-| Testbench -> simulation results | in_review | Review reproducibility and check/failure evidence; distinguish tested faults from unmeasured coverage. |
+| Plan -> testbench | in_review | Engineering review of generated checks and case judgments; broader environments remain future work. |
+| Testbench -> simulation results | in_review | Engineering review of check/failure evidence; distinguish tested faults from unmeasured coverage. |
 | Results -> coverage improvement | planned | Map measured coverage and failures back to the plan, add targeted tests and validate improvements without weakening checks. |
 
 The full pipeline remains the product goal. A working directed scenario does not
@@ -78,14 +81,15 @@ complete planning acceptance, a general testbench environment or coverage closur
 | SV-09 | in_review | Engineer review of source-linked scenarios, execution assumptions and unresolved questions. |
 | SV-10 | in_progress | Targeted quality evaluation and actual full-workload acceptance under applicable paid authorizations. |
 | SV-11 | in_progress | Provider compatibility fixes are implemented; model/role routing remains deferred pending quality evidence. |
-| SV-12 | in_review | Review the connected testbench slice, evidence gates and experimental case-assessment boundaries. |
-| SV-13 | in_review | Review simulation receipts and unchanged-test fault checks; broader fault and coverage claims remain unmeasured. |
+| SV-12 | in_review | Engineering review of generated checks and experimental case judgments after the software implementation checks. |
+| SV-13 | in_review | Engineering review of simulation evidence and unchanged-test fault checks; broader fault and coverage claims remain unmeasured. |
 
 SV-01–SV-03 retain their completed technical-foundation status; SV-08 automatic
 plan repair remains deferred. Detailed acceptance criteria are in the roadmap.
 
-1. SV-12/SV-13: review the feature branch and its compatibility/software checks
-   before any merge. Technical review does not confer engineering acceptance.
+1. SV-12/SV-13: use the connected execution implementation and source-linked
+   evidence for engineering review of generated checks and case judgments.
+   Technical review and a successful merge do not confer engineering acceptance.
 2. SV-06/SV-09/SV-10: assess generated checks and case judgments against their
    source and design behavior, then define the next bounded evaluation scope.
 3. SV-04/SV-10: complete source-context work and acceptance on the actual Management
