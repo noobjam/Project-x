@@ -380,7 +380,7 @@ def test_responses_workflow_all_roles_and_completed_resume(
     outputs = {
         "SpecAnalysis": analysis,
         "VerificationPlan": verification_plan,
-        "PlanReview": clean_review,
+        "ScopedPlanReview": clean_review,
     }
 
     def respond(payload):

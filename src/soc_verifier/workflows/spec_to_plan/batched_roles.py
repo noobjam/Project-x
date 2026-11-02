@@ -9,7 +9,6 @@ from soc_verifier.agents import instructions as prompts
 from soc_verifier.agents.base import AgentExecutor
 from soc_verifier.agents.tasks import Task
 from soc_verifier.domain.models import (
-    PlanReview,
     Requirement,
     SourceBlock,
     SpecAnalysis,
@@ -18,6 +17,7 @@ from soc_verifier.domain.models import (
     validate_sources,
     validate_traceability,
 )
+from soc_verifier.domain.review import ScopedPlanReview, validate_review_context
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.batching import (
     AnalysisBatch,
@@ -339,16 +339,16 @@ def review_batches(
     chunk_characters: int,
     workers: int,
     task: Task,
-) -> PlanReview:
+) -> ScopedPlanReview:
     chunks = split_specification(spec, chunk_characters)
     index = requirement_index(analysis)
     known_items = {item.id for item in plan.items}
 
-    def review(number: int) -> PlanReview:
+    def review(number: int) -> ScopedPlanReview:
         name = f"review.r{revision:03d}.chunk{number:04d}.json"
         logger.info("stage=review revision=%s batch=%s/%s", revision, number + 1, len(chunks))
 
-        def generate(blocks: list[SourceBlock], attempt_task: Task) -> PlanReview:
+        def generate(blocks: list[SourceBlock], attempt_task: Task) -> ScopedPlanReview:
             source_ids = {block.id for block in blocks}
             local = [item for item in analysis.requirements if set(item.source_ids) & source_ids]
             local_ids = {item.id for item in local}
@@ -368,6 +368,9 @@ def review_batches(
                     "plan": [item.model_dump(mode="json") for item in local_plan],
                 },
                 known_items={item.id for item in local_plan},
+                specification=spec,
+                analysis=analysis,
+                plan=plan,
                 task=attempt_task.envelope,
             )
             validate_review(result, known_items)
@@ -377,9 +380,9 @@ def review_batches(
             artifacts,
             name.removesuffix(".json"),
             chunks[number],
-            PlanReview,
+            ScopedPlanReview,
             generate,
-            lambda left, right: PlanReview(
+            lambda left, right: ScopedPlanReview(
                 findings=[*left.findings, *right.findings],
             ),
             task=task.child(
@@ -388,25 +391,43 @@ def review_batches(
                 assigned_ids=[b.id for b in chunks[number]],
                 data=chunks[number],
                 instruction=prompts.REVIEW_CHUNK,
-                schema=PlanReview,
+                schema=ScopedPlanReview,
             ),
         )
         validate_review(result, known_items)
+        validate_review_context(result, spec, analysis, plan)
         artifacts.write(name, result)
         return result
 
     reviews = _map(review, len(chunks), workers)
     name = f"review.r{revision:03d}.system.json"
     logger.info("stage=system_review revision=%s", revision)
+    local_findings = [f.model_dump(mode="json") for review in reviews for f in review.findings]
+    local_index = [
+        {
+            "severity": f.severity,
+            "target": f.target,
+            "kind": f.kind,
+            "scope": f.scope.kind,
+            "item_ids": f.item_ids,
+            "requirement_ids": f.requirement_ids,
+            "source_ids": f.source_ids,
+            "description": f.description[:800],
+            "scope_rationale": f.scope.rationale[:800],
+            "recommended_action": f.recommended_action[:800],
+        }
+        for review in reviews
+        for f in review.findings
+    ]
     system_task = task.child(
         name,
         stage="review.system",
         assigned_ids=sorted(known_items),
-        data={"analysis": analysis, "plan": plan},
+        data={"analysis": analysis, "plan": plan, "local_findings": local_findings},
         instruction=prompts.REVIEW_SYSTEM,
-        schema=PlanReview,
+        schema=ScopedPlanReview,
     )
-    cached = system_task.load(PlanReview)
+    cached = system_task.load(ScopedPlanReview)
     if cached is not None:
         system = cached
     else:
@@ -417,6 +438,8 @@ def review_batches(
                 "specification_outline": specification_outline(spec),
                 "extraction_warnings": spec.extraction_warnings,
                 "requirement_index": index,
+                "local_findings": local_index[:64],
+                "omitted_local_findings": max(0, len(local_findings) - 64),
                 **(
                     {"analysis_gaps": analysis.gaps}
                     if "source_accounting" in task.envelope.inputs.evidence
@@ -433,13 +456,17 @@ def review_batches(
                 ],
             },
             known_items=known_items,
+            specification=spec,
+            analysis=analysis,
+            plan=plan,
             task=system_task.envelope,
         )
     validate_review(system, known_items)
+    validate_review_context(system, spec, analysis, plan)
     system_task.save(system)
     unique = {
         finding.model_dump_json(): finding
         for result in [*reviews, system]
         for finding in result.findings
     }
-    return PlanReview(findings=list(unique.values()))
+    return ScopedPlanReview(findings=list(unique.values()))

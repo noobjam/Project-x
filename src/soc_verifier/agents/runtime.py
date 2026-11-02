@@ -1,6 +1,7 @@
 """Run actual SDK agents, with bounded tool loops and an OpenRouter model gateway."""
 
 import asyncio
+import json
 import logging
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -35,9 +36,18 @@ from soc_verifier.agents.tasks import (
     fingerprint,
     runtime_versions,
 )
+from soc_verifier.agents.testbench import create_testbench
 from soc_verifier.agents.tools import EvidenceContext, get_knowledge_entries, search_knowledge
+from soc_verifier.domain.hardware import HardwareSnapshot
 from soc_verifier.domain.knowledge import KnowledgeSnapshot
 from soc_verifier.domain.models import SpecAnalysis, Specification, VerificationPlan
+from soc_verifier.domain.readiness import GapAssessment, GapEvidence
+from soc_verifier.domain.testbench import directed_execution_profile
+from soc_verifier.domain.testbench_proposal import (
+    ExperimentalTestbenchProposal,
+    ObservedTestbenchProposal,
+    TestbenchProposal,
+)
 from soc_verifier.providers.openrouter import OpenRouterTransport
 from soc_verifier.settings import Settings
 from soc_verifier.storage.artifacts import ArtifactStore
@@ -77,6 +87,7 @@ class AgentRuntime:
         task: TaskEnvelope,
         accesses: list[dict[str, Any]],
         source_accesses: list[dict[str, Any]],
+        hardware_accesses: list[dict[str, Any]],
     ) -> EvidenceContext:
         references = task.inputs.evidence
         source = references["source"].read(self.artifacts)
@@ -95,6 +106,34 @@ class AgentRuntime:
         knowledge = (
             KnowledgeSnapshot.model_validate(reference.read(self.artifacts)) if reference else None
         )
+        hardware_reference = references.get("hardware")
+        actual_hardware = (
+            ArtifactReference.capture(self.artifacts, "hardware.json")
+            if self.artifacts.exists("hardware.json")
+            else None
+        )
+        if hardware_reference != actual_hardware:
+            raise ValueError("Task hardware binding does not match the run snapshot")
+        hardware = (
+            HardwareSnapshot.model_validate(hardware_reference.read(self.artifacts))
+            if hardware_reference
+            else None
+        )
+
+        def audit_hardware(record: dict[str, Any]) -> None:
+            invocation = current_invocation.get()
+            if invocation is None or hardware_reference is None:
+                raise ValueError("RTL access requires a bound hardware invocation")
+            self.artifacts.write(
+                f"hardware-access.{uuid4()}.json",
+                {
+                    "format": "hardware-access-v1",
+                    **invocation.attribution(),
+                    "snapshot_sha256": hardware_reference.sha256,
+                    **record,
+                },
+            )
+            hardware_accesses.append(record)
 
         def audit(record: dict[str, Any]) -> None:
             invocation = current_invocation.get()
@@ -136,6 +175,8 @@ class AgentRuntime:
             knowledge,
             audit if knowledge else None,
             audit_source,
+            hardware,
+            audit_hardware if hardware else None,
         )
 
     def run[T: BaseModel](
@@ -167,6 +208,11 @@ class AgentRuntime:
                                 )
                             }
                             if self.artifacts.exists("knowledge.json")
+                            else {}
+                        ),
+                        **(
+                            {"hardware": ArtifactReference.capture(self.artifacts, "hardware.json")}
+                            if self.artifacts.exists("hardware.json")
                             else {}
                         ),
                     },
@@ -264,6 +310,7 @@ class AgentRuntime:
                 "analyst": create_analyst,
                 "planner": create_planner,
                 "reviewer": create_reviewer,
+                "testbench": create_testbench,
             }[role]
             agent = factory(model, instruction, schema)
             agent.model_settings = ModelSettings(max_tokens=self.settings.max_output_tokens)
@@ -278,8 +325,47 @@ class AgentRuntime:
                     agent.model_settings.reasoning = Reasoning(effort=effort)
             accesses: list[dict[str, Any]] = []
             source_accesses: list[dict[str, Any]] = []
-            evidence = self._evidence(task, accesses, source_accesses)
-            require_source = role == "planner" and self.settings.planner_source_lookup
+            hardware_accesses: list[dict[str, Any]] = []
+            evidence = self._evidence(task, accesses, source_accesses, hardware_accesses)
+            require_hardware = role == "testbench"
+            require_gap_scope = role == "reviewer" and task.inputs.stage == "execution.gaps"
+            if require_gap_scope and (
+                evidence.analysis is None
+                or evidence.hardware is None
+                or self.settings.agent_max_turns < (5 if evidence.knowledge else 3)
+            ):
+                raise ValueError(
+                    "Gap assessment needs bound analysis, hardware and source-read turns"
+                )
+            if require_hardware and (
+                evidence.hardware is None
+                or evidence.analysis is None
+                or evidence.plan is None
+                or self.settings.agent_max_turns < (6 if evidence.knowledge else 4)
+            ):
+                raise ValueError(
+                    "Testbench agent needs bound hardware, analysis, plan and read turns"
+                )
+            if evidence.hardware is not None:
+                context += "\nDeclared hardware configuration (not a behavioral specification):\n"
+                context += json.dumps(
+                    {
+                        "hardware_target": evidence.hardware.target.model_dump(),
+                        "execution_profile": directed_execution_profile(
+                            evidence.hardware.target.probes
+                        ),
+                        "rtl_sources": [
+                            {"id": s.id, "sha256": s.sha256, "lines": len(s.text.splitlines())}
+                            for s in evidence.hardware.sources
+                        ],
+                        "instruction": "Expected behavior comes from the spec; report conflicts.",
+                    }
+                )
+            require_source = (
+                require_hardware
+                or require_gap_scope
+                or (role == "planner" and self.settings.planner_source_lookup)
+            )
             if require_source:
                 self._check_planner_turn_capacity(evidence.knowledge is not None)
             if evidence.knowledge is not None:
@@ -313,14 +399,15 @@ class AgentRuntime:
                     }
                     if matches and not matches.intersection(reads):
                         return read
-                return "auto"
+                return "read_rtl" if require_hardware and not hardware_accesses else "auto"
 
-            if evidence.knowledge is not None or require_source:
+            if evidence.knowledge is not None or require_source or require_hardware:
                 # Enforce actual search/read turns; relevance and adequacy still need review.
                 agent.reset_tool_choice = False
                 agent.model_settings.tool_choice = next_tool()
                 persist_knowledge = evidence.knowledge_audit
                 persist_source = evidence.source_audit
+                persist_hardware = evidence.hardware_audit
 
                 def audit_knowledge_and_route(record: dict[str, Any]) -> None:
                     assert persist_knowledge is not None
@@ -332,10 +419,16 @@ class AgentRuntime:
                     persist_source(record)
                     agent.model_settings.tool_choice = next_tool()
 
+                def audit_hardware_and_route(record: dict[str, Any]) -> None:
+                    assert persist_hardware is not None
+                    persist_hardware(record)
+                    agent.model_settings.tool_choice = next_tool()
+
                 evidence = replace(
                     evidence,
                     knowledge_audit=audit_knowledge_and_route if evidence.knowledge else None,
                     source_audit=audit_source_and_route,
+                    hardware_audit=audit_hardware_and_route if evidence.hardware else None,
                 )
             logger.info(
                 "agent_start role=%s task=%s tools=%s max_turns=%s",
@@ -378,4 +471,60 @@ class AgentRuntime:
                 task.task_id,
                 len(result.raw_responses),
             )
-            return schema.model_validate(result.final_output)
+            value = schema.model_validate(result.final_output)
+            quotes: list[GapEvidence] = []
+            if require_gap_scope:
+                if not isinstance(value, GapAssessment):
+                    raise ModelResponseError("Gap assessment returned the wrong contract")
+                quotes = [quote for gap in value.gaps for quote in gap.evidence]
+            if isinstance(value, ExperimentalTestbenchProposal):
+                quotes = [quote for issue in value.issue_assessments for quote in issue.evidence]
+            if quotes:
+                blocks = {b.id: b.text for b in evidence.specification.blocks}
+                read_spans = [
+                    span
+                    for record in source_accesses
+                    if record["tool"] == "get_source_blocks"
+                    for span in record["spans"]
+                ]
+                if any(
+                    not any(
+                        quote.source_id == span["id"]
+                        and quote.quote
+                        in blocks[span["id"]][span["start_character"] : span["end_character"]]
+                        for span in read_spans
+                    )
+                    for quote in quotes
+                ):
+                    raise ModelResponseError(
+                        "Execution assessment must quote specification text actually read"
+                    )
+            if require_hardware and (
+                not isinstance(
+                    value,
+                    (TestbenchProposal, ObservedTestbenchProposal, ExperimentalTestbenchProposal),
+                )
+                or set(value.rtl_source_ids)
+                - {
+                    identifier
+                    for record in hardware_accesses
+                    for identifier in record["source_ids"]
+                }
+            ):
+                raise ModelResponseError("Testbench proposal must cite RTL actually read")
+            if isinstance(
+                value, (TestbenchProposal, ObservedTestbenchProposal, ExperimentalTestbenchProposal)
+            ):
+                read_ids = {
+                    identifier
+                    for record in source_accesses
+                    if record["tool"] == "get_source_blocks"
+                    for identifier in record["source_ids"]
+                }
+                if any(
+                    set(check.source_ids) - read_ids
+                    for step in value.steps
+                    for check in step.checks
+                ):
+                    raise ModelResponseError("Testbench checks must cite specification blocks read")
+            return value

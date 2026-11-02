@@ -12,7 +12,6 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from soc_verifier.domain.accounting import SourceAccounting, source_units
 from soc_verifier.domain.models import (
-    PlanReview,
     SpecAnalysis,
     Specification,
     VerificationPlan,
@@ -20,6 +19,7 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import AccountedDisposition, PassageAccounting
+from soc_verifier.domain.review import Review, ScopedReviewFinding, validate_review_context
 from soc_verifier.domain.source_audit import SourceAudit
 
 
@@ -29,7 +29,7 @@ def export_plan(
     specification: Specification,
     analysis: SpecAnalysis,
     plan: VerificationPlan,
-    review: PlanReview,
+    review: Review,
     task_metadata: str | None = None,
     knowledge_accesses: list[dict[str, Any]] | None = None,
     source_accounting: SourceAccounting | PassageAccounting | None = None,
@@ -37,6 +37,7 @@ def export_plan(
 ) -> None:
     validate_sources(analysis, specification)
     validate_traceability(plan, analysis)
+    validate_review_context(review, specification, analysis, plan)
     workbook = Workbook()
     sheet = workbook.active
     assert isinstance(sheet, Worksheet)
@@ -95,6 +96,12 @@ def export_plan(
     evidence = workbook.create_sheet("Evidence")
     _row(evidence, ["Source ID", "Document", "SHA-256", "Section", "Locator", "Text"])
     used_sources = {source for item in analysis.requirements for source in item.source_ids}
+    used_sources.update(
+        source
+        for finding in review.findings
+        if isinstance(finding, ScopedReviewFinding)
+        for source in finding.source_ids
+    )
     for block in specification.blocks:
         if block.id in used_sources:
             _row(
@@ -109,7 +116,22 @@ def export_plan(
                 ],
             )
     findings = workbook.create_sheet("Findings")
-    _row(findings, ["Origin", "Severity", "Item IDs", "Description"])
+    _row(
+        findings,
+        [
+            "Origin",
+            "Severity",
+            "Item IDs",
+            "Description",
+            "Scope",
+            "Requirement IDs",
+            "Source IDs",
+            "Evidence",
+            "Scope rationale",
+            "Defect kind",
+            "Recommended action",
+        ],
+    )
     for warning in specification.extraction_warnings:
         _row(findings, ["extraction", "warning", "", warning])
     for gap in analysis.gaps:
@@ -122,6 +144,19 @@ def export_plan(
                 finding.severity,
                 "\n".join(finding.item_ids),
                 finding.description,
+                *(
+                    [
+                        finding.scope.kind,
+                        "\n".join(finding.requirement_ids),
+                        "\n".join(finding.source_ids),
+                        "\n".join(f"{e.source_id}: {e.quote}" for e in finding.scope.evidence),
+                        finding.scope.rationale,
+                        finding.kind,
+                        finding.recommended_action,
+                    ]
+                    if isinstance(finding, ScopedReviewFinding)
+                    else ["legacy item references" if finding.item_ids else "unknown (legacy)"]
+                ),
             ],
         )
 

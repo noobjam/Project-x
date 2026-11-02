@@ -62,12 +62,18 @@ or three without, including final output. The model still chooses queries and
 reads; enforced consultation alone cannot establish relevance or correctness.
 Forced function turns use the function's argument schema without a simultaneous
 final-output response schema; automatic/final turns retain the artifact schema.
+Integer bounds outside JSON's interoperable exact-integer range are represented
+as exact textual constraints in the provider schema. Local domain validation keeps
+the original numeric limits; ordinary schema constraints remain intact. Provider
+error codes and the known oversized-schema-number error are recorded without raw
+upstream payloads that could contain private inputs.
 
 | Agent | Responsibility | Tools |
 | --- | --- | --- |
 | Requirements analyst | Extract grounded requirements and investigate system interactions | `search_spec`, `get_source_blocks` |
 | Verification planner | Develop scenarios for assigned requirements | Source tools, `get_requirements` |
 | Verification reviewer | Investigate omissions, unsupported details and weak scenarios | Source/requirement tools, `get_plan_items` |
+| Testbench agent | Propose directed input sequences and expected-value checks for one generated plan item | Source/requirement/plan tools, `read_rtl` |
 
 Tools read the current run's specification and validated artifacts. Context is
 injected locally by the SDK and is not automatically serialized into prompts.
@@ -114,6 +120,14 @@ route to analysis/planning with a shared revision maximum. Source ambiguities st
 visible for an engineer rather than triggering repeated attempts to invent answers.
 Warnings, gaps, extraction warnings and open questions yield `needs_review`.
 A clean automated result is `draft_ready`; `human_approved` remains false.
+
+New planning reviews use schema 2.0 with defect kind, recommended action and explicit
+item/requirement/source/global/unknown scope. Local scopes require exact quotations
+from the bound specification and a rationale. Python validates references and quoted
+text; neither establishes semantic correctness. Missing obligations can cite sources
+without inventing requirements or scenarios. Local review summaries feed integration
+review, with at most 64 entries and explicit omission counts; all original findings
+remain in the combined review. Historical schema 1.0 readers and exports are retained.
 
 Immutable JSON artifacts are the recovery checkpoints. On restart, Python replays
 the deterministic stage/revision decisions and validates/reuses completed outputs.
@@ -285,7 +299,84 @@ or savings. Normal CI remains offline; engineering validation is tracked separat
 Before selecting models, compare source accuracy, missed requirements, unsupported
 claims, interaction scenarios, reviewer effort and cost on engineer-labelled cases.
 The human reference VPlan is evaluation material and is not supplied to agents.
-JEV, RTL/test generation, simulator tools and coverage closure remain future work.
+`workflows/verification.py` connects the existing planning workflow to the
+testbench specialist and `workflows/plan_to_simulation`. `verify` takes source,
+declared hardware and RTL, without an authored plan or binding. One runtime and
+budget ledger span all model calls. A bound hardware snapshot makes the declared
+interface/configuration visible to planning and provides read-only RTL to the
+testbench agent. The agent must read source/RTL before returning literal checks;
+the host validates references, directions, widths, questions and expected-result
+mappings before rendering and simulation. The model has no execution tools.
+All specialists also receive `directed-execution-v2`: the renderer's shared timing
+constants, declared output ports and optional read-only internal probes. Sampling
+delays are explicitly testbench conventions, not new DUT requirements. The planning
+gate still preserves unresolved questions and checks outside these capabilities.
+
+Testbench tasks use `agent-task-v2`; existing specialist tasks remain V1. New
+`testbench-proposal-v2` outputs become `directed-testbench-v3` bindings with task
+and proposal hashes. Every check selects `pre_edge` or `post_edge`, 1 ns before or
+after the final rising edge of a step. Input driving occurs at the beginning of
+the low phase and inputs hold between these samples. Earlier cycles in a step are
+not sampled. Source validity conditions still apply, including unspecified outputs.
+`hardware-target-v2` may declare up to 64 read-only probes (name, relative path,
+unsigned width 1–64); the agent can select aliases but cannot add or drive probes.
+Only plain hierarchical identifiers are accepted. The V3 renderer checks actual
+port widths (including inputs and clock) and probe widths with `$bits` before
+stimulus or checks. A mismatched declaration cannot hide faulty high bits through
+truncation. Missing paths, X/Z values and failed comparisons cannot pass.
+Simulation result V2 includes check phase; declared bindings retain paths.
+This does not implement arbitrary timing, memory indexing or multiple clocks.
+V1 proposals and V1/V2 bindings retain their original observation semantics.
+New bundles use `directed-sv-v3` for every binding version. Historical V1/V2
+generator bundles retain byte-identical validation, but new simulation rejects
+them until regenerated into a separate bundle with port-width checks. Saved
+results are not changed. Bundles pin the generator and reject relabelled bytes.
+`pipeline-result.json` is separate from the original planning
+result and links each item to its proposal, binding and hashed simulation evidence.
+`execution-readiness-v2` computes per-item eligibility from explicit issue references
+and distinguishes mapped, global and unknown review impact. Version 1 remains readable.
+Plan-local findings stay local; requirement questions and specification/analysis
+findings propagate to every consumer of the affected requirements. Source-only
+findings conservatively map all consumers of those blocks; an unrepresented source
+remains unresolved. In default execution, global and unknown findings both block
+all items, with distinct recorded reasons; legacy empty item lists retain unknown
+scope and continue blocking.
+Extraction warnings and unclassified analysis gaps still block all items. Source-audit
+findings and uncertain knowledge applications retain their requirement scope.
+
+When free-text gaps are the remaining obstacle for a simulation item, the existing
+reviewer performs one `execution-gap-assessment-v1` task, with required source and
+enabled KB consultation under the same budget. It must account for every gap once.
+Narrowed scopes/notes require exact quotations within source spans actually read;
+unknown scope stays global. This proposed judgment cannot clear other explicit
+blockers or establish engineering approval. No new agent role is added.
+
+An opt-in experimental path leaves these readiness decisions intact and permits
+the existing testbench agent to investigate a case whose only blockers are
+unknown-scope review findings or unclassified analysis gaps. The task receives all
+applicable issues and full original review findings. `testbench-proposal-v3` adds
+case-level assessments with exact issue accounting, source quotations actually
+read, and reasoning about setup as well as expected values. An unresolved issue
+requires `needs_input` without executable steps. Explicit mapped/global findings,
+questions, extraction warnings and source-audit issues cannot use this path.
+The host checks quotation/reference validity, not semantic independence; these
+remain proposed judgments. Original evidence and blockers are never rewritten.
+
+Experimental execution/results use V3, with case receipts V2 and engineering
+acceptance explicitly pending. The generated binding/rendering contracts remain
+V3/V2. Tests may pass while readiness stays blocked, so overall completion remains
+partial whenever those issues persist. Experimental tasks replace the standalone
+gap classifier; no extra role or review loop is added. The execution mode is pinned
+before planning and included in testbench task evidence, preventing mode changes on
+resume. Default execution/result contracts and historical proposal readers remain.
+
+Default pipeline execution/results use version 2 and bind readiness inputs, decisions and
+agent tasks. Unaffected items can proceed while blocked items and unsupported methods
+remain unexecuted. A testbench `needs_input` does not stop subsequent eligible items.
+Mixed passing/pending results are partial, while execution failure takes precedence.
+Completed stages are reused only after validating their evidence. Historical planning
+contracts and spending readers remain supported.
+Broader testbench environments, JEV and coverage closure remain future work.
 
 ## Upstream references
 

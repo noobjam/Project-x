@@ -425,15 +425,25 @@ def test_scoring_cli_writes_an_offline_report_without_overwriting(case, monkeypa
     assert "Wrote packet score" in capsys.readouterr().out
 
 
-def test_unmapped_review_findings_remain_unassessed(case):
-    case["outputs"]["review"]["findings"].append(
-        {
-            "target": "specification",
-            "item_ids": [],
-            "severity": "warning",
-            "description": "Unassessed synthetic finding",
-        }
-    )
+@pytest.mark.parametrize("version", ["1.0", "2.0"])
+def test_unmapped_review_findings_remain_unassessed(case, version):
+    finding = {
+        "target": "specification",
+        "severity": "warning",
+        "description": "Unassessed synthetic finding",
+    }
+    if version == "1.0":
+        finding["item_ids"] = []
+    else:
+        finding.update(
+            {
+                "kind": "ambiguity",
+                "recommended_action": "Resolve source ambiguity.",
+                "scope": {"kind": "unknown", "rationale": "Scope is unresolved", "evidence": []},
+            }
+        )
+    case["outputs"]["review"]["schema_version"] = version
+    case["outputs"]["review"]["findings"].append(finding)
     report = score_packet(*persist(case))
     assert report["unmapped_review_findings"] == 1
     assert report["semantic_acceptance"] == "pending"

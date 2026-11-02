@@ -9,7 +9,10 @@ The current slice includes DOCX ingestion, typed contracts, OpenAI Agents SDK
 analyst/planner/reviewer agents, evidence retrieval tools, an OpenRouter gateway,
 and Excel export. Python controls stage order, validation and durable artifacts;
 the SDK runs each agent's model/tool loop. LangGraph is no longer a dependency.
-Testbench generation, simulation, semantic retrieval and coverage closure are future work.
+An opt-in connected workflow passes the actual plan to a testbench agent, validates
+its proposed checks, generates a directed testbench and runs simulation. The separate
+authored-binding commands remain available. Broader environments, semantic retrieval
+and coverage closure remain future work; live quality needs separate validation.
 
 Offline snapshots, source packets and evaluation scoring are documented in
 [evals/README.md](evals/README.md). They preserve source/reference separation and
@@ -21,6 +24,133 @@ Engineers can review proposed knowledge entries, source evidence and testbench
 subchecklists in the [knowledge curation pack](docs/knowledge/README.md). These
 documents remain unapproved. Agents can consult them only when an explicit
 knowledge catalog is selected; provisional entries also require a trial opt-in.
+
+## Connected verification workflow
+
+`verify` accepts a DOCX or extracted specification JSON, declared hardware target
+and standalone RTL files. It runs the analyst, planner and reviewer, then sends
+each simulation plan item to the testbench agent. The agent reads specification,
+RTL and any enabled KB, and proposes input sequences and expected output values.
+Python validates the proposal, generates SystemVerilog, compiles and runs it.
+There is no authored analysis, plan or test-sequence input to this command.
+
+```bash
+SOC_VERIFIER_AGENT_MAX_TURNS=8 uv run soc-verifier verify artifacts/specification.json \
+  --hardware artifacts/hardware-target.json --rtl path/to/design.sv \
+  --max-cost-usd 1 --max-model-calls 40
+```
+
+The `hardware-target-v1` JSON contains `top_module`, integer `parameters`, `ports`
+(`name`, `direction`, `width`) and `clock`. These are declared integration inputs;
+the agent cannot alter them. Select models/providers as described below. This
+command incurs model charges shared across every planning and testbench call.
+Optional `--knowledge-catalog` and `--allow-proposed-knowledge` work as in `plan`.
+Allow at least six agent turns with KB, or four without. Testbench completion
+requires specification search/read and RTL reading; cited blocks must have been read.
+
+Every specialist receives the executor's sampling convention and observation limits:
+one 10 ns clock, checks 1 ns before or after the final rising edge of each step,
+declared output ports and optional read-only internal probes. A probe requires an
+explicit `hardware-target-v2` entry such as
+`{"name":"write_pointer","path":"wr_addr","width":3}` in `probes`. Paths are
+relative to the DUT; the agent selects declared names and cannot invent paths or
+drive probes. Before driving inputs, new testbenches check the actual widths of
+every declared port (including the clock) and probe. Missing paths and width
+mismatches cannot pass simulation.
+These are functional simulation conventions, not physical timing guarantees.
+
+By default, execution readiness is decided per scenario. Plan questions and findings
+block affected items; requirement questions and specification/analysis findings also block
+other items using the affected requirements. New review findings explicitly identify
+item, requirement, source, global or unknown scope. Local scope needs exact source
+evidence and a rationale; unknown scope still blocks execution without claiming that
+the problem is global. Historical unscoped findings and extraction warnings continue
+to block all items. For free-text analysis gaps, the existing reviewer may perform
+one additional assessment task using the same budget and source/KB tools. Every gap
+must retain a disposition; narrowing it requires source quotations actually read.
+The assessment cannot clear explicit questions or findings. Original evidence remains
+unchanged, and proposed gap classifications still need quality evaluation.
+
+An explicit `--experimental` run lets the testbench agent investigate cases blocked
+only by unknown-scope review findings or analysis gaps. It must account for every
+such issue and quote source text actually read to justify the independence of the
+whole case, including setup transactions. An unresolved dependency returns
+`needs_input`. Explicit scoped/global findings, design questions and extraction
+warnings retain their execution gates. The original review/readiness remain
+unchanged; a passing experiment does not clear blockers or grant engineering
+acceptance. This mode uses the existing testbench task instead of the separate gap
+classification task, retains the shared budget, and cannot be changed on resume.
+
+Eligible scenarios proceed independently. A testbench proposal can report `needs_input`
+without stopping other eligible items. Non-simulation methods remain unexecuted. A
+mixture of passing and blocked/unsupported items reports `partial`; execution failures
+report `failed` even alongside blocked items. Partial runs exit nonzero. Valid bindings
+map every expected-result index, which checks mapping completeness, not check semantics.
+
+The command prints a run ID. Repeat it with the original inputs/options and
+`--run-id <id>` to resume. Completed agent tasks and simulation receipts are
+validated and reused; changes to bound inputs, configuration or evidence fail.
+`spend <id>` and `tasks <id>` cover the whole connected run. `result.json` retains
+the existing planning result; `pipeline-result.json` links proposals, bindings and
+simulation evidence. `readiness.json` lists item decisions and blocking reasons;
+`readiness-inputs.json` binds those decisions to the original evidence and any
+`execution-gaps.json` assessment. Default pipeline results use version 2;
+experimental results use version 3 and retain pending engineering acceptance.
+Historical planning exports and spending remain readable. Reports distinguish unexecuted items and never claim human
+approval or measured functional coverage. Icarus must be installed before model
+execution begins. Normal tests use mocked model replies and a real local simulator;
+they do not establish live model quality.
+
+## Directed testbench and simulation
+
+The local `testbench` command consumes the existing specification, analysis and
+plan JSON formats plus a `directed-testbench-v1` binding. The binding supplies the
+RTL module, integer parameters, ports, initial inputs and clocked steps with
+expected output values linked to the plan's expected results. These are authored
+inputs; the command does not ask a model to infer hardware behavior or interfaces.
+See the contract in `src/soc_verifier/domain/testbench.py`.
+
+```bash
+uv run soc-verifier testbench artifacts/plan.json \
+  --source artifacts/specification.json --analysis artifacts/analysis.json \
+  --binding artifacts/binding.json --rtl path/to/design.sv \
+  --output artifacts/testbench-bundle
+uv run soc-verifier simulate artifacts/testbench-bundle \
+  --output artifacts/simulation-run --timeout 10
+```
+
+Use new output directories for every build/run. Install
+[Icarus Verilog](https://steveicarus.github.io/iverilog/usage/installation.html)
+(`iverilog` and `vvp`) for simulation. Both commands are local and make no model
+calls. The runner executes explicitly supplied trusted RTL; it is not a security
+sandbox or a general-purpose agent execution tool.
+
+This slice supports standalone Verilog/SystemVerilog files, one clock with a
+10 ns period, unsigned ports/probes up to 64 bits and literal expected values. Inputs
+are driven while the clock is low. New `directed-testbench-v3` bindings let each
+check select `phase: pre_edge` or `post_edge`, sampling 1 ns before or after the
+last rising edge of its step. Earlier cycles in a multi-cycle step have no checks;
+use one-cycle steps when each edge needs observation. Old V1/V2 bindings keep their
+original output-only post-edge timing. V3 supports declared internal probes with
+plain hierarchical paths; memory indexing and expressions are unsupported.
+It does not implement bus agents, UVM, multiple clocks, arbitrary assertions,
+include/library configuration or functional coverage. Selected plan questions
+need explicit resolutions before building; these do not confer engineer approval.
+
+New bundles use generator `directed-sv-v3`, which checks declared port widths
+against the RTL before stimulus or result checks. Earlier V1/V2 generator bundles
+remain readable with their original bytes, but `simulate` rejects them because
+they lack this guard. Regenerate from their saved inputs into a new output
+directory with `testbench`; keep the original bundle and results as historical
+evidence. Existing run receipts are not rewritten.
+
+Bundles freeze the source/requirements/plan, binding, RTL and generated testbench
+with hashes. Simulation copies those verified bytes, compiles and runs with process
+timeouts, and saves tool versions, logs, a VCD waveform, `result.json` and
+`summary.txt`. Compilation errors, failed checks, incomplete runs and timeouts
+cannot pass. Unexecuted checks and unbound expected results remain visible. A
+passing directed scenario is not full requirement or design coverage. External
+simulator tests skip explicitly when Icarus is absent; other tests remain offline.
 
 ## Development
 
@@ -187,6 +317,9 @@ targets. A clean automated review produces `draft_ready`, never human approval
 or a claim that hardware has been verified. Findings, source gaps, extraction
 warnings or open questions produce `needs_review`.
 
+Review schema 2.0 records defect kind, scope, evidence and a recommended action;
+historical schema 1.0 remains readable and exportable without guessing missing scope.
+These are proposed judgments, not engineering approval or demonstrated accuracy.
 Review findings target `analysis`, `plan`, or `specification`. Repairable errors
 return to the analyst or planner; source ambiguities remain visible for human
 resolution without futile retries. The shared revision maximum is two by default.

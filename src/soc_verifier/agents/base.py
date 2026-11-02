@@ -15,7 +15,7 @@ class OutputLimitError(ModelResponseError):
     """Generation was truncated; callers may partition work, never accept partial JSON."""
 
 
-AgentRole = Literal["analyst", "planner", "reviewer"]
+AgentRole = Literal["analyst", "planner", "reviewer", "testbench"]
 
 
 class AgentExecutor(Protocol):

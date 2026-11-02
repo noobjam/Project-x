@@ -42,6 +42,12 @@ jobs:
           enable-cache: true
           python-version: ${{ matrix.python-version }}
       - run: uv sync --locked
+      - name: Install RTL simulator for execution tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends iverilog
+          iverilog -V
+          vvp -V
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy

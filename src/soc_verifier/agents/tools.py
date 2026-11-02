@@ -11,6 +11,7 @@ from agents import RunContextWrapper, function_tool
 from pydantic import Field
 
 from soc_verifier.agents.attempts import current_invocation
+from soc_verifier.domain.hardware import HardwareSnapshot
 from soc_verifier.domain.knowledge import KnowledgeSnapshot
 from soc_verifier.domain.models import SpecAnalysis, Specification, VerificationPlan
 
@@ -27,6 +28,8 @@ class EvidenceContext:
     knowledge: KnowledgeSnapshot | None = None
     knowledge_audit: Callable[[dict[str, Any]], None] | None = None
     source_audit: Callable[[dict[str, Any]], None] | None = None
+    hardware: HardwareSnapshot | None = None
+    hardware_audit: Callable[[dict[str, Any]], None] | None = None
 
 
 def _result(name: str, records: list[dict[str, Any]], *, offset: int | None = None) -> str:
@@ -147,6 +150,54 @@ def search_spec(ctx: RunContextWrapper[EvidenceContext], query: str, offset: int
     return _source_result(
         ctx, "search_spec", [record for _, record in matches[offset:]], offset=offset, query=query
     )
+
+
+@function_tool(failure_error_function=None)
+def read_rtl(
+    ctx: RunContextWrapper[EvidenceContext],
+    source_id: str,
+    start_line: int = 1,
+    max_lines: int = 80,
+) -> str:
+    """Read pinned RTL evidence; line numbers are one-based and next_line continues the file.
+
+    Args:
+        source_id: An RTL source ID from the task's hardware source directory.
+        start_line: First line to read, starting at one.
+        max_lines: Number of lines to return, from one to 120.
+    """
+    hardware = ctx.context.hardware
+    if hardware is None or start_line < 1 or not 1 <= max_lines <= 120:
+        raise ValueError("RTL reads require a bound snapshot and valid line bounds")
+    source = next((s for s in hardware.sources if s.id == source_id), None)
+    if source is None:
+        raise ValueError("Unknown RTL source ID")
+    lines = source.text.splitlines()
+    if start_line > len(lines):
+        raise ValueError("RTL line offset exceeds the source")
+    end = min(len(lines), start_line - 1 + max_lines)
+    text = "\n".join(lines[start_line - 1 : end])
+    record = {
+        "id": source.id,
+        "sha256": source.sha256,
+        "start_line": start_line,
+        "end_line": end,
+        "next_line": end + 1 if end < len(lines) else None,
+        "text": text,
+    }
+    result = _result("read_rtl", [record])
+    if ctx.context.hardware_audit is not None:
+        ctx.context.hardware_audit(
+            {
+                "tool": "read_rtl",
+                "source_ids": [source.id],
+                "source_sha256": source.sha256,
+                "start_line": start_line,
+                "end_line": end,
+                "excerpt_sha256": hashlib.sha256(text.encode()).hexdigest(),
+            }
+        )
+    return result
 
 
 def _select(ids: list[str], records: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:

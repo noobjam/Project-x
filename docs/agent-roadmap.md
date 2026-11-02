@@ -8,6 +8,7 @@ The product goal is a complete verification pipeline: specification -> verificat
 plan -> testbench -> simulation -> coverage improvement. Engineering review is a
 checkpoint, and planning must provide usable inputs to testbench generation.
 SV-01 through SV-11 cover the current planning milestone, not the whole product.
+SV-12 and SV-13 define the first connected testbench and simulation slice.
 
 For that milestone, deliver a better verification-plan draft for the actual
 Management CPU DOCX. Use OpenTitan as supporting evaluation material. The first release improves
@@ -23,8 +24,8 @@ are in [the council review](agent-council-review.md).
 | Stage | Exit evidence | Scope boundary |
 | --- | --- | --- |
 | Specification and planning | Source-linked requirements and implementable checks, measured coverage/unsupported claims, visible design questions and engineering review on the actual workload. | Current SV-01–SV-11 milestone; software tests alone do not complete it. |
-| Testbench generation | Bind a settled scenario to actual RTL interfaces/clocks/resets, generate its environment and checks, and compile with a selected simulator. | Next implementation stage. Define detailed tickets once RTL and simulator inputs are available. |
-| Simulation and failure analysis | Execute reproducible tests, retain logs/results, and demonstrate detection of a known incorrect behavior as well as a passing control. | A generated testbench or successful compile is not execution evidence. |
+| Testbench generation | Bind a scenario to declared RTL interfaces/clocks/resets, generate its environment and checks, and compile with a selected simulator. | SV-12 covers a bounded directed testbench; broader environments remain separate work. |
+| Simulation and failure analysis | Execute reproducible tests, retain logs/results, and demonstrate detection of a known incorrect behavior as well as a passing control. | SV-13; a generated testbench or successful compile is not execution evidence. |
 | Coverage improvement | Map measured coverage and observed failures back to planned checks, propose targeted additions, and validate improvements without weakening checks. | Later feedback loop; plan-row counts are not simulation coverage. |
 
 Execution status and the next eligible action remain in [progress](progress.md).
@@ -507,6 +508,61 @@ Acceptance:
   baseline. Leaderboard position or token price alone does not select a model.
 
 Edit points: evaluation configurations first; settings/runtime/provider changes later.
+
+### SV-12 Connect generated plans to directed testbenches
+
+Priority: P0 for the first execution slice. Dependencies: SV-02/SV-03 artifact
+lineage, the planning workflow and explicit hardware/simulator inputs.
+
+Connect source, requirements, plan and review to a testbench specialist using the
+existing SDK/OpenRouter runtime and shared budget. The host declares the RTL,
+module, parameters, ports, clock and optional read-only probes. The agent reads
+source/RTL and enabled KB evidence, then proposes literal stimulus and expected
+values. Python validates and renders the proposal into SystemVerilog. Authored
+bindings remain a separate local workflow.
+
+Acceptance:
+
+- Preserve source/requirement/plan/task lineage and require references to source
+  and RTL actually read. Reject invented signals, invalid values and incomplete
+  expected-result mappings before compilation.
+- Apply per-item readiness. Explicit questions and scoped/global blockers retain
+  their gates. Unsupported methods and unresolved dependencies remain visible.
+- An explicitly selected experimental mode may investigate unknown review scope
+  or analysis gaps using source-grounded case assessments. Preserve original
+  evidence, pending engineering acceptance and the execution mode on resume.
+- Support one clock, literal unsigned values, declared outputs and probes, and
+  explicit pre/post-edge observations. Keep unsupported environments and timing
+  guarantees outside this slice.
+- Retain historical planning exports, spending and testbench contracts. Software
+  validation and live engineering-quality acceptance are separate evidence.
+
+Edit points: testbench agent, hardware/readiness/proposal contracts, connected
+workflow, deterministic renderer and CLI.
+
+### SV-13 Execute reproducible simulation and fault checks
+
+Priority: P0 for the first execution slice. Dependency: SV-12 validated bindings
+and an installed Icarus Verilog compiler/runtime.
+
+Compile and run immutable testbench/RTL bundles locally. Retain input hashes,
+tool versions, logs, waveforms and individual check outcomes linked to the plan.
+
+Acceptance:
+
+- Distinguish compile errors, runtime failures, timeouts, failed checks and checks
+  that did not run. Missing completion evidence cannot become a pass.
+- Demonstrate a passing control and detection of a deliberately introduced RTL
+  fault using identical testbench bytes. State which fault was tested; this does
+  not establish full requirement or functional coverage.
+- Resume completed simulations only after validating all saved inputs/results;
+  preserve interrupted and failed attempts.
+- Keep simulator execution in Python orchestration. The model receives read-only
+  evidence tools, not arbitrary execution privileges.
+- Normal CI uses synthetic model responses and a real local simulator. Separate
+  live model evaluation and engineering acceptance from those software checks.
+
+Edit points: simulator adapter, bundle/result contracts, connected workflow and CI.
 
 ## Delivery sequence and decision gates
 

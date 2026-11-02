@@ -60,6 +60,47 @@ def test_failed_export_leaves_no_destination_and_can_retry(
     workbook.close()
 
 
+@pytest.mark.parametrize("version", ["1.0", "2.0"])
+def test_review_versions_remain_exportable_with_scope_visible(
+    tmp_path, specification, analysis, verification_plan, version
+):
+    from soc_verifier.domain.review import read_review
+
+    finding = {"severity": "warning", "target": "specification", "description": "Timing unresolved"}
+    if version == "1.0":
+        finding["item_ids"] = []
+    else:
+        finding.update(
+            {
+                "kind": "timing",
+                "recommended_action": "=1+1",
+                "scope": {
+                    "kind": "requirements",
+                    "requirement_ids": [analysis.requirements[0].id],
+                    "rationale": "Synthetic scope",
+                    "evidence": [{"source_id": "P00001", "quote": specification.blocks[0].text}],
+                },
+            }
+        )
+    path = tmp_path / "review.xlsx"
+    export_plan(
+        path,
+        specification=specification,
+        analysis=analysis,
+        plan=verification_plan,
+        review=read_review({"schema_version": version, "findings": [finding]}),
+    )
+    workbook = load_workbook(path)
+    sheet = workbook["Findings"]
+    assert sheet["D2"].value == "Timing unresolved"
+    assert sheet["E2"].value == ("requirements" if version == "2.0" else "unknown (legacy)")
+    if version == "2.0":
+        assert sheet["F2"].value == analysis.requirements[0].id
+        assert sheet["K2"].value == "=1+1" and sheet["K2"].data_type == "s"
+        assert specification.blocks[0].text in sheet["H2"].value
+    workbook.close()
+
+
 def test_source_audit_export_keeps_evidence_and_provisional_judgments_as_text(
     tmp_path, specification, analysis, verification_plan, clean_review
 ):

@@ -3,51 +3,84 @@ from unittest.mock import Mock
 
 import pytest
 
-from soc_verifier.domain.models import PlanReview, ReviewFinding
+from soc_verifier.domain.review import ScopedPlanReview, ScopedReviewFinding
 from soc_verifier.workflows.spec_to_plan.reviewing import generate_review
 
 
 def finding(ids):
-    return PlanReview(
+    return ScopedPlanReview(
         findings=[
-            ReviewFinding(
+            ScopedReviewFinding(
                 severity="warning",
-                target="specification",
-                item_ids=ids,
+                target="plan",
+                kind="ambiguity",
+                recommended_action="Resolve register map binding.",
+                scope={
+                    "kind": "items" if ids else "unknown",
+                    **({"item_ids": ids} if ids else {}),
+                    "rationale": "Synthetic scope for reference validation",
+                    "evidence": [{"source_id": "P00001", "quote": "System reset"}],
+                },
                 description="Register map is missing.",
             )
         ]
     )
 
 
-def test_review_correction_keeps_evidence_and_requests_complete_findings():
+def test_review_correction_keeps_evidence_and_requests_complete_findings(
+    specification, analysis, verification_plan
+):
     agents = Mock()
     agents.run.side_effect = [finding(["REQ-001"]), finding([])]
     context = {"specification": "original source", "plan": [{"id": "PLAN-001"}]}
     result = generate_review(
-        agents, instruction="review", context=context, known_items={"PLAN-001"}
+        agents,
+        instruction="review",
+        context=context,
+        known_items={"PLAN-001"},
+        specification=specification,
+        analysis=analysis,
+        plan=verification_plan,
     )
     assert result.findings[0].description == "Register map is missing."
     assert result.findings[0].item_ids == []
     second = json.loads(agents.run.call_args_list[1].kwargs["context"])
     assert second["specification"] == context["specification"]
     assert second["plan"] == context["plan"]
-    assert second["validation_feedback"]["unknown_item_ids"] == ["REQ-001"]
+    assert "unknown verification item" in second["validation_feedback"]["error"]
     assert second["validation_feedback"]["allowed_plan_item_ids"] == ["PLAN-001"]
     assert "validation_feedback" not in context
 
 
-def test_second_invalid_review_stops_after_two_budgeted_calls():
+def test_second_invalid_review_stops_after_two_budgeted_calls(
+    specification, analysis, verification_plan
+):
     agents = Mock()
     agents.run.side_effect = [finding(["REQ-001"]), finding(["invented"])]
     with pytest.raises(ValueError, match="after one correction"):
-        generate_review(agents, instruction="review", context={}, known_items={"PLAN-001"})
+        generate_review(
+            agents,
+            instruction="review",
+            context={},
+            known_items={"PLAN-001"},
+            specification=specification,
+            analysis=analysis,
+            plan=verification_plan,
+        )
     assert agents.run.call_count == 2
 
 
-def test_transport_failure_during_review_is_not_retried():
+def test_transport_failure_during_review_is_not_retried(specification, analysis, verification_plan):
     agents = Mock()
     agents.run.side_effect = RuntimeError("transport failed")
     with pytest.raises(RuntimeError, match="transport failed"):
-        generate_review(agents, instruction="review", context={}, known_items=set())
+        generate_review(
+            agents,
+            instruction="review",
+            context={},
+            known_items=set(),
+            specification=specification,
+            analysis=analysis,
+            plan=verification_plan,
+        )
     assert agents.run.call_count == 1

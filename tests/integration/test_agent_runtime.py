@@ -154,9 +154,9 @@ def test_all_three_agents_run_through_sdk(
     outputs = {
         "SpecAnalysis": analysis,
         "VerificationPlan": verification_plan,
-        "PlanReview": clean_review,
+        "ScopedPlanReview": clean_review,
     }
-    expected_tools = {"SpecAnalysis": 2, "VerificationPlan": 3, "PlanReview": 4}
+    expected_tools = {"SpecAnalysis": 2, "VerificationPlan": 3, "ScopedPlanReview": 4}
 
     def respond(payload):
         name = payload["response_format"]["json_schema"]["schema"]["title"]
@@ -164,7 +164,7 @@ def test_all_three_agents_run_through_sdk(
         calls = {
             "SpecAnalysis": ("search_spec", {"query": "reset"}),
             "VerificationPlan": ("get_requirements", {"ids": [analysis.requirements[0].id]}),
-            "PlanReview": ("get_plan_items", {"ids": [verification_plan.items[0].id]}),
+            "ScopedPlanReview": ("get_plan_items", {"ids": [verification_plan.items[0].id]}),
         }
         if payload["messages"][-1]["role"] != "tool":
             tool_name, arguments = calls[name]
@@ -390,7 +390,7 @@ def test_failed_invocation_resumes_same_task_with_separate_reservations(
         outputs = {
             "SpecAnalysis": analysis,
             "VerificationPlan": verification_plan,
-            "PlanReview": clean_review,
+            "ScopedPlanReview": clean_review,
         }
         title = payload["response_format"]["json_schema"]["schema"]["title"]
         return completion({"content": outputs[title].model_dump_json()})
@@ -422,7 +422,7 @@ def test_explicit_snapshot_ignores_later_analysis_and_plan_revisions(
         fingerprint,
         runtime_versions,
     )
-    from soc_verifier.domain.models import PlanReview
+    from soc_verifier.domain.review import ScopedPlanReview
 
     expected = analysis.requirements[0].statement
 
@@ -468,7 +468,7 @@ def test_explicit_snapshot_ignores_later_analysis_and_plan_revisions(
             },
             input_sha256=fingerprint("review"),
             instruction_sha256=fingerprint(instructions.REVIEW),
-            schema_sha256=fingerprint(PlanReview.model_json_schema()),
+            schema_sha256=fingerprint(ScopedPlanReview.model_json_schema()),
             versions=runtime_versions(),
             configuration={"configuration": agents.configuration},
         ),
@@ -488,7 +488,7 @@ def test_explicit_snapshot_ignores_later_analysis_and_plan_revisions(
             role="reviewer",
             instruction=instructions.REVIEW,
             context="review",
-            schema=PlanReview,
+            schema=ScopedPlanReview,
             task=task.envelope,
         )
     assert result == clean_review
@@ -609,7 +609,7 @@ def test_all_specialists_retrieve_frozen_knowledge_with_audited_sdk_tools(
         "SourceAudit": audit,
         "SourceInventory": source_inventory,
         "VerificationPlan": verification_plan,
-        "PlanReview": clean_review,
+        "ScopedPlanReview": clean_review,
     }
 
     def respond(payload):
