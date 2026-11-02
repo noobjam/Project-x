@@ -320,12 +320,18 @@ the low phase and inputs hold between these samples. Earlier cycles in a step ar
 not sampled. Source validity conditions still apply, including unspecified outputs.
 `hardware-target-v2` may declare up to 64 read-only probes (name, relative path,
 unsigned width 1–64); the agent can select aliases but cannot add or drive probes.
-Only plain hierarchical identifiers are accepted. The V2 renderer checks actual
-probe widths with `$bits`; missing paths, X/Z values and failed comparisons cannot
-pass. Simulation result V2 includes check phase; declared bindings retain paths.
+Only plain hierarchical identifiers are accepted. The V3 renderer checks actual
+port widths (including inputs and clock) and probe widths with `$bits` before
+stimulus or checks. A mismatched declaration cannot hide faulty high bits through
+truncation. Missing paths, X/Z values and failed comparisons cannot pass.
+Simulation result V2 includes check phase; declared bindings retain paths.
 This does not implement arbitrary timing, memory indexing or multiple clocks.
-V1 proposals, V1/V2 bindings and their byte-identical V1 renderer remain readable.
-Bundles pin the generator and reject a mismatch. `pipeline-result.json` is separate from the original planning
+V1 proposals and V1/V2 bindings retain their original observation semantics.
+New bundles use `directed-sv-v3` for every binding version. Historical V1/V2
+generator bundles retain byte-identical validation, but new simulation rejects
+them until regenerated into a separate bundle with port-width checks. Saved
+results are not changed. Bundles pin the generator and reject relabelled bytes.
+`pipeline-result.json` is separate from the original planning
 result and links each item to its proposal, binding and hashed simulation evidence.
 `execution-readiness-v2` computes per-item eligibility from explicit issue references
 and distinguishes mapped, global and unknown review impact. Version 1 remains readable.

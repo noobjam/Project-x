@@ -54,7 +54,9 @@ declared output ports and optional read-only internal probes. A probe requires a
 explicit `hardware-target-v2` entry such as
 `{"name":"write_pointer","path":"wr_addr","width":3}` in `probes`. Paths are
 relative to the DUT; the agent selects declared names and cannot invent paths or
-drive probes. Missing paths and actual-width mismatches cannot pass simulation.
+drive probes. Before driving inputs, new testbenches check the actual widths of
+every declared port (including the clock) and probe. Missing paths and width
+mismatches cannot pass simulation.
 These are functional simulation conventions, not physical timing guarantees.
 
 By default, execution readiness is decided per scenario. Plan questions and findings
@@ -129,11 +131,18 @@ are driven while the clock is low. New `directed-testbench-v3` bindings let each
 check select `phase: pre_edge` or `post_edge`, sampling 1 ns before or after the
 last rising edge of its step. Earlier cycles in a multi-cycle step have no checks;
 use one-cycle steps when each edge needs observation. Old V1/V2 bindings keep their
-original output-only post-edge renderer. V3 supports declared internal probes with
+original output-only post-edge timing. V3 supports declared internal probes with
 plain hierarchical paths; memory indexing and expressions are unsupported.
 It does not implement bus agents, UVM, multiple clocks, arbitrary assertions,
 include/library configuration or functional coverage. Selected plan questions
 need explicit resolutions before building; these do not confer engineer approval.
+
+New bundles use generator `directed-sv-v3`, which checks declared port widths
+against the RTL before stimulus or result checks. Earlier V1/V2 generator bundles
+remain readable with their original bytes, but `simulate` rejects them because
+they lack this guard. Regenerate from their saved inputs into a new output
+directory with `testbench`; keep the original bundle and results as historical
+evidence. Existing run receipts are not rewritten.
 
 Bundles freeze the source/requirements/plan, binding, RTL and generated testbench
 with hashes. Simulation copies those verified bytes, compiles and runs with process

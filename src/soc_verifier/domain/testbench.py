@@ -8,6 +8,7 @@ from soc_verifier.domain.models import Contract, NonEmpty, VerificationItem
 
 Identifier = Annotated[str, Field(pattern=r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$")]
 Value = Annotated[int, Field(strict=True, ge=0, le=2**64 - 1)]
+TestbenchGenerator = Literal["directed-sv-v1", "directed-sv-v2", "directed-sv-v3"]
 
 CLOCK_HALF_PERIOD_NS = 5
 CHECK_DELAY_NS = 1
@@ -18,7 +19,7 @@ def directed_execution_profile(probes: list["ObservationProbe"] | None = None) -
     """Describe the fixed renderer contract to every specialist in a hardware run."""
     return {
         "format": "directed-execution-v2",
-        "generator": "directed-sv-v2",
+        "generator": "directed-sv-v3",
         "clock_period_ns": 2 * CLOCK_HALF_PERIOD_NS,
         "sample_after_rising_edge_ns": CHECK_DELAY_NS,
         "sample_before_rising_edge_ns": PRE_EDGE_OFFSET_NS,
@@ -169,7 +170,7 @@ class TestbenchBinding(Contract):
 
 class TestbenchManifest(Contract):
     format: Literal["testbench-bundle-v1"] = "testbench-bundle-v1"
-    generator: Literal["directed-sv-v1", "directed-sv-v2"] = "directed-sv-v1"
+    generator: TestbenchGenerator = "directed-sv-v1"
     rtl_files: Annotated[list[str], Field(min_length=1, max_length=100)]
     hashes: dict[str, Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]]
 

@@ -67,9 +67,7 @@ def prepare_testbench(
         files[name] = path.read_bytes()
     files["testbench.sv"] = render_testbench(configuration).encode()
     manifest = TestbenchManifest(
-        generator="directed-sv-v2"
-        if configuration.format == "directed-testbench-v3"
-        else "directed-sv-v1",
+        generator="directed-sv-v3",
         rtl_files=rtl_names,
         hashes={name: hashlib.sha256(data).hexdigest() for name, data in files.items()},
     )
@@ -100,12 +98,7 @@ def _read_bundle(
             raise ValueError("Bundle snapshot changed; prepare a new testbench bundle")
         files[name] = data
     binding, item, sources = _validate(files)
-    expected_generator = (
-        "directed-sv-v2" if binding.format == "directed-testbench-v3" else "directed-sv-v1"
-    )
-    if manifest.generator != expected_generator:
-        raise ValueError("Testbench generator does not match its binding version")
-    if files["testbench.sv"] != render_testbench(binding).encode():
+    if files["testbench.sv"] != render_testbench(binding, generator=manifest.generator).encode():
         raise ValueError("Testbench does not match its declared binding and generator")
     return manifest, binding, item, sources, files
 
@@ -153,6 +146,10 @@ def simulate_testbench(bundle: Path, output: Path, *, timeout: float = 10) -> di
     if not 0 < timeout <= 120:
         raise ValueError("Simulator timeout must be between 0 and 120 seconds per process")
     manifest, binding, item, sources, files = _read_bundle(bundle)
+    if manifest.generator != "directed-sv-v3":
+        raise ValueError(
+            "Legacy testbench lacks port-width validation; prepare a new bundle before simulation"
+        )
     compiler, runtime = tools()
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=False)

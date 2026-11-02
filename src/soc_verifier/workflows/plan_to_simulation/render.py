@@ -6,11 +6,17 @@ from soc_verifier.domain.testbench import (
     PRE_EDGE_OFFSET_NS,
     CycleStep,
     TestbenchBinding,
+    TestbenchGenerator,
 )
 
 
-def render_testbench(binding: TestbenchBinding) -> str:
+def render_testbench(
+    binding: TestbenchBinding, *, generator: TestbenchGenerator = "directed-sv-v3"
+) -> str:
     extended = binding.format == "directed-testbench-v3"
+    legacy_generator = "directed-sv-v2" if extended else "directed-sv-v1"
+    if generator not in {"directed-sv-v3", legacy_generator}:
+        raise ValueError("Testbench generator does not match its binding version")
     # Internal aliases avoid conflicts with ports named 'dut', 'step', etc.
     signals = {port.name: f"signal_{index}" for index, port in enumerate(binding.ports)}
     widths = {port.name: port.width for port in binding.ports}
@@ -30,9 +36,17 @@ def render_testbench(binding: TestbenchBinding) -> str:
             "  initial begin",
             '    $dumpfile("waves.vcd");',
             "    $dumpvars(0, soc_verifier_tb);",
-            f"    {clock} = 0;",
         ]
     )
+    if generator == "directed-sv-v3":
+        for port in binding.ports:
+            lines.extend(
+                [
+                    f"    if ($bits(dut.{port.name}) != {port.width})",
+                    f'      $fatal(1, "Port width mismatch: {port.name}");',
+                ]
+            )
+    lines.append(f"    {clock} = 0;")
     for probe in binding.probes:
         lines.extend(
             [

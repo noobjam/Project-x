@@ -24,7 +24,12 @@ snapshots below are historical evidence, not current execution instructions.
   artifacts preserve historical readers. The provider adapter handles wide integer
   schema bounds without weakening local validation. Completed artifacts remain
   reusable only with matching evidence, settings and runtime.
-- **Validation:** 561 offline tests passed, 90.97% coverage; Ruff lint/format,
+- **Merge review correction:** new `directed-sv-v3` bundles check all declared
+  port widths against the RTL before stimulus. A truncated output cannot conceal
+  a fault and report a pass. Historical generator bytes remain readable; new
+  execution requires regeneration with the guard. The fix and merge are
+  authorized; review and required CI remain in_progress.
+- **Validation:** 579 offline tests passed, 91.05% coverage; Ruff lint/format,
   strict mypy on 64 source files and source/wheel builds passed. Simulator tests
   use synthetic model replies and actual Icarus execution, including passing
   controls and unchanged-test fault detection. These are software checks, not
@@ -47,8 +52,9 @@ required before reviewing this feature branch.
 This publication scope contains application implementation, synthetic software
 tests, simulator CI setup and supporting documentation. Local agent instructions,
 credentials, source documents, generated outputs, private experiments and cost
-records are excluded. Feature publication does not authorize a merge or a new paid
-run. Current-base CI checks and resolved review threads remain merge requirements.
+records are excluded. The port-width correction and merge are authorized;
+current-base CI checks and resolved review threads remain merge requirements.
+No new paid evaluation is included in this work.
 
 ## Position in the product plan
 
@@ -86,6 +92,16 @@ plan repair remains deferred. Detailed acceptance criteria are in the roadmap.
    CPU workload. Keep reference answers outside agent retrieval.
 4. Extend testbench environments and measured coverage only with explicit scope,
    preserving evidence, unresolved cases and applicable execution budgets.
+
+## Port-width correction — 2026-11-02
+
+Merge review reproduced a false pass when an output declaration truncated the
+faulty high bits. The new generator validates every actual port width before
+stimulus, including input and clock ports. Nine regression cases failed before
+the fix; all 18 targeted regression/control/compatibility cases now pass. The
+full offline suite passed 579 tests in 91.30 s, with lint, formatting, strict
+typing and builds passing. Old generator bytes remain reproducible and readable;
+they require a new guarded bundle for execution. No paid evaluation was run.
 
 ## Publication milestone — 2026-11-02
 

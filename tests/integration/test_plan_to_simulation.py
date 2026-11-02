@@ -12,8 +12,10 @@ from soc_verifier.domain.models import SpecAnalysis, Specification, Verification
 from soc_verifier.domain.testbench import TestbenchBinding as Binding
 from soc_verifier.simulation.iverilog import run_process
 from soc_verifier.storage.artifacts import ArtifactStore
+from soc_verifier.workflows.plan_to_simulation.render import render_testbench
 from soc_verifier.workflows.plan_to_simulation.workflow import (
     _check_results,
+    _read_bundle,
     prepare_testbench,
     simulate_testbench,
 )
@@ -190,7 +192,7 @@ def test_pre_edge_and_declared_internal_checks_run_together(
         assert len(result["checks"]) == 6
         assert {r["phase"] for r in result["checks"]} == {"pre_edge", "post_edge"}
         assert all(r["status"] == "passed" for r in result["checks"])
-        assert json.loads((bundle / "manifest.json").read_text())["generator"] == "directed-sv-v2"
+        assert json.loads((bundle / "manifest.json").read_text())["generator"] == "directed-sv-v3"
     else:
         assert any(c["signal"] == "pointer" and c["status"] == "failed" for c in result["checks"])
 
@@ -231,6 +233,58 @@ def test_internal_probe_mismatch_cannot_pass_with_truncated_values(observed_case
     result = simulate_testbench(prepare(observed_case, tmp_path / "bundle"), tmp_path / "run")
     assert result["status"] in {"compile_failed", "runtime_failed"}
     assert all(c["status"] == "not_run" for c in result["checks"])
+
+
+@needs_icarus
+@pytest.mark.parametrize("binding_format", ["directed-testbench-v1", "directed-testbench-v3"])
+@pytest.mark.parametrize(
+    "width,fault,expected",
+    [
+        (8, False, "passed"),
+        (8, True, "check_failed"),
+        (3, True, "runtime_failed"),
+        (16, False, "runtime_failed"),
+    ],
+)
+def test_output_width_mismatch_cannot_hide_a_hardware_fault(
+    case, tmp_path, binding_format, width, fault, expected
+):
+    def change(binding):
+        binding["format"] = binding_format
+        next(p for p in binding["ports"] if p["name"] == "q")["width"] = width
+
+    edit(case, "binding", change)
+    if fault:
+        (case / "sample.sv").write_text(RTL.replace("q <= d;", "q <= d | 8'h80;"))
+    result = simulate_testbench(prepare(case, tmp_path / "bundle"), tmp_path / "run")
+    assert result["status"] == expected
+    if width != 8:
+        assert all(c["status"] == "not_run" for c in result["checks"])
+        log = (tmp_path / "run" / "simulation.stdout.log").read_text()
+        assert "Port width mismatch: q" in log
+        assert "SV_COMPLETE" not in log
+    elif fault:
+        assert result["checks"][1]["observed_hex"] == "85"
+
+
+@needs_icarus
+@pytest.mark.parametrize("port,width", [("d", 3), ("d", 16), ("rst", 2), ("clk", 2)])
+def test_input_and_clock_width_mismatches_stop_before_checks(case, tmp_path, port, width):
+    if port == "clk":
+        # The binding requires a scalar clock; the actual RTL must match it too.
+        (case / "sample.sv").write_text(RTL.replace("input clk, rst", "input [1:0] clk, input rst"))
+    else:
+        edit(
+            case,
+            "binding",
+            lambda b: next(p for p in b["ports"] if p["name"] == port).update(width=width),
+        )
+    result = simulate_testbench(prepare(case, tmp_path / "bundle"), tmp_path / "run")
+    assert result["status"] == "runtime_failed"
+    assert all(c["status"] == "not_run" for c in result["checks"])
+    assert (
+        f"Port width mismatch: {port}" in (tmp_path / "run" / "simulation.stdout.log").read_text()
+    )
 
 
 @needs_icarus
@@ -326,6 +380,73 @@ def test_changed_bundle_cannot_execute(case, tmp_path):
     with pytest.raises(ValueError, match="snapshot changed"):
         simulate_testbench(bundle, tmp_path / "run")
     assert not (tmp_path / "run").exists()
+
+
+@pytest.mark.parametrize(
+    "fixture,generator,expected_hash",
+    [
+        (
+            "case",
+            "directed-sv-v1",
+            "c9cddf103ff27159d7dbf6fdbd2cc296d229a69ddceb42d8ebbe0720ea04e41a",
+        ),
+        (
+            "observed_case",
+            "directed-sv-v2",
+            "2ba2ce15248cb1339ce84daa20764b62493b66ce70da795106afe5d7297dcc38",
+        ),
+    ],
+)
+def test_legacy_bundles_keep_original_bytes_but_require_regeneration_to_execute(
+    request, tmp_path, fixture, generator, expected_hash
+):
+    case = request.getfixturevalue(fixture)
+    binding = Binding.model_validate_json((case / "binding.json").read_bytes())
+    # Hashes captured from the published implementation before the width fix.
+    original = render_testbench(binding, generator=generator).encode()
+    assert hashlib.sha256(original).hexdigest() == expected_hash
+    bundle = prepare(case, tmp_path / "legacy")
+    (bundle / "testbench.sv").write_bytes(original)
+    manifest_path = bundle / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["generator"] = generator
+    manifest["hashes"]["testbench.sv"] = expected_hash
+    manifest_path.write_text(json.dumps(manifest))
+    snapshots = {p.name: p.read_bytes() for p in bundle.iterdir()}
+    assert _read_bundle(bundle)[0].generator == generator
+    with pytest.raises(ValueError, match="Legacy testbench lacks port-width validation"):
+        simulate_testbench(bundle, tmp_path / "run")
+    assert not (tmp_path / "run").exists()
+    assert snapshots == {p.name: p.read_bytes() for p in bundle.iterdir()}
+    replacement = prepare(case, tmp_path / "replacement")
+    assert json.loads((replacement / "manifest.json").read_text())["generator"] == "directed-sv-v3"
+    assert (replacement / "testbench.sv").read_bytes() != original
+
+
+@pytest.mark.parametrize("upgrade", [False, True])
+def test_generator_relabel_cannot_bypass_saved_testbench_validation(case, tmp_path, upgrade):
+    bundle = prepare(case, tmp_path / "bundle")
+    if upgrade:
+        binding = Binding.model_validate_json((case / "binding.json").read_bytes())
+        original = render_testbench(binding, generator="directed-sv-v1").encode()
+        (bundle / "testbench.sv").write_bytes(original)
+        edit(
+            bundle,
+            "manifest",
+            lambda m: m["hashes"].update({"testbench.sv": hashlib.sha256(original).hexdigest()}),
+        )
+    else:
+        edit(bundle, "manifest", lambda m: m.update(generator="directed-sv-v1"))
+    with pytest.raises(ValueError, match="Testbench does not match its declared binding"):
+        simulate_testbench(bundle, tmp_path / "run")
+    assert not (tmp_path / "run").exists()
+
+
+def test_legacy_generator_must_match_binding_version(observed_case, tmp_path):
+    bundle = prepare(observed_case, tmp_path / "bundle")
+    edit(bundle, "manifest", lambda m: m.update(generator="directed-sv-v1"))
+    with pytest.raises(ValueError, match="generator does not match its binding version"):
+        _read_bundle(bundle)
 
 
 def test_arbitrary_manifest_paths_are_rejected(case, tmp_path):

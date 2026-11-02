@@ -297,6 +297,27 @@ def test_wrong_design_is_detected_through_connected_agent_path(harness, specific
     assert json.loads(path.read_text())["checks"][0]["status"] == "failed"
 
 
+def test_wrong_port_width_cannot_hide_a_fault_through_connected_agent_path(harness, specification):
+    target = HardwareTarget(
+        top_module="interrupt_ctrl",
+        parameters={},
+        clock="clk",
+        ports=[
+            {"name": "clk", "direction": "input", "width": 1},
+            {"name": "rst", "direction": "input", "width": 1},
+            {"name": "pending", "direction": "output", "width": 1},
+        ],
+    )
+    run = harness(target_output=target, rtl=RTL.replace("pending <= 0", "pending <= 8"))
+    result = run.workflow.run(specification)
+    assert result["status"] == "failed"
+    case = result["cases"][0]
+    assert case["status"] == "runtime_failed" and case["checks_observed"] == 0
+    assert result["unexecuted_item_ids"] == [case["plan_item_id"]]
+    saved = json.loads((run.artifacts.root / case["result"]).read_text())
+    assert all(c["status"] == "not_run" for c in saved["checks"])
+
+
 def test_every_specialist_receives_the_executor_timing_and_observation_limits(
     harness, specification
 ):
