@@ -1,6 +1,6 @@
 # Project progress
 
-Last updated: 2026-11-02.
+Last updated: 2026-11-03.
 
 This is the public implementation snapshot. Ticket scope and acceptance criteria
 are in [the roadmap](agent-roadmap.md). Private specifications, generated plans,
@@ -20,8 +20,13 @@ snapshots below are historical evidence, not current execution instructions.
   experimental mode permits source-grounded case investigation while retaining
   original blockers and pending engineering acceptance. Non-simulation methods,
   unresolved dependencies and unsupported configurations remain visible.
-- **Compatibility:** scoped review schema 2.0 and versioned testbench/execution
-  artifacts preserve historical readers. The provider adapter handles wide integer
+- **Review handoff:** review schema 4.0 separates acceptance notes from execution
+  defects and requires plan/source evidence for each dependency of a global finding.
+  Notes survive review aggregation, readiness, exports and experimental testbench
+  context. Prompt 25 shares the execution/acceptance policy across these roles.
+- **Compatibility:** review schemas 1.0 through 3.0 retain historical readers and
+  blocking semantics. Readiness version 3 records nonblocking acceptance notes;
+  versioned testbench/execution artifacts are preserved. The provider adapter handles wide integer
   schema bounds without weakening local validation. Completed artifacts remain
   reusable only with matching evidence, settings and runtime.
 - **Merge review correction:** new `directed-sv-v3` bundles check all declared
@@ -29,7 +34,7 @@ snapshots below are historical evidence, not current execution instructions.
   a fault and report a pass. Historical generator bytes remain readable; new
   execution requires regeneration with the guard. Regression and compatibility
   checks pass; required merge checks are tracked in PR #14 below.
-- **Validation:** 579 offline tests passed, 91.05% coverage; Ruff lint/format,
+- **Validation:** 618 offline tests passed, 91.19% coverage; Ruff lint/format,
   strict mypy on 64 source files and source/wheel builds passed. Simulator tests
   use synthetic model replies and actual Icarus execution, including passing
   controls and unchanged-test fault detection. These are software checks, not
@@ -38,10 +43,27 @@ snapshots below are historical evidence, not current execution instructions.
   and the actual Management CPU workload remain open. Private live evaluation
   records are maintained separately from this public implementation snapshot.
 
+## Review handoff update — 2026-11-03
+
+The `fix/review-acceptance-boundary` follow-up separates execution feasibility from
+engineering acceptance while retaining original findings, questions and readiness
+decisions. Global review claims require complete scenario dependency accounting;
+unknown impact remains explicit. Review schemas 1.0 through 4.0 retain export
+coverage, and new notes/dependencies are inspectable in the workbook. Regression
+checks cover real SDK request propagation, simulated execution, unresolved cases,
+provider schema constraints and historical behavior. Software validation does not
+establish semantic correctness, general test adequacy or engineering approval.
+
+SV-07 and SV-12 technical handoff changes are implemented. Their semantic review
+and the wider SV-06/SV-09/SV-10/SV-13 acceptance work remain open. Next, assess
+whether generated checks establish their claimed source behavior and extend
+coverage using retained simulation and fault evidence. Detailed experimental
+records remain outside this public snapshot.
+
 ## Delivery and repository
 
 Repository: [noobjam/Project-x](https://github.com/noobjam/Project-x).
-The connected execution slice and port-width correction are delivered through
+The connected execution slice and port-width correction were merged through
 [PR #14](https://github.com/noobjam/Project-x/pull/14); its page records the current
 merge state and required CI checks. The reviewed implementation includes
 [6ea174d](https://github.com/noobjam/Project-x/commit/6ea174dd579e27c308240319340a44b4a8af54ce)

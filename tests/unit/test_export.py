@@ -60,7 +60,7 @@ def test_failed_export_leaves_no_destination_and_can_retry(
     workbook.close()
 
 
-@pytest.mark.parametrize("version", ["1.0", "2.0"])
+@pytest.mark.parametrize("version", ["1.0", "2.0", "3.0", "4.0"])
 def test_review_versions_remain_exportable_with_scope_visible(
     tmp_path, specification, analysis, verification_plan, version
 ):
@@ -93,11 +93,98 @@ def test_review_versions_remain_exportable_with_scope_visible(
     workbook = load_workbook(path)
     sheet = workbook["Findings"]
     assert sheet["D2"].value == "Timing unresolved"
-    assert sheet["E2"].value == ("requirements" if version == "2.0" else "unknown (legacy)")
-    if version == "2.0":
+    assert sheet["E2"].value == ("unknown (legacy)" if version == "1.0" else "requirements")
+    if version != "1.0":
         assert sheet["F2"].value == analysis.requirements[0].id
         assert sheet["K2"].value == "=1+1" and sheet["K2"].data_type == "s"
         assert specification.blocks[0].text in sheet["H2"].value
+    workbook.close()
+
+
+@pytest.mark.parametrize("version", ["3.0", "4.0"])
+def test_acceptance_notes_export_with_their_evidence_and_pending_approval(
+    tmp_path, specification, analysis, verification_plan, version
+):
+    from soc_verifier.domain.review import read_review
+
+    block = specification.blocks[0].model_copy(
+        update={"id": "DRAFT", "text": "Draft; engineering review is pending."}
+    )
+    spec = specification.model_copy(update={"blocks": [*specification.blocks, block]})
+    review = read_review(
+        {
+            "schema_version": version,
+            "findings": [],
+            "acceptance_notes": [
+                {
+                    "kind": "pending_engineering_review",
+                    "description": "=1+1",
+                    "rationale": "=Approval is separate from executable behavior",
+                    "evidence": [{"source_id": block.id, "quote": block.text}],
+                }
+            ],
+        }
+    )
+    path = tmp_path / "notes.xlsx"
+    export_plan(path, specification=spec, analysis=analysis, plan=verification_plan, review=review)
+    workbook = load_workbook(path)
+    sheet = workbook["Acceptance notes"]
+    assert sheet["B2"].value == "=1+1" and sheet["B2"].data_type == "s"
+    assert sheet["C2"].data_type == "s"
+    assert sheet["D2"].value == f"DRAFT: {block.text}"
+    assert sheet["E2"].value == "agent_proposed"
+    assert sheet["F2"].value == "Pending human review"
+    assert workbook["Evidence"]["A3"].value == "DRAFT"
+    workbook.close()
+
+
+def test_global_dependencies_are_inspectable_in_export(
+    tmp_path, specification, analysis, verification_plan
+):
+    from soc_verifier.domain.review import ScopedPlanReview
+
+    item = verification_plan.items[0]
+    review = ScopedPlanReview.model_validate(
+        {
+            "findings": [
+                {
+                    "severity": "warning",
+                    "target": "specification",
+                    "kind": "timing",
+                    "description": "Reset timing is unresolved.",
+                    "recommended_action": "Clarify the reset definition.",
+                    "scope": {
+                        "kind": "global",
+                        "rationale": "Every scenario requires reset.",
+                        "evidence": [
+                            {"source_id": "P00001", "quote": specification.blocks[0].text}
+                        ],
+                        "dependencies": [
+                            {
+                                "plan_item_id": item.id,
+                                "plan_field": "stimulus",
+                                "plan_quote": item.stimulus[0],
+                                "evidence_indices": [0],
+                                "rationale": "=Reset stimulus depends on this definition",
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
+    )
+    path = tmp_path / "dependencies.xlsx"
+    export_plan(
+        path, specification=specification, analysis=analysis, plan=verification_plan, review=review
+    )
+    workbook = load_workbook(path)
+    sheet = workbook["Global dependencies"]
+    assert sheet["A2"].value == "review:0"
+    assert sheet["B2"].value == item.id
+    assert sheet["C2"].value == "stimulus"
+    assert sheet["D2"].value == item.stimulus[0]
+    assert specification.blocks[0].text in sheet["E2"].value
+    assert sheet["F2"].data_type == "s"
     workbook.close()
 
 

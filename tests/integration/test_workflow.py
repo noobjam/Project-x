@@ -1,8 +1,8 @@
 import pytest
 
 from soc_verifier.domain.models import Specification
+from soc_verifier.domain.review import AttributedReviewFinding
 from soc_verifier.domain.review import ScopedPlanReview as PlanReview
-from soc_verifier.domain.review import ScopedReviewFinding
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.workflow import PlanningWorkflow
 
@@ -10,7 +10,7 @@ pytestmark = pytest.mark.integration
 
 
 def review_finding(*, item_ids, target="plan", **kwargs):
-    return ScopedReviewFinding(
+    return AttributedReviewFinding(
         **kwargs,
         target=target,
         kind="other",

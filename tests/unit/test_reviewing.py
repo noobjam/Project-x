@@ -3,14 +3,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from soc_verifier.domain.review import ScopedPlanReview, ScopedReviewFinding
+from soc_verifier.domain.review import AttributedReviewFinding, ScopedPlanReview
 from soc_verifier.workflows.spec_to_plan.reviewing import generate_review
 
 
 def finding(ids):
     return ScopedPlanReview(
         findings=[
-            ScopedReviewFinding(
+            AttributedReviewFinding(
                 severity="warning",
                 target="plan",
                 kind="ambiguity",

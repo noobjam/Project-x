@@ -17,6 +17,7 @@ from soc_verifier.domain.models import (
 from soc_verifier.domain.review import (
     Review,
     ScopedReviewFinding,
+    acceptance_notes,
     review_impact,
     validate_review_context,
 )
@@ -75,6 +76,7 @@ class ExecutionIssue(Contract):
     id: NonEmpty
     kind: Literal[
         "review",
+        "acceptance_note",
         "item_question",
         "requirement_question",
         "analysis_gap",
@@ -97,7 +99,9 @@ class ItemReadiness(Contract):
 
 
 class ExecutionReadiness(Contract):
-    format: Literal["execution-readiness-v1", "execution-readiness-v2"] = "execution-readiness-v2"
+    format: Literal[
+        "execution-readiness-v1", "execution-readiness-v2", "execution-readiness-v3"
+    ] = "execution-readiness-v3"
     items: list[ItemReadiness]
     issues: list[ExecutionIssue]
     human_approved: Literal[False] = False
@@ -176,6 +180,14 @@ def assess_readiness(
             finding.description,
             targets,
             scope_basis="mapped" if targets else "unknown",
+        )
+    for index, note in enumerate(acceptance_notes(review)):
+        add(
+            "acceptance_note",
+            f"acceptance_note:{index}",
+            note.description,
+            [],
+            blocking=False,
         )
     for requirement in analysis.requirements:
         for index, question in enumerate(requirement.open_questions):

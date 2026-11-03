@@ -81,9 +81,12 @@ def test_requirement_finding_without_item_ids_leaves_flag_checks_eligible(data_a
 
 
 @pytest.mark.parametrize("kind", ["global", "unknown"])
-def test_global_and_unknown_remain_blocked_and_distinguishable(data_and_flags, kind):
+@pytest.mark.parametrize("version", ["2.0", "3.0"])
+def test_legacy_global_and_unknown_remain_blocked_and_distinguishable(
+    data_and_flags, kind, version
+):
     spec, analysis, plan = data_and_flags
-    review = ScopedPlanReview(findings=[finding(spec, kind)])
+    review = read_review({"schema_version": version, "findings": [finding(spec, kind)]})
     result = assess_readiness(spec, analysis, plan, review)
     assert all(i.status == "blocked" for i in result.items)
     assert result.issues[0].scope_basis == kind

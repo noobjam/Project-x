@@ -116,12 +116,22 @@ def test_local_scoped_findings_reach_system_review_and_remain_preserved(tmp_path
                                     ],
                                 },
                             }
-                        ]
+                        ],
+                        "acceptance_notes": [
+                            {
+                                "kind": "pending_engineering_review",
+                                "description": "Synthetic pending acceptance note",
+                                "rationale": "Routing fixture, not a semantic judgment",
+                                "evidence": [{"source_id": block["id"], "quote": block["text"]}],
+                            }
+                        ],
                     }
                 )
             if instruction == prompts.REVIEW_SYSTEM:
                 self.local_findings = payload["local_findings"]
                 assert payload["omitted_local_findings"] == 0
+                self.local_notes = payload["local_acceptance_notes"]
+                assert payload["omitted_local_acceptance_notes"] == 0
                 return ScopedPlanReview(findings=[])
             return super().run(
                 role=role, instruction=instruction, context=context, schema=schema, task=task
@@ -134,6 +144,8 @@ def test_local_scoped_findings_reach_system_review_and_remain_preserved(tmp_path
     )
     review = ScopedPlanReview.model_validate(result["review"])
     assert len(review.findings) == len(agents.local_findings) == 3
+    assert len(review.acceptance_notes) == len(agents.local_notes) == 3
+    assert [n.model_dump() for n in review.acceptance_notes] == agents.local_notes
     assert {f["scope"] for f in agents.local_findings} == {"sources"}
     assert result["status"] == "needs_review"
     assert artifacts.read("review.r000.system.json")["findings"] == []

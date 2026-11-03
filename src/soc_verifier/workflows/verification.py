@@ -29,7 +29,7 @@ from soc_verifier.domain.readiness import (
     assess_readiness,
     permits_experimental_attempt,
 )
-from soc_verifier.domain.review import read_review
+from soc_verifier.domain.review import acceptance_notes, read_review
 from soc_verifier.domain.source_audit import SourceAudit
 from soc_verifier.domain.testbench_proposal import (
     ExperimentalTestbenchProposal,
@@ -208,6 +208,7 @@ class VerificationWorkflow:
             context.update(
                 execution_mode="experimental",
                 execution_issues=[issue.model_dump() for issue in issues],
+                review_acceptance_notes=[note.model_dump() for note in acceptance_notes(review)],
                 review_findings={
                     issue.id: review.findings[int(issue.id.split(":")[1])].model_dump()
                     for issue in issues
