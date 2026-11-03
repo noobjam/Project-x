@@ -23,7 +23,12 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import passage_accounting_schema
-from soc_verifier.domain.review import ScopedPlanReview, read_review, validate_review_context
+from soc_verifier.domain.review import (
+    ScopedPlanReview,
+    acceptance_notes,
+    read_review,
+    validate_review_context,
+)
 from soc_verifier.domain.source_audit import bound_audit_schema
 from soc_verifier.storage.artifacts import ArtifactStore
 from soc_verifier.workflows.spec_to_plan.accounting import (
@@ -391,6 +396,7 @@ def _run_workflow(
         plan_result = VerificationPlan.model_validate(state["plan"])
         unresolved = (
             bool(review_result.findings or analysis.gaps or spec.extraction_warnings)
+            or bool(acceptance_notes(review_result))
             or any(item.open_questions for item in plan_result.items)
             or any(item.open_questions for item in analysis.requirements)
             or bool(state.get("source_audit", {}).get("findings"))

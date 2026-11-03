@@ -384,6 +384,7 @@ def review_batches(
             generate,
             lambda left, right: ScopedPlanReview(
                 findings=[*left.findings, *right.findings],
+                acceptance_notes=[*left.acceptance_notes, *right.acceptance_notes],
             ),
             task=task.child(
                 name,
@@ -403,6 +404,7 @@ def review_batches(
     name = f"review.r{revision:03d}.system.json"
     logger.info("stage=system_review revision=%s", revision)
     local_findings = [f.model_dump(mode="json") for review in reviews for f in review.findings]
+    local_notes = [note.model_dump(mode="json") for r in reviews for note in r.acceptance_notes]
     local_index = [
         {
             "severity": f.severity,
@@ -423,7 +425,12 @@ def review_batches(
         name,
         stage="review.system",
         assigned_ids=sorted(known_items),
-        data={"analysis": analysis, "plan": plan, "local_findings": local_findings},
+        data={
+            "analysis": analysis,
+            "plan": plan,
+            "local_findings": local_findings,
+            "local_acceptance_notes": local_notes,
+        },
         instruction=prompts.REVIEW_SYSTEM,
         schema=ScopedPlanReview,
     )
@@ -440,6 +447,8 @@ def review_batches(
                 "requirement_index": index,
                 "local_findings": local_index[:64],
                 "omitted_local_findings": max(0, len(local_findings) - 64),
+                "local_acceptance_notes": local_notes[:64],
+                "omitted_local_acceptance_notes": max(0, len(local_notes) - 64),
                 **(
                     {"analysis_gaps": analysis.gaps}
                     if "source_accounting" in task.envelope.inputs.evidence
@@ -469,4 +478,11 @@ def review_batches(
         for result in [*reviews, system]
         for finding in result.findings
     }
-    return ScopedPlanReview(findings=list(unique.values()))
+    unique_notes = {
+        note.model_dump_json(): note
+        for result in [*reviews, system]
+        for note in result.acceptance_notes
+    }
+    return ScopedPlanReview(
+        findings=list(unique.values()), acceptance_notes=list(unique_notes.values())
+    )

@@ -118,16 +118,26 @@ proof of completeness or semantic correctness.
 Review findings target `analysis`, `plan` or `specification`. Repairable errors
 route to analysis/planning with a shared revision maximum. Source ambiguities stay
 visible for an engineer rather than triggering repeated attempts to invent answers.
-Warnings, gaps, extraction warnings and open questions yield `needs_review`.
+Warnings, gaps, extraction warnings, acceptance notes and open questions yield `needs_review`.
 A clean automated result is `draft_ready`; `human_approved` remains false.
 
-New planning reviews use schema 2.0 with defect kind, recommended action and explicit
+New planning reviews use schema 4.0 with defect kind, recommended action and explicit
 item/requirement/source/global/unknown scope. Local scopes require exact quotations
 from the bound specification and a rationale. Python validates references and quoted
 text; neither establishes semantic correctness. Missing obligations can cite sources
 without inventing requirements or scenarios. Local review summaries feed integration
 review, with at most 64 entries and explicit omission counts; all original findings
-remain in the combined review. Historical schema 1.0 readers and exports are retained.
+remain in the combined review. A global finding must account for every plan item
+exactly once, quoting a declared plan field and referencing its source evidence.
+Python rejects missing/duplicate dependencies, fabricated quotations and invalid
+evidence indices; valid references do not prove the causal judgment.
+
+Separate `acceptance_notes` record source provenance or pending engineering review
+without classifying them as executable defects. They require exact source evidence,
+survive batch/system review, and appear in readiness and an Excel worksheet. Global
+dependency details have a separate worksheet. Notes never clear other findings or
+questions and keep planning at `needs_review`. Historical review schemas 1.0 through
+3.0 retain their readers, exports and original blocking semantics.
 
 Immutable JSON artifacts are the recovery checkpoints. On restart, Python replays
 the deterministic stage/revision decisions and validates/reuses completed outputs.
@@ -333,8 +343,9 @@ them until regenerated into a separate bundle with port-width checks. Saved
 results are not changed. Bundles pin the generator and reject relabelled bytes.
 `pipeline-result.json` is separate from the original planning
 result and links each item to its proposal, binding and hashed simulation evidence.
-`execution-readiness-v2` computes per-item eligibility from explicit issue references
-and distinguishes mapped, global and unknown review impact. Version 1 remains readable.
+`execution-readiness-v3` computes per-item eligibility from explicit issue references
+and distinguishes mapped, global and unknown review impact. It retains acceptance
+notes as nonblocking issues; versions 1 and 2 remain readable.
 Plan-local findings stay local; requirement questions and specification/analysis
 findings propagate to every consumer of the affected requirements. Source-only
 findings conservatively map all consumers of those blocks; an unrepresented source
@@ -354,7 +365,12 @@ blockers or establish engineering approval. No new agent role is added.
 An opt-in experimental path leaves these readiness decisions intact and permits
 the existing testbench agent to investigate a case whose only blockers are
 unknown-scope review findings or unclassified analysis gaps. The task receives all
-applicable issues and full original review findings. `testbench-proposal-v3` adds
+applicable issues, full original review findings and review acceptance notes.
+Review and experimental testbench instructions share the execution/acceptance
+policy introduced in prompt 25. Fully stated provisional behavior can support an
+experiment without independent specification compliance or engineering approval.
+Acceptance notes cannot resolve behavioral contradictions, missing values/timing
+or unavailable observations. `testbench-proposal-v3` adds
 case-level assessments with exact issue accounting, source quotations actually
 read, and reasoning about setup as well as expected values. An unresolved issue
 requires `needs_input` without executable steps. Explicit mapped/global findings,

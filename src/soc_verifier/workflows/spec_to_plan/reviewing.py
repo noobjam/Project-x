@@ -71,7 +71,9 @@ def generate_review(
                     "review_scope_directory and exact quotes from bound specification evidence. "
                     "An omitted requirement may use source scope without invented IDs. Use "
                     "unknown scope if impact cannot be established; never silently promote it "
-                    "to global or drop findings solely to pass validation."
+                    "to global or drop findings solely to pass validation. A global claim must "
+                    "account for every plan item with an exact plan-field quote and source "
+                    "evidence indices. Do not invent dependencies to complete that accounting."
                 ),
             },
         }

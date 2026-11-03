@@ -71,6 +71,14 @@ must retain a disposition; narrowing it requires source quotations actually read
 The assessment cannot clear explicit questions or findings. Original evidence remains
 unchanged, and proposed gap classifications still need quality evaluation.
 
+Current reviews use schema 4.0. A global finding must identify every plan item's
+dependency with a quotation from that item's plan fields and supporting source
+evidence. Source provenance and pending sign-off can instead be recorded as
+`acceptance_notes` when they identify no concrete execution defect. These notes
+remain visible in readiness and Excel exports and keep planning at `needs_review`,
+but do not block execution by themselves. Concrete findings and explicit questions
+retain their gates. Historical review schemas 1.0 through 3.0 remain readable.
+
 An explicit `--experimental` run lets the testbench agent investigate cases blocked
 only by unknown-scope review findings or analysis gaps. It must account for every
 such issue and quote source text actually read to justify the independence of the
@@ -80,6 +88,13 @@ warnings retain their execution gates. The original review/readiness remain
 unchanged; a passing experiment does not clear blockers or grant engineering
 acceptance. This mode uses the existing testbench task instead of the separate gap
 classification task, retains the shared budget, and cannot be changed on resume.
+
+Review and experimental testbench instructions share one execution/acceptance
+policy. The testbench task receives the original acceptance notes alongside the
+applicable issues. Explicit provisional source behavior may support an experiment
+when it fully defines the case; a pass then demonstrates agreement with that
+profile. A provenance note cannot resolve a contradiction, supply missing behavior
+or add an unavailable observation. Engineering acceptance remains pending.
 
 Eligible scenarios proceed independently. A testbench proposal can report `needs_input`
 without stopping other eligible items. Non-simulation methods remain unexecuted. A

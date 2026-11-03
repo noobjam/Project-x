@@ -221,11 +221,11 @@ def test_cli_opt_in_is_persisted_and_required_on_resume(
 def test_revised_analysis_keeps_matching_accounting_and_originals(
     tmp_path, specification, accounting_draft, verification_plan, clean_review
 ):
-    from soc_verifier.domain.review import ScopedPlanReview, ScopedReviewFinding
+    from soc_verifier.domain.review import AttributedReviewFinding, ScopedPlanReview
 
     review = ScopedPlanReview(
         findings=[
-            ScopedReviewFinding(
+            AttributedReviewFinding(
                 severity="error",
                 target="analysis",
                 description="Check extraction",

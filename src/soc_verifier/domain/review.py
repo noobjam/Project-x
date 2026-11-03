@@ -93,7 +93,36 @@ class ScopedReviewFinding(Contract):
         return list(dict.fromkeys(ids))
 
 
-class ScopedPlanReview(Contract):
+class GlobalPlanDependency(Contract):
+    plan_item_id: NonEmpty
+    plan_field: Literal[
+        "objective", "preconditions", "stimulus", "expected_results", "environment_needs"
+    ]
+    plan_quote: Annotated[str, Field(min_length=1, max_length=6_000)]
+    evidence_indices: Annotated[list[Annotated[int, Field(strict=True, ge=0)]], Field(min_length=1)]
+    rationale: NonEmpty
+
+
+class AccountedGlobalScope(GlobalScope):
+    evidence: Annotated[list[ReviewEvidence], Field(min_length=1)]
+    dependencies: Annotated[list[GlobalPlanDependency], Field(min_length=1)]
+
+    @model_validator(mode="after")
+    def evidence_references(self) -> Self:
+        for dependency in self.dependencies:
+            indexes = dependency.evidence_indices
+            if len(indexes) != len(set(indexes)):
+                raise ValueError("Duplicate global dependency evidence indices")
+            if any(index >= len(self.evidence) for index in indexes):
+                raise ValueError("Global dependency references an unknown evidence index")
+        return self
+
+
+class AttributedReviewFinding(ScopedReviewFinding):
+    scope: ItemScope | RequirementScope | SourceScope | AccountedGlobalScope | UnknownScope
+
+
+class ScopedPlanReviewV2(Contract):
     schema_version: Literal["2.0"] = "2.0"
     judgment_state: Literal["agent_proposed"] = "agent_proposed"
     findings: list[ScopedReviewFinding]
@@ -106,15 +135,64 @@ class ScopedPlanReview(Contract):
         )
 
 
-type Review = PlanReview | ScopedPlanReview
+class AcceptanceNote(Contract):
+    """A source-backed limit on acceptance, not an unresolved executable obligation."""
+
+    kind: Literal["source_provenance", "pending_engineering_review"]
+    description: NonEmpty
+    rationale: NonEmpty
+    evidence: Annotated[list[ReviewEvidence], Field(min_length=1)]
+
+
+class ScopedPlanReviewV3(Contract):
+    schema_version: Literal["3.0"] = "3.0"
+    judgment_state: Literal["agent_proposed"] = "agent_proposed"
+    findings: list[ScopedReviewFinding]
+    acceptance_notes: list[AcceptanceNote] = Field(default_factory=list)
+
+    @property
+    def needs_revision(self) -> bool:
+        return any(
+            finding.severity == "error" and finding.target != "specification"
+            for finding in self.findings
+        )
+
+
+class ScopedPlanReview(Contract):
+    schema_version: Literal["4.0"] = "4.0"
+    judgment_state: Literal["agent_proposed"] = "agent_proposed"
+    findings: list[AttributedReviewFinding]
+    acceptance_notes: list[AcceptanceNote] = Field(default_factory=list)
+
+    @property
+    def needs_revision(self) -> bool:
+        return any(
+            finding.severity == "error" and finding.target != "specification"
+            for finding in self.findings
+        )
+
+
+type Review = PlanReview | ScopedPlanReviewV2 | ScopedPlanReviewV3 | ScopedPlanReview
+
+
+def acceptance_notes(review: Review) -> list[AcceptanceNote]:
+    return (
+        review.acceptance_notes
+        if isinstance(review, (ScopedPlanReviewV3, ScopedPlanReview))
+        else []
+    )
 
 
 def read_review(data: Any) -> Review:
-    """Read both formats without migrating or clearing historical blockers."""
-    if isinstance(data, (PlanReview, ScopedPlanReview)):
+    """Read all formats without migrating or clearing historical blockers."""
+    if isinstance(data, (PlanReview, ScopedPlanReviewV2, ScopedPlanReviewV3, ScopedPlanReview)):
         return data
     if isinstance(data, dict) and data.get("schema_version", "1.0") == "1.0":
         return PlanReview.model_validate(data)
+    if isinstance(data, dict) and data.get("schema_version") == "2.0":
+        return ScopedPlanReviewV2.model_validate(data)
+    if isinstance(data, dict) and data.get("schema_version") == "3.0":
+        return ScopedPlanReviewV3.model_validate(data)
     return ScopedPlanReview.model_validate(data)
 
 
@@ -123,9 +201,18 @@ def validate_review_context(
 ) -> None:
     sources = {block.id: block.text for block in spec.blocks}
     requirements = {requirement.id for requirement in analysis.requirements}
-    items = {item.id for item in plan.items}
+    items = {item.id: item for item in plan.items}
+    for note in acceptance_notes(review):
+        for evidence in note.evidence:
+            if (
+                evidence.source_id not in sources
+                or evidence.quote not in sources[evidence.source_id]
+            ):
+                raise ValueError(
+                    "Acceptance note evidence must quote an existing source block exactly"
+                )
     for finding in review.findings:
-        if set(finding.item_ids) - items:
+        if set(finding.item_ids) - items.keys():
             raise ValueError("Review references unknown verification item IDs")
         if not isinstance(finding, ScopedReviewFinding):
             continue
@@ -140,6 +227,21 @@ def validate_review_context(
             e.source_id for e in finding.scope.evidence
         }:
             raise ValueError("Every affected source requires supporting evidence")
+        if isinstance(finding.scope, AccountedGlobalScope):
+            ids = [dependency.plan_item_id for dependency in finding.scope.dependencies]
+            if len(ids) != len(set(ids)):
+                raise ValueError("Global dependencies must identify each plan item exactly once")
+            if set(ids) != items.keys():
+                raise ValueError(
+                    "Global dependencies must cover every plan item; "
+                    f"missing={sorted(items.keys() - set(ids))}, "
+                    f"unknown={sorted(set(ids) - items.keys())}"
+                )
+            for dependency in finding.scope.dependencies:
+                value = getattr(items[dependency.plan_item_id], dependency.plan_field)
+                fields = [value] if isinstance(value, str) else value
+                if not any(dependency.plan_quote in text for text in fields):
+                    raise ValueError("Global dependency must quote its declared plan field exactly")
 
 
 def review_impact(

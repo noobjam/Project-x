@@ -19,7 +19,13 @@ from soc_verifier.domain.models import (
     validate_traceability,
 )
 from soc_verifier.domain.passage_accounting import AccountedDisposition, PassageAccounting
-from soc_verifier.domain.review import Review, ScopedReviewFinding, validate_review_context
+from soc_verifier.domain.review import (
+    AccountedGlobalScope,
+    Review,
+    ScopedReviewFinding,
+    acceptance_notes,
+    validate_review_context,
+)
 from soc_verifier.domain.source_audit import SourceAudit
 
 
@@ -102,6 +108,8 @@ def export_plan(
         if isinstance(finding, ScopedReviewFinding)
         for source in finding.source_ids
     )
+    notes = acceptance_notes(review)
+    used_sources.update(e.source_id for note in notes for e in note.evidence)
     for block in specification.blocks:
         if block.id in used_sources:
             _row(
@@ -159,6 +167,48 @@ def export_plan(
                 ),
             ],
         )
+
+    if notes:
+        acceptance = workbook.create_sheet("Acceptance notes")
+        _row(acceptance, ["Kind", "Description", "Rationale", "Evidence", "Judgment", "Approval"])
+        for note in notes:
+            _row(
+                acceptance,
+                [
+                    note.kind,
+                    note.description,
+                    note.rationale,
+                    "\n".join(f"{e.source_id}: {e.quote}" for e in note.evidence),
+                    "agent_proposed",
+                    "Pending human review",
+                ],
+            )
+
+    dependencies = [
+        (index, finding, dependency)
+        for index, finding in enumerate(review.findings)
+        if isinstance(finding, ScopedReviewFinding)
+        and isinstance(finding.scope, AccountedGlobalScope)
+        for dependency in finding.scope.dependencies
+    ]
+    if dependencies:
+        sheet = workbook.create_sheet("Global dependencies")
+        _row(sheet, ["Finding", "Item ID", "Plan field", "Plan quote", "Evidence", "Rationale"])
+        for index, finding, dependency in dependencies:
+            _row(
+                sheet,
+                [
+                    f"review:{index}",
+                    dependency.plan_item_id,
+                    dependency.plan_field,
+                    dependency.plan_quote,
+                    "\n".join(
+                        f"{finding.scope.evidence[i].source_id}: {finding.scope.evidence[i].quote}"
+                        for i in dependency.evidence_indices
+                    ),
+                    dependency.rationale,
+                ],
+            )
 
     if task_metadata is not None:
         metadata = workbook.create_sheet("Run metadata")

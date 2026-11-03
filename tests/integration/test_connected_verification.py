@@ -66,6 +66,7 @@ def harness(tmp_path, specification, analysis, verification_plan, knowledge_snap
         use_knowledge=True,
         change=None,
         review=None,
+        review_outputs=None,
         rtl=RTL,
         plan_output=None,
         analysis_output=None,
@@ -200,6 +201,8 @@ def harness(tmp_path, specification, analysis, verification_plan, knowledge_snap
                 "testbench": proposal,
                 "gap_scope": gap_output,
             }[role]
+            if role == "reviewer" and review_outputs:
+                output = review_outputs.pop(0).model_dump()
             if role == "testbench" and proposal_outputs:
                 user = next(m for m in payload["input"] if m.get("role") == "user")
                 content = user["content"]
@@ -445,7 +448,22 @@ endmodule""",
     assert len(run.requests) == 17
 
 
-def test_planning_findings_block_testbench_and_simulation(harness, specification):
+def global_dependencies(plan):
+    return [
+        {
+            "plan_item_id": item.id,
+            "plan_field": "stimulus",
+            "plan_quote": item.stimulus[0],
+            "evidence_indices": [0],
+            "rationale": "The scenario's reset stimulus depends on the common setup definition.",
+        }
+        for item in plan.items
+    ]
+
+
+def test_planning_findings_block_testbench_and_simulation(
+    harness, specification, verification_plan
+):
     review = ScopedPlanReview.model_validate(
         {
             "findings": [
@@ -457,7 +475,10 @@ def test_planning_findings_block_testbench_and_simulation(harness, specification
                     "scope": {
                         "kind": "global",
                         "rationale": "Every case depends on this setup.",
-                        "evidence": [],
+                        "evidence": [
+                            {"source_id": "P00001", "quote": specification.blocks[0].text}
+                        ],
+                        "dependencies": global_dependencies(verification_plan),
                     },
                     "description": "Reset polarity needs a design decision",
                 }
@@ -513,12 +534,60 @@ def test_item_finding_blocks_only_its_scenario(
     assert len(run.requests) == 17
 
 
+@pytest.mark.parametrize("corrected", [True, False])
+def test_partial_global_claim_requires_correction_before_independent_simulation(
+    harness, specification, verification_plan, corrected
+):
+    first = verification_plan.items[0]
+    second = first.model_copy(update={"id": "INSPECT", "method": "inspection"})
+    plan = verification_plan.model_copy(update={"items": [first, second]})
+    finding = {
+        "severity": "warning",
+        "target": "plan",
+        "kind": "execution_binding",
+        "description": "The inspection requires an unavailable observation.",
+        "recommended_action": "Retain the inspection dependency for owner review.",
+        "scope": {
+            "kind": "global",
+            "rationale": "Only INSPECT needs this observation; the simulation is independent.",
+            "evidence": [{"source_id": "P00001", "quote": specification.blocks[0].text}],
+            "dependencies": global_dependencies(plan)[1:],
+        },
+    }
+    invalid = ScopedPlanReview.model_validate({"findings": [finding]})
+    local_scope = {k: v for k, v in finding["scope"].items() if k != "dependencies"}
+    local_scope.update(kind="items", item_ids=[second.id])
+    local = ScopedPlanReview.model_validate({"findings": [{**finding, "scope": local_scope}]})
+    run = harness(
+        plan_output=plan,
+        review_outputs=[invalid, local if corrected else invalid],
+    )
+    if corrected:
+        result = run.workflow.run(specification)
+        assert result["status"] == "partial"
+        assert len(result["cases"]) == 1
+        assert result["cases"][0]["plan_item_id"] == first.id
+        assert result["cases"][0]["status"] == "passed"
+        assert result["unsupported_item_ids"] == [second.id]
+        assert run.artifacts.read("review.r000.json") == local.model_dump()
+    else:
+        with pytest.raises(ValueError, match="Global dependencies must cover every plan item"):
+            run.workflow.run(specification)
+        assert not run.artifacts.exists("review.r000.json")
+        assert not run.artifacts.exists("readiness.json")
+        assert not run.artifacts.exists("testbench.000.task.json")
+    review_requests = [r for r in run.requests if r["instructions"] == instructions.REVIEW]
+    assert any(
+        "Global dependencies must cover every plan item" in json.dumps(r["input"])
+        for r in review_requests
+    )
+
+
 @pytest.mark.parametrize(
     "scope_kind,rtl,expected",
     [
         ("requirements", RTL, "partial"),
         ("requirements", RTL.replace("pending <= 0", "pending <= 1"), "failed"),
-        ("global", RTL, "blocked"),
         ("unknown", RTL, "blocked"),
     ],
 )
@@ -578,8 +647,8 @@ def test_requirement_scoped_review_through_sdk_and_simulator(
     run = harness(review=review, plan_output=plan, analysis_output=analysis, rtl=rtl)
     result = run.workflow.run(specification)
     assert result["status"] == expected
-    assert run.artifacts.read("review.r000.json")["schema_version"] == "2.0"
-    assert run.artifacts.read("readiness.json")["format"] == "execution-readiness-v2"
+    assert run.artifacts.read("review.r000.json")["schema_version"] == "4.0"
+    assert run.artifacts.read("readiness.json")["format"] == "execution-readiness-v3"
     reviewer_request = next(
         r
         for r in run.requests
@@ -668,6 +737,81 @@ def unknown_observation_review():
     )
 
 
+@pytest.mark.parametrize("experimental", [False, True])
+@pytest.mark.parametrize("conflict", [False, True])
+def test_acceptance_note_survives_connected_run_without_waiving_a_conflict(
+    harness, specification, verification_plan, experimental, conflict
+):
+    source = specification.blocks[0]
+    spec = specification.model_copy(
+        update={
+            "blocks": [
+                source.model_copy(update={"text": source.text + " Engineering review is pending."})
+            ]
+        }
+    )
+    review = ScopedPlanReview.model_validate(
+        {
+            "findings": [
+                {
+                    "severity": "warning",
+                    "target": "specification",
+                    "kind": "timing",
+                    "description": "Synthetic reset-timing conflict remains unresolved.",
+                    "recommended_action": "Resolve the reset sampling edge.",
+                    "scope": {
+                        "kind": "global",
+                        "rationale": "All test setups require reset.",
+                        "evidence": [{"source_id": source.id, "quote": source.text}],
+                        "dependencies": global_dependencies(verification_plan),
+                    },
+                }
+            ]
+            if conflict
+            else [],
+            "acceptance_notes": [
+                {
+                    "kind": "pending_engineering_review",
+                    "description": "Engineering review is pending.",
+                    "rationale": "Sign-off alone does not identify a missing test input.",
+                    "evidence": [
+                        {"source_id": source.id, "quote": "Engineering review is pending."}
+                    ],
+                }
+            ],
+        }
+    )
+    run = harness(
+        review=review,
+        change=(lambda p: p.update(experimental_proposal(spec, []))) if experimental else None,
+    )
+    run.workflow.experimental = experimental
+    result = run.workflow.run(spec)
+    assert result["status"] == ("blocked" if conflict else "passed")
+    assert len(result["cases"]) == (0 if conflict else 1)
+    assert result["human_approved"] is False
+    if experimental:
+        assert result["engineering_acceptance"] == "pending"
+    readiness = run.artifacts.read("readiness.json")
+    notes = [i for i in readiness["issues"] if i["kind"] == "acceptance_note"]
+    assert len(notes) == 1 and notes[0]["blocking"] is False
+    assert "acceptance_note:0 (note)" in run.artifacts.path("pipeline-summary.txt").read_text()
+    assert run.artifacts.read("result.json")["status"] == "needs_review"
+    assert run.artifacts.read("result.json")["revision"] == 0
+    saved = run.artifacts.read(run.artifacts.read("result.json")["review_artifact"])
+    assert saved == review.model_dump()
+    if conflict:
+        assert not run.artifacts.exists("testbench.000.json")
+        assert not any(
+            r["instructions"]
+            in {instructions.BUILD_TESTBENCH, instructions.BUILD_EXPERIMENTAL_TESTBENCH}
+            for r in run.requests
+        )
+    else:
+        assert result["cases"][0]["status"] == "passed"
+        assert result["cases"][0]["checks_observed"] > 0
+
+
 def experimental_proposal(specification, issue_ids):
     return {
         "format": "testbench-proposal-v3",
@@ -684,6 +828,92 @@ def experimental_proposal(specification, issue_ids):
             for identifier in issue_ids
         ],
     }
+
+
+@pytest.mark.parametrize("concrete_gap", [False, True])
+def test_experimental_handoff_keeps_acceptance_notes_and_original_case_issues(
+    harness, specification, analysis, concrete_gap
+):
+    provenance = "This profile is implementation-derived; engineering review is pending."
+    missing = "The reset-clearing edge is not defined by this profile."
+    block = specification.blocks[0]
+    source = specification.model_copy(
+        update={
+            "blocks": [
+                block.model_copy(
+                    update={
+                        "text": f"{block.text} {provenance}"
+                        + (f" {missing}" if concrete_gap else "")
+                    }
+                )
+            ]
+        }
+    )
+    note = {
+        "kind": "source_provenance",
+        "description": provenance,
+        "rationale": "A profile-specific experiment is distinct from independent compliance.",
+        "evidence": [{"source_id": block.id, "quote": provenance}],
+    }
+    review = ScopedPlanReview.model_validate(
+        {
+            "acceptance_notes": [note],
+            "findings": [
+                {
+                    "target": "specification",
+                    "severity": "warning",
+                    "kind": "timing",
+                    "description": missing,
+                    "recommended_action": "Obtain the missing reset timing before checking it.",
+                    "scope": {
+                        "kind": "unknown",
+                        "rationale": "The required reset observation edge is unresolved.",
+                        "evidence": [{"source_id": block.id, "quote": missing}],
+                    },
+                }
+            ]
+            if concrete_gap
+            else [],
+        }
+    )
+    case_issues = (["review:0"] if concrete_gap else []) + ["analysis_gap:0"]
+    fixture = experimental_proposal(source, case_issues)
+    if concrete_gap:
+        fixture["issue_assessments"][0]["disposition"] = "needs_input"
+        fixture.update(status="needs_input", initial_inputs=[], steps=[], open_questions=[missing])
+    run = harness(
+        review=review,
+        analysis_output=analysis.model_copy(update={"gaps": [provenance]}),
+        change=lambda proposal: proposal.update(fixture),
+    )
+    run.workflow.experimental = True
+    result = run.workflow.run(source)
+    request = next(
+        request
+        for request in run.requests
+        if request["instructions"] == instructions.BUILD_EXPERIMENTAL_TESTBENCH
+    )
+    review_request = next(
+        request for request in run.requests if request["instructions"] == instructions.REVIEW
+    )
+    for role_request in (review_request, request):
+        assert role_request["instructions"].count(instructions.EXECUTION_ACCEPTANCE_POLICY) == 1
+    user = next(message for message in request["input"] if message.get("role") == "user")
+    content = user["content"]
+    text = content if isinstance(content, str) else "".join(part["text"] for part in content)
+    context = json.loads(text.split("\nDeclared hardware configuration")[0])
+    assert context["review_acceptance_notes"] == [note]
+    assert [issue["id"] for issue in context["execution_issues"]] == case_issues
+    assert context["execution_issues"][-1]["description"] == provenance
+    readiness = run.artifacts.read("readiness.json")
+    assert next(i for i in readiness["issues"] if i["id"] == "analysis_gap:0")["blocking"]
+    assert not next(i for i in readiness["issues"] if i["id"] == "acceptance_note:0")["blocking"]
+    assert readiness["items"][0]["status"] == "blocked"
+    assert result["cases"][0]["status"] == ("needs_input" if concrete_gap else "passed")
+    assert result["human_approved"] is False and result["engineering_acceptance"] == "pending"
+    assert run.artifacts.read("analysis.json")["gaps"] == [provenance]
+    assert run.artifacts.read("review.r000.json") == review.model_dump()
+    assert run.artifacts.exists("simulation.000.json") is (not concrete_gap)
 
 
 def test_experimental_case_can_execute_without_clearing_unknown_review_or_gap(
@@ -923,7 +1153,7 @@ def test_gap_evidence_must_have_been_read_not_merely_exist(
 
 @pytest.mark.parametrize("experimental", [False, True])
 def test_known_global_blocker_avoids_unnecessary_gap_model_calls(
-    harness, specification, analysis, experimental
+    harness, specification, analysis, verification_plan, experimental
 ):
     review = ScopedPlanReview.model_validate(
         {
@@ -936,7 +1166,10 @@ def test_known_global_blocker_avoids_unnecessary_gap_model_calls(
                     "scope": {
                         "kind": "global",
                         "rationale": "Every case depends on this setup.",
-                        "evidence": [],
+                        "evidence": [
+                            {"source_id": "P00001", "quote": specification.blocks[0].text}
+                        ],
+                        "dependencies": global_dependencies(verification_plan),
                     },
                     "description": "Clock definition is unresolved for every scenario",
                 }
